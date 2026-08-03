@@ -53,9 +53,9 @@ md2wechat themes list --json
 - `spring-fresh` — 春日清新，绿色调（轻松话题/教程入门）
 - `custom` — 配合 `--custom-prompt` 使用用户自己的排版指令
 
-除了 CLI 内置主题，本 skill 还自带一批**扩展主题**（水墨极简、铅字报纸、代码编辑器、咖啡手帐、莫兰迪雾、鎏金墨黑、暮紫、包豪斯撞色）。完整清单和选择建议读 [references/theme-prompts/INDEX.md](references/theme-prompts/INDEX.md)——它同时说明了两类主题的用法差异：内置主题走步骤 4 的 CLI convert；**扩展主题跳过 convert**，生成时把 `theme-prompts/_common-tech.md` + 主题文件 + 文章原文一起交给生成流程（步骤 5），元数据检查仍照步骤 2 执行。
+除了 CLI 内置主题，本 skill 还自带一批**扩展主题**，覆盖从水墨极简到包豪斯撞色、从苹果留白到午夜暗色的不同气质。清单以 [references/theme-prompts/INDEX.md](references/theme-prompts/INDEX.md) 为准（不要背名单，主题会持续增补）——它同时说明了两类主题的用法差异：内置主题走步骤 4 的 CLI convert；**扩展主题跳过 convert**，生成时把 `theme-prompts/_common-tech.md` + 主题文件 + 文章原文一起交给生成流程（步骤 5），元数据检查仍照步骤 2 执行。
 
-用户没指定主题时，根据文章调性从两类主题中一并推荐（如技术教程推 `editor-slate`，商业分析推 `gilded-ink`），简短说明理由；用户明确说了就直接用。**不要给 CLI 传 `default` 等 api 主题或扩展主题名**——前者报 `THEME_MODE_MISMATCH`，后者 CLI 不认识。
+用户没指定主题时，读 INDEX.md 按文章调性从两类主题中一并推荐（如技术教程推 `editor-slate`，商业分析推 `gilded-ink`），简短说明理由；用户明确说了就直接用。**不要给 CLI 传 `default` 等 api 主题或扩展主题名**——前者报 `THEME_MODE_MISMATCH`，后者 CLI 不认识。暗色扩展主题按 INDEX.md 的说明做双模式手机预览。
 
 ### 步骤 4：获取排版指令
 
