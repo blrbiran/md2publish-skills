@@ -48,12 +48,12 @@ md2wechat themes list --json
 
 过滤 `type == "ai"` 且 `selectable == true`。当前版本通常是：
 
-- `autumn-warm` — 秋日暖光，橙色调，温暖治愈（默认推荐）
-- `ocean-calm` — 深海静谧，蓝色调，理性专业（技术/分析类文章）
-- `spring-fresh` — 春日清新
+- `autumn-warm` — 秋日暖光，橙色调，温暖治愈（生活方式/随笔/人文）
+- `ocean-calm` — 深海静谧，蓝色调，理性专业（技术/分析/行业观察）
+- `spring-fresh` — 春日清新，绿色调（轻松话题/教程入门）
 - `custom` — 配合 `--custom-prompt` 使用用户自己的排版指令
 
-用户没指定主题时，根据文章调性推荐一个并简短说明理由；用户明确说了就直接用。**不要用 `default` 等 api 主题**——AI 模式会报 `THEME_MODE_MISMATCH`。
+三个内置主题的设计指令快照在 [references/theme-prompts/](references/theme-prompts/)，选主题时可读它们了解具体配色和版式差异。用户没指定主题时，根据文章调性推荐一个并简短说明理由；用户明确说了就直接用。**不要用 `default` 等 api 主题**——AI 模式会报 `THEME_MODE_MISMATCH`。
 
 ### 步骤 4：获取排版指令
 
@@ -61,7 +61,9 @@ md2wechat themes list --json
 md2wechat convert <article.md> --mode ai --theme <theme> --json
 ```
 
-成功返回 `code: "CONVERT_AI_REQUEST_READY"`、`status: "action_required"`，排版设计指令在 `data.prompt`。这一步 CLI 不产 HTML——**生成 HTML 是你的工作**。
+成功返回 `code: "CONVERT_AI_REQUEST_READY"`、`status: "action_required"`，排版设计指令在 `data.prompt`。其结构是「主题设计指令 + `请转换以下 Markdown内容：` + 文章原文」。这一步 CLI 不产 HTML——**生成 HTML 是你的工作**。
+
+CLI 不可用或版本不符时的兜底：用 `references/theme-prompts/<theme>.md` 里的快照指令 + 文章原文替代 `data.prompt`（快照基于 3.2.0，运行时输出永远优先）。
 
 ### 步骤 5：生成 HTML
 
