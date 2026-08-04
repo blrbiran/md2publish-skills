@@ -38,3 +38,5 @@
 暗色主题（cyber-neon / midnight-study / velvet-stage / retro-phosphor）发布前须在微信 App 深色和浅色两种模式下各做一次手机预览——App 可能对颜色做映射，且暗色主题任何一处漏写亮色 `color` 都会变成黑底黑字。
 
 选主题时读对应文件看完整视觉规范。扩展主题文件结构统一：定位引言 → 色彩系统 → 卡片/容器 → 标题体系 → 正文与强调 → 引用/代码/列表/表格/分隔。
+
+新增或修改主题前，先读 [docs/theme-design-lessons.md](../../../../docs/theme-design-lessons.md)：强调色必须有高频落点、大面积元素要有内部规范、调色板不留死色、黑白必须是显式声明的设计——这些规则来自真实翻车（editor-slate 黑白化事故）。

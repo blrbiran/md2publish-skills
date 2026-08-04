@@ -24,7 +24,8 @@ Apple 产品页的呼吸感：没有卡片、没有边框、没有任何一根�
 
 ## 标题体系
 
-- h2：字号跳变制造层级——`font-size: 26px; font-weight: 700; color: #1d1d1f; text-align: left; margin: 56px 0 20px; letter-spacing: 0`（无任何装饰，就是大和粗）
+- **eyebrow 引导语（蓝色的保底落点）**：每个 h2 上方放一行小号蓝字引导语——`font-size: 13px; font-weight: 600; color: #0071e3; letter-spacing: 1px; margin: 56px 0 8px; text-align: left`，内容从该节主旨提炼 2–6 字（如"性能"、"为什么重要"）。这是 Apple 产品页的真实模式，也是本主题蓝色的结构性落点：**没有它，全篇会退化成黑白灰**（em 在中文文章里几乎不出现，不能指望它带出蓝色）
+- h2：字号跳变制造层级——`font-size: 26px; font-weight: 700; color: #1d1d1f; text-align: left; margin: 0 0 20px; letter-spacing: 0`（无任何装饰，就是大和粗；上边距已由 eyebrow 承担）
 - h3：`font-size: 18px; font-weight: 600; color: #1d1d1f; text-align: left; margin: 32px 0 12px`
 
 ## 正文与强调
@@ -32,7 +33,9 @@ Apple 产品页的呼吸感：没有卡片、没有边框、没有任何一根�
 - 段落：`font-size: 16px; line-height: 1.7; color: #1d1d1f; margin: 0 0 18px; text-align: left`
 - 次要说明段（如参数、注脚性内容）：`font-size: 14px; color: #6e6e73`
 - strong：`color: #1d1d1f; font-weight: 700`（不变色——黑就是强调）
-- em / 关键短语：`color: #0071e3`（全文蓝色出现不超过 6 处，蓝是稀缺品）
+- em / 关键短语：`color: #0071e3`
+- 关键数字/数据：`color: #0071e3; font-weight: 700`（keynote 式的数据强调）
+- 蓝色预算：eyebrow 之外（em + 关键数字合计）不超过 6 处，蓝是稀缺品；但 eyebrow 保证每节至少一处蓝，这是下限
 
 ## 引用 / 代码 / 列表 / 表格
 
@@ -43,4 +46,6 @@ Apple 产品页的呼吸感：没有卡片、没有边框、没有任何一根�
 
 ## 分寸提醒
 
-这个主题的失败方式只有一种：加东西。没有分隔线、没有图标前缀、没有色块。犹豫要不要加装饰时，答案永远是不加。
+这个主题有两种失败方式：一是加东西——没有分隔线、没有图标前缀、没有色块，犹豫要不要加装饰时答案永远是不加；二是**黑白化**——把克制执行成全篇无蓝（eyebrow 漏做、数字不上色）。克制指的是装饰，不是颜色归零。
+
+技术文代码块多时不适合本主题（代码块刻意素色、无语法高亮），建议改用 `editor-slate`。
