@@ -5,9 +5,16 @@
 ## 工作流
 
 ```
-article.md
+article.md（tech-writer → tech-writer-deslop 产出的成稿）
    │
    ▼
+┌─────────────────────┐
+│   wechat-finetune   │  重拟标题 / 删难懂与无关 / 开篇钩子
+│   公众号平台适配     │  段落切短 / frontmatter 元数据
+│   (零副作用)        │  原文不动，另存
+└─────────┬───────────┘
+          │  article.wechat.md
+          ▼
 ┌─────────────────────┐     ┌─────────────────────┐
 │  md2publish-article │     │  md2publish-images  │
 │  md → 内联样式 HTML  │     │  封面图/信息图       │
@@ -23,8 +30,11 @@ article.md
           └─────────────────────┘
 ```
 
+`wechat-finetune` 之前的两步在另一个仓库（`~/code/skills/runskills/skills/`）：`tech-writer` 管读者懂不懂，`tech-writer-deslop` 管像不像 AI 写的，`wechat-finetune` 管适不适合公众号这个平台。三者判据不重叠，顺序不能反。
+
 | Skill | 职责 | 副作用 | 凭证要求 |
 |---|---|---|---|
+| `wechat-finetune` | 成稿 → 公众号版 Markdown（标题/精简/元数据） | 无（原文不改，另存） | 无 |
 | `md2publish-article` | Markdown → 微信内联样式 HTML | 无 | 无 |
 | `md2publish-images` | 封面/信息图（计划模式交宿主 Agent 生成） | 无 | 无 |
 | `md2publish-draft` | 上传图片 + 创建草稿（确认后执行） | 写微信素材库、草稿箱 | WECHAT_APPID/SECRET + IP 白名单 |

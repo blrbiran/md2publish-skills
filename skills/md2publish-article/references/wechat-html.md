@@ -85,6 +85,18 @@ if re.search(r'\n\s*\n', html):
     fails.append('块之间存在连续空行')
 if re.search(r'<(style|script|iframe)[\s>]', html):
     fails.append('存在 style/script/iframe 标签')
+if re.search(r'<h1[\s>]', html, re.I):
+    fails.append('正文渲染了 <h1>：标题只进元数据注释的 title，编辑器会另行显示，正文里是重复')
+m = re.search(r'<!--\s*md2publish\s*(\{.*?\})\s*-->', html, re.S)
+if not m:
+    fails.append('缺少 <!-- md2publish {...} --> 元数据注释')
+else:
+    import json
+    try:
+        if not json.loads(m.group(1)).get('title'):
+            fails.append('元数据注释里 title 为空')
+    except json.JSONDecodeError:
+        fails.append('元数据注释不是合法 JSON')
 paras = re.findall(r'<p[^>]*>', html)
 no_align = [p for p in paras if 'text-align' not in p]
 if no_align:

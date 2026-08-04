@@ -36,7 +36,9 @@ md2wechat inspect <article.md> --mode ai --theme <theme> --json
 - 作者 ≤ 16 字符
 - 摘要 ≤ 128 字符
 
-元数据来源优先级：frontmatter（`title` / `author` / `digest`，摘要也接受 `summary` / `description`）→ 正文首个 Markdown 标题。缺摘要不阻塞转换，但要提醒用户建草稿前需要补上。超限时直接告诉用户超了多少，给出压缩建议，不要静默截断。
+元数据来源优先级：frontmatter（`title` / `author` / `digest`，摘要也接受 `summary` / `description`）→ 正文首个 Markdown 标题（H1）。缺摘要不阻塞转换，但要提醒用户建草稿前需要补上。超限时直接告诉用户超了多少，给出压缩建议，不要静默截断。
+
+**标题只进元数据，不进正文 HTML。** 公众号的文章标题由草稿的 `title` 字段承载，编辑器会在正文上方单独渲染它；正文 HTML 里再出现一次就是重复标题，读者看到的是同一句话连着出现两遍。所以不论标题来自 frontmatter 还是正文 H1，步骤 5 生成 HTML 时都**不渲染 H1**，正文从第一段（或第一个 H2）开始。文章内部的 H2/H3 层级照常渲染，不需要因为去掉 H1 而整体上提。
 
 ### 步骤 3：选主题
 
@@ -53,6 +55,8 @@ md2wechat inspect <article.md> --mode ai --theme <theme> --json
 ### 步骤 5：生成 HTML
 
 严格按 `data.prompt` 里的设计指令，结合文章内容生成完整 HTML。指令覆盖配色和视觉风格，但**没有覆盖微信编辑器的粘贴陷阱**——生成前必须先读 [references/wechat-html.md](references/wechat-html.md)，其中五条铁律（代码块 `<br>`+`&nbsp;` 转义、显式 `text-align: left`、用 `<p>` 模拟列表、块间不留空行、纯内联样式）每条都对应真实翻车案例，与 `data.prompt` 冲突时以铁律为准。
+
+承步骤 2：**正文 H1 不渲染**。主题文件里若有 h1 的样式规范，那是给"万一需要"准备的，正常流程用不到——标题走草稿元数据。
 
 关于源文件里的 `:::module` 语法（hero / callout 等高级排版块）：免费模式没有 renderer 解析它们。**不要原样输出 `:::` 文本**——把模块内容理解成语义（引用、要点卡、结语等），用主题风格的内联样式 HTML 手工表达出来，并在完成后告知用户"高级排版模块是按语义手工降级渲染的，效果与付费 API 模式不同"。
 
