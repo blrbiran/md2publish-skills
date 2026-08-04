@@ -94,6 +94,24 @@ main = re.search(r'<div[^>]*>', html)
 if main and 'background' in main.group() and re.search(r'max-width:\s*\d+px', main.group()):
     fails.append('主容器同时有 background 和 max-width：背景会被夹成 800px 宽，两边露白。'
                  '背景挂主 div（不限宽），定宽挂内容块')
+def _eff_margin(style):
+    ml = mr = '0'
+    for decl in style.split(';'):
+        if ':' not in decl: continue
+        p, v = [x.strip() for x in decl.split(':', 1)]
+        if p == 'margin':
+            q = v.split()
+            if len(q) == 1: ml = mr = q[0]
+            elif len(q) in (2, 3): ml = mr = q[1]
+            elif len(q) == 4: mr, ml = q[1], q[3]
+        elif p == 'margin-left': ml = v
+        elif p == 'margin-right': mr = v
+    return ml, mr
+boxed = re.findall(r'style="([^"]*max-width:\s*\d+px[^"]*)"', html)
+off_center = [s for s in boxed if _eff_margin(s) != ('auto', 'auto')]
+if off_center:
+    fails.append(f'{len(off_center)}/{len(boxed)} 个定宽块没有水平居中：主题样式里的 margin 简写'
+                 f'覆盖了 margin-left/right: auto，内容会贴在左边。定宽居中要拼在主题样式之后')
 if re.search(r'<h1[\s>]', html, re.I):
     fails.append('正文渲染了 <h1>：标题只进元数据注释的 title，编辑器会另行显示，正文里是重复')
 m = re.search(r'<!--\s*md2publish\s*(\{.*?\})\s*-->', html, re.S)

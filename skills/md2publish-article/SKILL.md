@@ -66,6 +66,8 @@ md2wechat inspect <article.md> --mode ai --theme <theme> --json
 <!-- md2publish {"title":"...","author":"...","digest":"...","source":"article.md"} -->
 ```
 
+生成用 `scripts/md2html.py` 做机械层（转义/`&nbsp;`/`<br>`/高亮/结构包裹/定宽），你只写主题配置 `theme.json` 和做语义判断——用法见 `_common-tech.md` 的「生成方式」节。不要另写转换脚本。
+
 ### 步骤 6：机械自检（不可跳过）
 
 跑 [references/wechat-html.md](references/wechat-html.md) 末尾的自检脚本。它检查裸换行代码块、justify、原生列表标签、空段落、连续空行、缺失的 text-align/color——这些问题在浏览器预览里看不出来，只在粘贴进微信后台或手机预览时爆发。任何一项 FAIL 都要修复后重跑，直到 PASS 才能交付。
