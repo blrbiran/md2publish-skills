@@ -33,6 +33,7 @@
 - 段落：`font-size: 15.5px; line-height: 1.9; color: #e8dcd2; margin: 0 0 18px; text-align: left`
 - strong：`color: #c9a36a; font-weight: 600`
 - em / 作品名、台词引语：`color: #96857e`
+- 次级灰褐 `#96857e` 的保底落点：图注、署名、注释性小字、表格里的次要列。中文文章里 em 可能整篇为零，只挂在 em 上等于把这个色声明成死色
 
 ## 引用 / 代码 / 列表 / 表格
 

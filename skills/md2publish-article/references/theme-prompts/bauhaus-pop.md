@@ -35,8 +35,10 @@
 ## 引用 / 代码 / 列表 / 表格
 
 - 引用块：`background-color: #f8e8c4; border-left: 4px solid #171614; padding: 14px 18px; margin: 0 0 16px; color: #171614; font-size: 15px; font-weight: 500; text-align: left`
-- 代码块：`<pre>` 底 `#171614`、文字 `#f4f1ea`、`border-radius: 0; padding: 16px; font-size: 13px`（黑块，和卡片形成正负形）；行内 code：底 `#171614`、文字 `#f0a500`、`padding: 2px 6px`
-- 列表前缀轮换三原色方块：`<span style="color: #be1e2d;">■</span>&nbsp;&nbsp;`，依次红→蓝→黄循环（同一列表内轮换）
+- 代码块：`<pre>` 底 `#171614`、文字 `#f4f1ea`、`border-radius: 0; padding: 16px; font-size: 13px`（黑块，和卡片形成正负形）
+- **代码块内语法高亮**：注释 `#9a958c`、字符串/值 `#f0a500`、关键字 `#f4f1ea` 加 `font-weight: 700`，其余保持默认字色，一行不超过 3 类。**红 `#be1e2d` 和蓝 `#1e5aa8` 不进代码块**——在墨黑底上只有 2.94:1 和 2.65:1，达不到可读标准。三原色留给列表前缀、卡片色块这些大块面
+- 行内 code：底 `#f8e8c4`、文字 `#171614`、`padding: 1px 5px`。**不要用墨黑底**——技术文里行内 code 有一两百处，深色实心块在正文里像贴满补丁，且手机窄屏断行时会从中间裂成两截（实测 193 处里 47 处断行）
+- 列表前缀轮换三原色方块：`<span style="color: #be1e2d;">■</span>&nbsp;&nbsp;`，依次红→蓝→黄循环（同一列表内轮换）。**黄色这一档的小符号用深一档的琥珀 `#b87700`**——纯黄 `#f0a500` 在白卡上只有 2.08:1，红蓝两档是 6.15 和 6.81，三个方块并排时黄的那个基本看不见。**黄色按尺寸分工**：大面积色块、黑底上的文字用 `#f0a500`（招牌色，在深色上很亮），白底上的小符号用 `#b87700`（3.7:1，过图形元素的 3:1 线）
 - 表格：表头 `background-color: #171614; color: #f4f1ea`，单元格 `border: 2px solid #171614; padding: 9px 11px; font-size: 14px`
 
 ## 分寸提醒

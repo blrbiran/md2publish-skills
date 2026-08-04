@@ -35,6 +35,7 @@ SaaS 产品发布页的现代感：底子是安静的浅灰紫，渐变只出现
 - 段落：`font-size: 15.5px; line-height: 1.8; color: #33344a; margin: 0 0 16px; text-align: left`
 - strong：`color: #6a5cff; font-weight: 700`
 - em / 数据亮点：`color: #38c6d9; font-weight: 600`（紫管重点、青管数据，分工不混）
+- 次级灰 `#8688a3` 的落点：图注、引用块文字、次要说明段、代码块内的注释。**必须真的用上**——声明了却在组件规范里找不到落点的颜色等于不存在
 
 ## 引用 / 代码 / 列表 / 表格
 

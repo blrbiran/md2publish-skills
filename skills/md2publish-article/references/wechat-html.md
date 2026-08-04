@@ -85,6 +85,15 @@ if re.search(r'\n\s*\n', html):
     fails.append('块之间存在连续空行')
 if re.search(r'<(style|script|iframe)[\s>]', html):
     fails.append('存在 style/script/iframe 标签')
+bad_quotes = [t for t in re.findall(r'<[a-zA-Z][^>]*>', html) if t.count('"') % 2]
+if bad_quotes:
+    fails.append(f'{len(bad_quotes)} 个标签内引号不配对（style 属性被截断，整段样式会失效）：{bad_quotes[0][:60]}')
+if not re.search(r'max-width:\s*\d+px', html):
+    fails.append('内容块缺 max-width：公众号电脑端是定宽渲染，不加会铺满整屏')
+main = re.search(r'<div[^>]*>', html)
+if main and 'background' in main.group() and re.search(r'max-width:\s*\d+px', main.group()):
+    fails.append('主容器同时有 background 和 max-width：背景会被夹成 800px 宽，两边露白。'
+                 '背景挂主 div（不限宽），定宽挂内容块')
 if re.search(r'<h1[\s>]', html, re.I):
     fails.append('正文渲染了 <h1>：标题只进元数据注释的 title，编辑器会另行显示，正文里是重复')
 m = re.search(r'<!--\s*md2publish\s*(\{.*?\})\s*-->', html, re.S)

@@ -35,7 +35,9 @@
 ## 引用 / 代码 / 列表 / 表格
 
 - 引用块：`background-color: #e8f0f8; border-left: 5px solid #4a7c9b; box-shadow: inset 0 0 12px rgba(74,124,155,0.08); padding: 16px 20px; margin: 0 0 16px; color: #5a6472; font-size: 15px; line-height: 1.8; text-align: left`
-- 代码块：`<pre>` 底 `#eef3f8`、文字 `#3a4150`、`border: 1px solid rgba(74,124,155,0.2); border-radius: 10px; padding: 16px 18px; font-size: 13.5px`；**代码内注释用 `#8a95a5`、字符串/值/键名用 `#3d6a8a` 做轻量高亮**（其余保持默认色，一行不超过 2 类上色；面向技术读者但仍是单色系克制风）；行内 code：底 `#e8f0f8`、文字 `#3d6a8a`、`padding: 2px 6px; border-radius: 4px`
+- 代码块：`<pre>` 底 `#eef3f8`、文字 `#3a4150`、`border: 1px solid rgba(74,124,155,0.2); border-radius: 10px; padding: 16px 18px; font-size: 13.5px`
+- **代码块内的轻量高亮**：注释 `#8a95a5`，外加**每种语言只挑一个锚点**上 `#3d6a8a`——YAML 挑键名、JSON 挑键名、Bash 挑命令名、Python 挑关键字，其余一律保持默认字色。这样一行上色不超过 2 类，单色系的克制感才守得住；把字符串、值、键名全部上色会让 YAML/JSON 整块变蓝，和"克制"是自相矛盾的
+- 行内 code：底 `#e8f0f8`、文字 `#3d6a8a`、`padding: 1px 5px; border-radius: 4px`（淡底小 padding，手机断行时不明显）
 - 列表前缀 `▸&nbsp;&nbsp;`（蔚蓝 span：`<span style="color: #4a7c9b;">▸</span>&nbsp;&nbsp;`）
 - 表格：表头底 `#e8f0f8`、文字 `#3d6a8a`，单元格 `border: 1px solid rgba(74,124,155,0.18); padding: 9px 12px; font-size: 14px`
 - 卡内分隔（如需要）：`height: 1px; border: none; background-image: linear-gradient(90deg, transparent, rgba(74,124,155,0.25), transparent); margin: 24px 0`

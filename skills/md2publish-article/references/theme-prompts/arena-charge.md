@@ -31,6 +31,7 @@
 - 段落：`font-size: 15.5px; line-height: 1.75; color: #141414; margin: 0 0 16px; text-align: left`
 - strong：`color: #e03131; font-weight: 800`
 - 关键数据（配速、重量、比分）：`font-weight: 800; font-size: 18px; color: #141414`——数字放大是体育版式的本能
+- 次级灰 `#6b6b68` 的落点：图注、数据来源标注、表格里的次要列、代码块内的注释。**必须真的用上**——声明了却在组件规范里找不到落点的颜色等于不存在
 
 ## 引用 / 代码 / 列表 / 表格
 

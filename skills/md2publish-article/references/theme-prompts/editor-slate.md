@@ -65,7 +65,7 @@ README 的阅读体验：正文克制到近乎素净，**颜色几乎全部集�
 ## 正文与强调
 
 - 段落：`font-size: 15px; line-height: 1.75; color: #24292f; margin: 0 0 16px; text-align: left; overflow-wrap: break-word`
-- strong：`color: #24292f; font-weight: 700`（GitHub 风格不变色）
+- strong：`color: #0969da; font-weight: 600`。**这是强调蓝在正文里唯一的高频落点，别改回不变色**——早期版本让 strong 跟随正文色，结果强调蓝只落在 h3 前缀、em 和链接上，中文技术文里后两者几乎为零，正文彩色面积归零。代码密集的文章还能靠语法高亮撑住观感，代码少的文章就会整篇黑白化（`docs/theme-design-lessons.md` 案例一记的就是这个）
 - em / 关键术语：`color: #0969da`
 - 链接文本统一 `color: #0969da`
 

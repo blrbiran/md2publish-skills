@@ -5,13 +5,16 @@
 
 ## 一、项目是什么
 
-基于 [md2wechat CLI](https://github.com/geekjourneyx/md2wechat-skill) **免费路径**（不买 `MD2WECHAT_API_KEY`）的公众号发布 skill 组合，三个 skill 各管一段：
+基于 [md2wechat CLI](https://github.com/geekjourneyx/md2wechat-skill) **免费路径**（不买 `MD2WECHAT_API_KEY`）的公众号发布 skill 组合，四个 skill 各管一段：
 
+- `skills/wechat-finetune/` — 成稿 → 公众号版 Markdown（重拟标题/删难懂与无关/开篇钩子/段落切短/frontmatter），原文不动另存 `<name>.wechat.md`
 - `skills/md2publish-article/` — Markdown → 微信可粘贴 HTML（排版指令来自本地主题库，HTML 由 agent 生成）
 - `skills/md2publish-images/` — 封面/信息图（`--plan` 计划模式，交宿主 agent 生成）
 - `skills/md2publish-draft/` — 推草稿箱（`upload_image` + `create_draft`，强制用户确认）
 
-架构、工作流图和三个 skill 的职责边界见 `skills/README.md`；给人读的全流程教程在 `~/org/markdown/prompt/@inbox/md-to-wechat-draft-free-path.md`（仓库外）。
+完整链路：`tech-writer`（读者懂不懂）→ `tech-writer-deslop`（像不像 AI 写的）→ `wechat-finetune`（适不适合公众号平台）→ `md2publish-article` → `md2publish-images` → `md2publish-draft`。前两个在另一个仓库 `~/code/skills/runskills/skills/`，三者判据不重叠、顺序不能反。
+
+架构、工作流图和各 skill 的职责边界见 `skills/README.md`；给人读的全流程教程在 `~/org/markdown/prompt/@inbox/md-to-wechat-draft-free-path.md`（仓库外）。
 
 ## 二、当前状态（截至本次交接）
 
@@ -22,6 +25,13 @@
 - **主题统一重构**：原三个 CLI 快照主题（autumn-warm/ocean-calm/spring-fresh）已重写为扩展主题格式，全库统一走「`_common-tech.md` + 主题文件 + 原文」一条生成路径；CLI `convert --mode ai` 降级为三个内置名的备选
 - **设计事故复盘**：editor-slate 曾黑白化翻车（用户实名批评），根因、修法、五条主题设计规则、机械审计方法都在 `docs/theme-design-lessons.md`——**新增/改主题前必读**
 - **全库落点审计**：23 个扩展主题扫过一轮，apple-air 同款风险已修（eyebrow 蓝标签保底），4 个死色已补注记，其余误报或达标（详见 lessons 文档）
+
+### 本次会话新增（2026-08-04 第二段）
+
+- **主题统一重构已提交**（commit `1bc709f`），三个重写主题过了落点静态审计（两个强调色各 5–6 个高频落点，无死色）
+- **新增 `wechat-finetune` skill**：画像存 cwd 的 `./.md2publish/audience-profile.md`；标题出 4–5 个不同路子的候选让用户选；`scripts/verify.py` 做自检（代码块逐字节保真、frontmatter 三字段限长、正文无残留 H1、删减比例），四种失败模式都用假样本验证过能抓到。**eval 循环尚未跑**（用户选择后置）
+- **H1 规则**（标题只进草稿元数据、不渲染进正文 HTML）：写在三处才生效——`md2publish-article/SKILL.md` 步骤 2/5、`_common-tech.md` 新增「标题（H1 不进正文）」节（**这里才是生成模型实际读的**）、`wechat-html.md` 自检脚本新增 `<h1>` 与元数据注释两项检查。规则要求去掉 H1 后 H2/H3 层级不上提
+- **主题实测第一批 6 个已跑**（02 ocean-calm / 04 ink-wash / 06 editor-slate / 11 bauhaus-pop / 13 cyber-neon / 20 monochrome-mag），产物在 `~/code/skills/writing/wechat_test/litellm-multi-provider-gateway/out/`，编号按 INDEX.md 顺序，剩余 21 个待跑。主题总数是 **27 个**不是 26
 
 ### 仓库有未提交变更
 

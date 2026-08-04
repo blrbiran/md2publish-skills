@@ -32,6 +32,8 @@
 - 段落：`font-size: 15.5px; line-height: 1.85; color: #4a4846; margin: 0 0 18px; text-align: left`
 - strong：`color: #b08e8a; font-weight: 600`
 - em：`color: #8fa3ad`
+- h3 标题文字 / 图注与署名 / 引用块里的次要说明：`color: #8fa3ad`
+- 雾蓝的文字落点不能只有斜体——中文文章里斜体可能整篇为零，那样它就只剩 h3 那根 3px 细条，读者感觉不到这个颜色存在
 
 ## 引用 / 代码 / 列表 / 表格
 

@@ -33,6 +33,7 @@
 - 段落：`font-size: 15.5px; line-height: 1.8; color: #2f4a3e; margin: 0 0 16px; text-align: left`
 - strong：`color: #1e7a5c; font-weight: 700`
 - em / 高亮：`background-color: #dff0e8; padding: 1px 4px; border-radius: 3px`
+- 次级灰绿 `#7fa091` 的落点：图注、引用块文字、次要说明段、代码块内的注释。**必须真的用上**——声明了却在组件规范里找不到落点的颜色等于不存在
 
 ## 引用 / 代码 / 列表 / 表格
 
