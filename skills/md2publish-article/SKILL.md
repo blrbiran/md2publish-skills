@@ -6,7 +6,7 @@ allowed-tools: Read, Write, Bash, AskUserQuestion
 
 # md2publish-article：Markdown 转公众号 HTML（免费路径）
 
-把 Markdown 文章转成微信公众号编辑器可直接粘贴的 HTML。走 md2wechat 的**免费 AI 模式**：CLI 只负责产出排版设计指令（prompt），HTML 由你（Claude）按指令生成。全程不需要 `MD2WECHAT_API_KEY`。
+把 Markdown 文章转成微信公众号编辑器可直接粘贴的 HTML（免费路径）。排版指令来自本地主题库 `references/theme-prompts/`，HTML 由你（Claude）按指令生成；md2wechat CLI 只用于元数据检查（及可选的内置主题实时指令）。全程不需要 `MD2WECHAT_API_KEY`。
 
 ## 边界
 
@@ -40,32 +40,15 @@ md2wechat inspect <article.md> --mode ai --theme <theme> --json
 
 ### 步骤 3：选主题
 
-免费 AI 模式只能用 `type: ai` 的主题。用 CLI 发现当前可用列表，不要背名单：
+主题清单以 [references/theme-prompts/INDEX.md](references/theme-prompts/INDEX.md) 为准（不要背名单，主题会持续增补），覆盖从水墨极简到包豪斯撞色、从苹果留白到午夜暗色的不同气质。所有主题都是本地主题文件，用法统一。
 
-```bash
-md2wechat themes list --json
-```
+用户没指定主题时，读 INDEX.md 按文章调性推荐（如技术教程推 `editor-slate`，商业分析推 `gilded-ink`，随笔推 `autumn-warm`），简短说明理由；用户明确说了就直接用。暗色主题按 INDEX.md 的说明做双模式手机预览。
 
-过滤 `type == "ai"` 且 `selectable == true`。当前版本通常是：
+### 步骤 4：组装排版指令
 
-- `autumn-warm` — 秋日暖光，橙色调，温暖治愈（生活方式/随笔/人文）
-- `ocean-calm` — 深海静谧，蓝色调，理性专业（技术/分析/行业观察）
-- `spring-fresh` — 春日清新，绿色调（轻松话题/教程入门）
-- `custom` — 配合 `--custom-prompt` 使用用户自己的排版指令
+生成输入 = `theme-prompts/_common-tech.md`（技术约束）+ `theme-prompts/<theme>.md`（视觉规范）+ 文章原文。两者冲突时以 `_common-tech.md` 为准。这一步不需要调 CLI——**生成 HTML 是你的工作**（步骤 5）。
 
-除了 CLI 内置主题，本 skill 还自带一批**扩展主题**，覆盖从水墨极简到包豪斯撞色、从苹果留白到午夜暗色的不同气质。清单以 [references/theme-prompts/INDEX.md](references/theme-prompts/INDEX.md) 为准（不要背名单，主题会持续增补）——它同时说明了两类主题的用法差异：内置主题走步骤 4 的 CLI convert；**扩展主题跳过 convert**，生成时把 `theme-prompts/_common-tech.md` + 主题文件 + 文章原文一起交给生成流程（步骤 5），元数据检查仍照步骤 2 执行。
-
-用户没指定主题时，读 INDEX.md 按文章调性从两类主题中一并推荐（如技术教程推 `editor-slate`，商业分析推 `gilded-ink`），简短说明理由；用户明确说了就直接用。**不要给 CLI 传 `default` 等 api 主题或扩展主题名**——前者报 `THEME_MODE_MISMATCH`，后者 CLI 不认识。暗色扩展主题按 INDEX.md 的说明做双模式手机预览。
-
-### 步骤 4：获取排版指令
-
-```bash
-md2wechat convert <article.md> --mode ai --theme <theme> --json
-```
-
-成功返回 `code: "CONVERT_AI_REQUEST_READY"`、`status: "action_required"`，排版设计指令在 `data.prompt`。其结构是「主题设计指令 + `请转换以下 Markdown内容：` + 文章原文」。这一步 CLI 不产 HTML——**生成 HTML 是你的工作**。
-
-CLI 不可用或版本不符时的兜底：用 `references/theme-prompts/<theme>.md` 里的快照指令 + 文章原文替代 `data.prompt`（快照基于 3.2.0，运行时输出永远优先）。
+备选路径：`autumn-warm` / `ocean-calm` / `spring-fresh` 三个名字源自 CLI 内置，若用户明确要求用 CLI 实时指令，可改走 `md2wechat convert <article.md> --mode ai --theme <theme> --json`（返回 `CONVERT_AI_REQUEST_READY`，指令在 `data.prompt`，已含文章原文）。两条路不要混用；CLI 路径的产物同样要过步骤 6 自检。**不要给 CLI 传其他主题名**——`default` 等 api 主题报 `THEME_MODE_MISMATCH`，扩展主题名 CLI 不认识。
 
 ### 步骤 5：生成 HTML
 
@@ -101,6 +84,6 @@ CLI 不可用或版本不符时的兜底：用 `references/theme-prompts/<theme>
 
 ## 失败处理
 
-- `THEME_MODE_MISMATCH`：选到了 api 主题，回到步骤 3 用 `themes list --json` 重选。
+- `THEME_MODE_MISMATCH`（仅 CLI 备选路径）：给 `convert --mode ai` 传了 api 主题；改传三个内置 ai 主题名之一，或直接走本地主题文件路径。
 - `inspect` 报 blockers：逐条转述给用户，按 `data.readiness.blockers` 处理，不要猜。
 - CLI 不在 PATH：提示安装 `npm install -g @geekjourneyx/md2wechat`，然后 `md2wechat version --json` 验证。

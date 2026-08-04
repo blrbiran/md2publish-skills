@@ -1,15 +1,14 @@
 # 主题索引
 
-两类主题，用法不同：
+所有主题统一用法：把 `_common-tech.md` + 主题文件 + 文章原文交给生成模型；元数据检查用 `inspect --mode ai --theme autumn-warm`（借 CLI 内置主题名做执行上下文）。
 
-- **CLI 快照**（autumn-warm / ocean-calm / spring-fresh）：正常走 `convert --mode ai --theme <name>` 拿实时指令，快照仅作风格预览和离线兜底
-- **扩展主题**（下表其余）：CLI 不认识它们，**跳过 convert**，直接把 `_common-tech.md` + 主题文件 + 文章原文交给生成模型；元数据检查仍用 `inspect --mode ai --theme autumn-warm`（借内置主题做执行上下文）
+前三个主题（autumn-warm / ocean-calm / spring-fresh）源自 CLI 内置，已重写为扩展主题格式（视觉一致、剔除历史冲突条款）；仍可选走 `convert --mode ai --theme <name>` 拿 CLI 实时指令，但两者不要混用——选一条路走完。其余主题 CLI 不认识，主题名不能传给 CLI。
 
 | 主题 | 气质 | 适用文章 | 底色 / 正文 / 主强调 |
 |---|---|---|---|
-| autumn-warm（快照） | 秋日暖光，温暖治愈 | 生活方式、随笔、人文 | `#faf9f5` / `#4a413d` / `#d97758` |
-| ocean-calm（快照） | 深海静谧，理性专业 | 技术、分析 | 蓝色系 |
-| spring-fresh（快照） | 春日清新 | 轻松话题、入门教程 | 绿色系 |
+| autumn-warm | 秋日暖光，方格纹理白卡 + 暖光阴影 | 生活方式、随笔、人文 | `#faf9f5` / `#4a413d` / `#d97758` |
+| ocean-calm | 深海静谧，蓝调细网格 + 深海阴影 | 技术、分析、行业观察 | `#f0f4f8` / `#3a4150` / `#4a7c9b` |
+| spring-fresh | 春日清新，圆点纹理 + 清新阴影 | 轻松话题、入门教程 | `#f5f8f5` / `#3d4a3d` / `#6b9b7a` |
 | ink-wash | 水墨极简，黑白灰 + 朱砂点睛 | 深度长文、评论、人文思辨 | `#f7f6f2` / `#2b2b28` / `#b5432a` |
 | newsprint | 铅字报纸，米黄新闻纸 + 报头红 | 深度报道、行业分析、时事 | `#f5f1e6` / `#1f1d1a` / `#9e2b25` |
 | editor-slate | 代码编辑器，GitHub 阅读感 + 深色代码块 | 技术教程、开发实践 | `#f6f8fa` / `#24292f` / `#0969da` |
