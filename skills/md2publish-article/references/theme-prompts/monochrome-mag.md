@@ -44,7 +44,7 @@
   - **旁注/提示/补充说明**（读者可跳过的）：收小处理——`font-size: 14px; color: #5a5a5a; background-color: #f2f2f2; padding: 12px 16px; margin: 0 0 16px; border-left: 3px solid #e0e0e0; text-align: left`
   - 技术文里的 `>` 大多是后者。把「可跳过的旁注」渲染成全页最大最黑的字，视觉权重和语义正好相反，是这个主题最容易犯的错
 - 代码块：`<pre>` 底 `#f2f2f2`、文字 `#3a3a3a`、`padding: 16px 18px; font-size: 13px`（无边框无圆角）
-- **代码块内的无彩色高亮**（靠字重和灰阶，不靠颜色）：关键字 `#111111` + `font-weight: 700`、字符串/值 `#3a3a3a`、注释 `#767676` + `font-style: italic`、其余 `#3a3a3a`。三级灰加一级字重，足够把结构区分出来
+- **代码块内的无彩色高亮**（靠字重和灰阶，不靠颜色）：关键字 `#111111` + `font-weight: 700`、字符串/值 `#3a3a3a`、注释 `#5a5a5a` + `font-style: italic`、其余 `#3a3a3a`。三级灰加一级字重，足够把结构区分出来。注释这一档用中灰而不是浅中灰——代码块底是浅灰 `#f2f2f2`，上面「色彩系统」已写明 `#767676` 在这个底上只有 3.96:1、不达 AA
 - 行内 code：底 `#f2f2f2`、文字 `#111111`、`padding: 1px 5px`（底色浅、padding 小，手机断行时裂开也不明显）
 - 列表前缀 `—&nbsp;&nbsp;`（破折号，编辑感）
 - 表格：表头 `border-bottom: 2px solid #111111; font-weight: 800`，单元格只有 `border-bottom: 1px solid #e0e0e0; padding: 12px 10px; font-size: 14px`——无竖线

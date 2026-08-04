@@ -19,20 +19,25 @@
     {
       "container":    "background-color: #0f1420; padding: 36px 12px",   # 不写 max-width，它负责铺满
       "content_width": 800,                                             # 定宽加在内容块上
-      "card":         "background-color: #1b2438; border: 1px solid ...", # 有值则每章包一张卡
+      "card":         "background-color: #1b2438; border: 1px solid ...", # 有值则包卡片
+      "card_mode":    "section",                   # section=每章一张（默认）｜single=全文一张大卡
       "p":            "font-size: 15.5px; color: #c9d2e3; ...",
       "h2":           "...", "h2_prefix_html": "<span style=...>&gt;_&nbsp;</span>",
-      "h3":           "...",
+      "h2_first":     "...",                       # 首个 h2 顶在页首，通常要去掉上间距/节前线
+      "h2_text_style": "background-color: #171614; color: #f4f1ea; ...",  # 标题文字自带色块时用
+      "h3":           "...", "h3_prefix_html": "<span style=...>#&nbsp;</span>",
       "strong":       "color: #39d0d8; font-weight: 600",
       "em":           "color: #ff4ba3",
       "blockquote":   "...",
       "pre":          "...", "code":  "...",
       "inline_code":  "color: #39d0d8",
       "list_prefix_html": "<span style=\\"color: #39d0d8;\\">▸</span>&nbsp;&nbsp;",
+      "list_prefix_cycle": ["<span ...>■</span>&nbsp;&nbsp;", "..."],   # 多色轮换，有它就盖过上一行
       "list_item":    "...",
       "table": "...", "th": "...", "td": "...",
-      "hr":           "...",                       # 无卡片主题的分隔线；卡片主题留空，用 hr_gap
-      "hr_gap":       56,                          # 卡片主题：--- 处把卡间距放大到这个值(px)
+      "td_alt":       "background-color: #f6f8fa",  # 斑马纹：叠加在偶数数据行的 td 上
+      "hr":           "...",                       # 无卡片/单卡主题的分隔线；分章卡片主题用 hr_gap
+      "hr_gap":       56,                          # 分章卡片主题：--- 处把卡间距放大到这个值(px)
       "highlight":    {"comment": "#7a869e", "string": "#39d0d8",
                        "key": "#39d0d8", "keyword": "#ff4ba3", "number": "#c9d2e3"}
     }
@@ -141,8 +146,11 @@ def render_code(code, lang, highlight):
         parts = []
         for text, cls in tokenize(line, lang):
             piece = spaces_to_nbsp(esc(text))
-            color = (highlight or {}).get(cls) if cls else None
-            parts.append(f'<span style="color: {color};">{piece}</span>' if color else piece)
+            # 值可以是裸色值，也可以是完整样式串——无彩色主题靠字重和字形区分 token，
+            # 只能上色的话它就没有区分手段了（monochrome-mag、ink-wash）。
+            v = (highlight or {}).get(cls) if cls else None
+            css = (v if v and ":" in v else f"color: {v};") if v else None
+            parts.append(f'<span style="{css}">{piece}</span>' if css else piece)
         lines_out.append("".join(parts))
     return "<br>".join(lines_out)
 
@@ -237,14 +245,16 @@ def build(md, T, source_name, meta):
     blocks = parse(md)
     W = width_style(T)
     use_cards = bool(T.get("card"))
-    out, card_open = [], False
+    single_card = use_cards and T.get("card_mode") == "single"   # 全文一张大卡（editor-slate 那种）
+    out, card_open, seen_h2 = [], False, False
 
-    def close_card(gap=None):
+    def close_card(gap=None, force=False):
+        """单卡主题下 h2 不切卡，只有收尾时（force）才真的闭合。"""
         nonlocal card_open
-        if card_open:
+        if card_open and (force or not single_card):
             out.append("</section>")
             card_open = False
-        if gap:
+        if gap and not single_card:
             out.append(f'<div style="height: {gap}px; line-height: 0;">&nbsp;</div>')
 
     def open_card():
@@ -259,24 +269,35 @@ def build(md, T, source_name, meta):
 
         boxed=True 表示这个元素自己承担定宽（卡片，或无卡片主题下的顶层块）。
         已经在卡片里的元素不再定宽——卡片已经把宽度管住了。
+
+        text-align 只在主题没写时才补 left：ink-wash 的 h2、印章符号是居中的，
+        无条件追加 left 会把主题的 center 覆盖掉。
         """
-        s = f'{base}; text-align: left{extra_css}'
+        align = "" if re.search(r"(^|;)\s*text-align\s*:", base) else "; text-align: left"
+        s = f'{base}{align}{extra_css}'
         return s + W if boxed else s
 
     for kind, body, extra in blocks:
         if kind == "h" and extra == 1:
             continue                      # H1 只进元数据，正文不渲染
-        top = not card_open               # 不在卡片里 → 这个元素自己定宽
 
         if kind == "h":
             if extra == 2:
                 close_card()
                 open_card()
-                prefix = T.get("h2_prefix_html", "")
-                out.append(f'<h2 style="{sty(T.get("h2",""), boxed=not card_open)}">'
-                           f'{prefix}{inline(body, T)}</h2>')
+                text = inline(body, T)
+                if T.get("h2_text_style"):       # 标题文字自带色块时，色块只能包文字，不能上到 h2
+                    text = f'<span style="{T["h2_text_style"]}">{text}</span>'
+                # 正文不渲染 H1，首个 h2 就顶在页面最上面——主题给的上间距和节前
+                # 分隔线是为「章节之间」准备的，落在这里就是页首一块空白加一根孤线。
+                base_h2 = T["h2_first"] if (seen_h2 is False and T.get("h2_first")) else T.get("h2", "")
+                seen_h2 = True
+                out.append(f'<h2 style="{sty(base_h2, boxed=not card_open)}">'
+                           f'{T.get("h2_prefix_html", "")}{text}</h2>')
             else:
-                out.append(f'<h3 style="{sty(T.get("h3",""), boxed=top)}">{inline(body, T)}</h3>')
+                open_card()                      # h3 也可能是一章的开头（源文里 h2 后直接跟 h3）
+                out.append(f'<h3 style="{sty(T.get("h3",""), boxed=not card_open)}">'
+                           f'{T.get("h3_prefix_html", "")}{inline(body, T)}</h3>')
         elif kind == "p":
             open_card()
             out.append(f'<p style="{sty(T.get("p",""), boxed=not card_open)}">{inline(body, T)}</p>')
@@ -292,13 +313,17 @@ def build(md, T, source_name, meta):
                        f'{inline(body, T)}</p>')
         elif kind == "list":
             open_card()
+            cycle = T.get("list_prefix_cycle")
+            bullet_n = 0                  # 只数无序项，有序项不占轮换位次
             for item in body:
                 ordered = re.match(r"^\s*(\d+)\.\s+(.*)$", item)
                 if ordered:
                     pre, text = f'{ordered.group(1)}.&nbsp;&nbsp;', ordered.group(2)
                 else:
                     text = re.sub(r"^\s*[-*+]\s+", "", item)
-                    pre = T.get("list_prefix_html", "•&nbsp;&nbsp;")
+                    pre = (cycle[bullet_n % len(cycle)] if cycle
+                           else T.get("list_prefix_html", "•&nbsp;&nbsp;"))
+                    bullet_n += 1
                 out.append(f'<p style="{sty(T.get("list_item", T.get("p","")), boxed=not card_open, extra_css="; padding-left: 1.5em; text-indent: -1.5em")}">'
                            f'{pre}{inline(text, T)}</p>')
         elif kind == "table":
@@ -308,18 +333,20 @@ def build(md, T, source_name, meta):
             cells = []
             for n, row in enumerate(rows):
                 tag, st = ("th", T.get("th", "")) if n == 0 else ("td", T.get("td", ""))
+                if tag == "td" and T.get("td_alt") and n % 2 == 0:
+                    st = f'{st}; {T["td_alt"]}'    # 斑马纹落在第 2、4… 条数据行
                 cells.append("<tr>" + "".join(
                     f'<{tag} style="{st}; word-break: break-word; text-align: left;">{inline(c, T)}</{tag}>'
                     for c in row) + "</tr>")
             out.append(f'<table style="{sty(T.get("table",""), boxed=not card_open, extra_css="; table-layout: fixed; border-collapse: collapse; width: 100%")}">'
                        + "".join(cells) + "</table>")
         elif kind == "hr":
-            if use_cards:
-                close_card(gap=T.get("hr_gap", 56))     # 卡片主题：用更大的间距表达分组断点
+            if use_cards and not single_card:
+                close_card(gap=T.get("hr_gap", 56))     # 分章卡片主题：用更大的间距表达分组断点
             elif T.get("hr"):
-                out.append(f'<div style="{sty(T["hr"], boxed=True)}"></div>')
+                out.append(f'<div style="{sty(T["hr"], boxed=not card_open)}"></div>')
 
-    close_card()
+    close_card(force=True)
     head = ('<!-- md2publish ' + json.dumps(
         {"title": meta.get("title", ""), "author": meta.get("author", ""),
          "digest": meta.get("digest", ""), "source": source_name},

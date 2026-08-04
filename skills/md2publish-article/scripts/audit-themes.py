@@ -8,10 +8,22 @@
 但组件规范里如果没给它高频落点，生成模型不会自己找地方用掉——声明了却没落点的颜色
 等于不存在，产物就会退化成黑白或单色。这个脚本把「凭感觉读主题文件」变成机械检查。
 
-判定分三档：
+判定分四档：
   DEAD   调色板声明了，组件规范里一次都没出现
   LOW    落点全在低频元素（em / 链接 / 脚注）——中文技术文里这些可能整篇为零
   DECOR  落点全是装饰性的（边框、细线、小符号），没有文字色落点
+  OVER   强调色落在行内 code 的**文字色**上——落点过载，与前三档相反的失败方向
+
+OVER 是 2026-08 补的。前三档查的都是「落点不足」，查不出反方向：行内 code 在技术文里
+有一两百处，它拿了强调色，这一个元素就吃掉该色三分之二的落点，整页布满同色斑点，真正
+需要强调的内容反而被压住（规则 7）。cyber-neon 实测：280 处青色落点里 193 处是行内
+code，且 strong 同为青色又同样不带底，读者根本分不出哪个是代码哪个是强调。
+注意只查文字色——行内 code 用强调色做**淡底**没有这个问题，色块面积小且不与文字争。
+
+若某个落点经真机确认可接受，在主题文件里写一行豁免注记（HTML 注释，不进渲染）：
+    <!-- audit-ok: OVER #3d6a8a 一句话理由 -->
+脚本解析注记后会跳过该条，并且在查落点前先剥掉全部 HTML 注释——否则注记里的色值本身
+会变成一个假落点，把 DEAD 检查骗过去。
 
 DECOR 这一档是 2026-08 才补的：cyber-neon 的品红有 h3 border-left 落点，前两档都不报警，
 但产物里它只以 3px 细线出现 8 次，用户的反馈是「颜色单调」。装饰落点的视觉权重远低于
@@ -65,8 +77,36 @@ def declared_colors(palette):
     return out
 
 
+def inline_code_fg(body):
+    """行内 code 规范里指定的**文字色**（不是底色）→ (色值, 该行原文)。
+
+    底色和文字色必须分开看：底色用强调色是小面积色块，文字色才会变成上百处斑点。
+    两种写法都要认——「底 `#x`、文字 `#y`」和「`background-color: #x; color: #y`」。
+    """
+    for line in body.splitlines():
+        if "行内" not in line or "code" not in line:
+            continue
+        # 第二个模式必须挡住 `background-color:`——它里面就含 `color:`，不挡的话
+        # 取到的永远是底色，文字色查不到了（变异测试抓到的，漏报和误报同一个根因）
+        for pat in (r"文字[^#\n]{0,4}`?(#[0-9a-fA-F]{6})",
+                    r"(?<![-\w])color:\s*(#[0-9a-fA-F]{6})"):
+            m = re.search(pat, line)
+            if m:
+                return m.group(1), line.strip()
+    return None, None
+
+
+def exemptions(text):
+    """`<!-- audit-ok: LEVEL #色值 理由 -->` → {(LEVEL, 色值)}。经真机确认的落点走这里豁免。"""
+    return {(lv, c.lower()) for lv, c in
+            re.findall(r"<!--\s*audit-ok:\s*([A-Z]+)\s+(#[0-9a-fA-F]{6})", text)}
+
+
 def audit(path):
-    text = path.read_text(encoding="utf-8")
+    raw = path.read_text(encoding="utf-8")
+    exempt = exemptions(raw)
+    # 先剥注释再查落点：豁免注记里的色值不能算落点，否则一条注记就能把 DEAD 检查骗过去
+    text = re.sub(r"<!--.*?-->", "", raw, flags=re.S)
     start = text.find("## 色彩系统")
     if start < 0:
         return [(path.name, "-", "NOSPEC", "没有「## 色彩系统」段，无法审计")]
@@ -74,6 +114,7 @@ def audit(path):
     palette, body = text[start:end], text[end:]
 
     findings = []
+    ic_color, ic_line = inline_code_fg(body)
     for color, role in declared_colors(palette).items():
         hits = [l.strip() for l in body.splitlines() if color in l]
 
@@ -98,6 +139,11 @@ def audit(path):
             # 有装饰落点也救不了——文字色只挂在 em/链接上，中文技术文里可能整篇为零
             findings.append((path.name, color, "LOW", text_hits[0][:70]))
 
+        # 反方向：落点过载。行内 code 一篇文里有一两百处，它拿了强调色，
+        # 这一个元素就吃掉该色三分之二的落点（规则 7）。
+        if ic_color and ic_color.lower() == color.lower():
+            findings.append((path.name, color, "OVER", ic_line[:70]))
+
     # 「改了值没同步」检查。
     #
     # 组件规范里出现调色板没声明的颜色是**正常的**——代码块底、引用块底这些派生色
@@ -115,7 +161,7 @@ def audit(path):
             findings.append((path.name, "/".join(dead[:2]), "DESYNC",
                              f"调色板有零落点色，组件里有未声明色 {'、'.join(orphans[:3])}"
                              f"——是不是改了值没同步？"))
-    return findings
+    return [f for f in findings if (f[2], f[1].lower()) not in exempt]
 
 
 def main():
@@ -131,7 +177,8 @@ def main():
         print(f"{level:6s} {name:22s} {color}\n{'':29s}└ {evidence}")
 
     print(f"\n审计 {len(files)} 个主题，{len(all_findings)} 条嫌疑"
-          f"（DEAD 零落点 / LOW 低频落点 / DECOR 只当装饰 / DESYNC 改值没同步）")
+          f"（DEAD 零落点 / LOW 低频落点 / DECOR 只当装饰 / OVER 行内 code 落点过载 /"
+          f" DESYNC 改值没同步）")
     print("逐条人工确认后再改主题——背景色、纯装饰色可能是误报。")
     return 1 if all_findings else 0
 

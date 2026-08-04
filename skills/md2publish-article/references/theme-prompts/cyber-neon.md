@@ -43,7 +43,7 @@
 - 引用块：`background-color: #10182a; border-left: 2px solid #39d0d8; padding: 14px 18px; margin: 0 0 16px; color: #7a869e; font-size: 14.5px; text-align: left`
 - 代码块：`<pre>` 底 `#0a0e18`、文字 `#c9d2e3`、`border: 1px solid #39456b; border-radius: 8px; padding: 16px; font-size: 13px`——比面板更黑一档，像终端窗口
 - **代码块内语法高亮**：注释 `#7a869e`、字符串/值 `#39d0d8`、关键字 `#ff4ba3`、数字 `#c9d2e3`，其余保持默认字色，一行不超过 3 类。四色在 `#0a0e18` 上都过 4.5:1
-- 行内 code：**只改文字色 `#39d0d8`，不加底色和 padding**。行内 code 在技术文里有一两百处，带底色的实心块在手机断行时会裂成两截；暗色主题上这种碎块尤其扎眼
+- 行内 code：底 `#10182a`（复用引用块底，比面板暗一档）、文字 `#c9d2e3`、`padding: 1px 5px; border-radius: 3px`。**文字色一定不能用青 `#39d0d8`**——strong 也是青色且同样不带底，两者会长得一模一样，读者分不出哪个是代码、哪个是强调（2026-08 实测：全篇 280 处青色落点里 193 处是行内 code，青色铺满整页，品红连出场空间都没有）。区分靠形状分工：行内 code 有底不变色，strong 变色不带底。底色只暗一档，手机断行裂开时不像浅色主题的深底那样扎眼
 - 列表前缀 `▸&nbsp;&nbsp;`（青色 span：`<span style="color: #39d0d8;">▸</span>&nbsp;&nbsp;`）
 - 表格：表头 `background-color: #0a0e18; color: #39d0d8`，单元格 `border: 1px solid #445280; padding: 9px 11px; font-size: 14px; color: #c9d2e3`
 
