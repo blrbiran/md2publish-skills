@@ -127,7 +127,7 @@ bash skills/md2publish-article/scripts/test-audit-themes.sh
 
 ## 八、下一步候选
 
-1. **跑剩余 20 个主题**——每个主题的工作是「读主题文件 → 写 theme.json → 跑脚本 → 过自检 → 看落点」。**强烈建议开新会话跑**：实测下来单个主题的实际工作量只有约 2k 输出 token，成本几乎全部来自上下文重发。大上下文会话里每轮 $3–6，剩余 20 个约 $150–200；新会话上下文只需 `_common-tech.md` + `md2html.py` 用法 + 自检脚本 + 一份主题文件（约 25k），总计约 $25–35
+1. **跑剩余 20 个主题**——启动 prompt 已备好，见 `docs/handoff/batch-themes-prompt.md`，开新会话粘贴即可（里面的命令都实跑过）。每个主题的工作是「读主题文件 → 写 theme.json → 跑脚本 → 过自检 → 看落点」。**强烈建议开新会话跑**：实测下来单个主题的实际工作量只有约 2k 输出 token，成本几乎全部来自上下文重发。大上下文会话里每轮 $3–6，剩余 20 个约 $150–200；新会话上下文只需 `_common-tech.md` + `md2html.py` 用法 + 自检脚本 + 一份主题文件（约 25k），总计约 $25–35
 2. **暗色主题真机双模式验证**（在用户那边）
 3. **`wechat-finetune` 实测 + eval 循环**
 4. **教程文档校订**：`@inbox/md-to-wechat-draft-free-path.md` 写于主题统一重构之前，未反映 `md2html.py`
