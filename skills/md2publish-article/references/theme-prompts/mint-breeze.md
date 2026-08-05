@@ -14,7 +14,9 @@
 - 正文墨绿灰：`#2f4a3e`
 - 薄荷绿（主强调）：`#2fa47e`
 - 深叶绿：`#1e7a5c`
-- 次级灰绿：`#7fa091`（题注、引用文字、次要说明段的文字色——声明即须使用，别让它成死色）
+- 次级灰绿：`#4a6b5b`（题注、引用文字、次要说明段的文字色——声明即须使用，别让它成死色）
+
+> 这一档的明度是被对比度铁律钉住的：在引用底 `#dff0e8` 上 5.01:1、代码底 `#e6f2ec` 上 5.16:1、白卡上 5.92:1。**不要为了「次级」的语感把它调浅**——更浅的一档在引用底上只有 2.4 左右，引用块正文实测不可读。它靠比正文墨绿灰浅（8.19:1）来表达从属，不靠掉到阅读门槛以下。
 - 浅绿底（引用/高亮）：`#dff0e8`
 - 边线：`#cfe6da`
 
@@ -33,11 +35,11 @@
 - 段落：`font-size: 15.5px; line-height: 1.8; color: #2f4a3e; margin: 0 0 16px; text-align: left`
 - strong：`color: #1e7a5c; font-weight: 700`
 - em / 高亮：`background-color: #dff0e8; padding: 1px 4px; border-radius: 3px`
-- 次级灰绿 `#7fa091` 的落点：图注、引用块文字、次要说明段、代码块内的注释。**必须真的用上**——声明了却在组件规范里找不到落点的颜色等于不存在
+- 次级灰绿 `#4a6b5b` 的落点：图注、引用块文字、次要说明段、代码块内的注释。**必须真的用上**——声明了却在组件规范里找不到落点的颜色等于不存在
 
 ## 引用 / 代码 / 列表 / 表格
 
-- 引用块：`background-color: #dff0e8; border-radius: 12px; padding: 15px 18px; margin: 0 0 16px; color: #5a7d6d; font-size: 14.5px; line-height: 1.75; text-align: left`
+- 引用块：`background-color: #dff0e8; border-radius: 12px; padding: 15px 18px; margin: 0 0 16px; color: #4a6b5b; font-size: 14.5px; line-height: 1.75; text-align: left`
 - 代码块：`<pre>` 底 `#e6f2ec`、文字 `#2f4a3e`、`border: 1px solid #cfe6da; border-radius: 10px; padding: 14px 16px; font-size: 13px`；行内 code：底 `#dff0e8`、文字 `#1e7a5c`
 - 列表：本主题的主场——无序前缀 `<span style="color: #2fa47e;">✓</span>&nbsp;&nbsp;`，步骤类有序列表前缀数字加浅绿圆底：`<span style="display: inline-block; background-color: #dff0e8; color: #1e7a5c; font-weight: 700; border-radius: 50%; width: 20px; text-align: center; font-size: 13px;">1</span>&nbsp;&nbsp;`
 - 表格：表头底 `#dff0e8`、单元格 `border: 1px solid #cfe6da; padding: 9px 11px; font-size: 14px`
