@@ -29,6 +29,9 @@
       "strong":       "color: #39d0d8; font-weight: 600",
       "em":           "color: #ff4ba3",
       "blockquote":   "...",
+      "blockquote_prefix_html": "<span style=...>❝&nbsp;</span>",   # 提示卡上不加
+      "footer":       "text-align: center; margin: 40px 0 0",  # 文末装饰：印章 / 落款 /
+      "footer_html":  "<span style=...>終</span>",             # 「終」字，落在所有卡片之外
       "alert":        {"note": {"style": "...",           # 提示卡，文章 md 里写 `> [!NOTE]` 触发；
                                 "label_html": "..."},     # 值也可以只是样式串（无标签）
                        "warning": "..."},                 # 主题没配 alert 就退化成普通引用块
@@ -345,8 +348,9 @@ def build(md, T, source_name, meta):
             spec = alert_spec(T, extra)
             style = spec.get("style") or T.get("blockquote", "")
             label = spec.get("label_html", "")
+            prefix = "" if spec else T.get("blockquote_prefix_html", "")
             out.append(f'<p style="{sty(style, boxed=not card_open)}">'
-                       f'{label}{inline(body, T)}</p>')
+                       f'{label}{prefix}{inline(body, T)}</p>')
         elif kind == "list":
             open_card()
             cycle = T.get("list_prefix_cycle")
@@ -383,6 +387,10 @@ def build(md, T, source_name, meta):
                 out.append(f'<div style="{sty(T["hr"], boxed=not card_open)}"></div>')
 
     close_card(force=True)
+    # 文末装饰（印章 / 落款 / 「終」字）。落在所有卡片之外、主容器之内，自己承担定宽——
+    # 它是顶层块，和 hr 同一层。6 个主题的规范里有这一笔，早先没有挂载点时是静默丢掉的。
+    if T.get("footer_html"):
+        out.append(f'<p style="{sty(T.get("footer", ""), boxed=True)}">{T["footer_html"]}</p>')
     head = ('<!-- md2publish ' + json.dumps(
         {"title": meta.get("title", ""), "author": meta.get("author", ""),
          "digest": meta.get("digest", ""), "source": source_name},
