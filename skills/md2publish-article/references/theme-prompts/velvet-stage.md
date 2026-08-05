@@ -13,7 +13,9 @@
 - 绒布面板：`#2a1a20`
 - 正文暖白：`#e8dcd2`
 - 鎏金（主强调）：`#c9a36a`
-- 幕布红（副强调）：`#a04252`
+- 幕布红（副强调）：`#c97a86`
+
+> 这一档的亮度是实测定下来的：在绒布面板 `#2a1a20` 上 5.22:1、主容器上 5.06:1。**不要往暗里调**——更深的暗红在面板上只有 2.68 左右，看不清，副强调等于不存在。这与本仓库暗色主题的通则一致：暗底上做分层要往亮里走。
 - 次级灰褐：`#96857e`
 - 边线：`#46303a`
 
@@ -25,8 +27,9 @@
 ## 标题体系
 
 - 标题衬线字族：`Georgia, 'Songti SC', 'Noto Serif SC', serif`
-- h2：金色居中 + 两侧幕布红短线——`<h2 style="text-align: center; font-size: 19px; font-weight: 600; color: #c9a36a; letter-spacing: 4px; margin: 0 0 22px;"><span style="color: #a04252;">━&nbsp;</span>标题文本<span style="color: #a04252;">&nbsp;━</span></h2>`
-- h3：`font-size: 16px; font-weight: 600; color: #e8dcd2; text-align: left; margin: 26px 0 12px; padding-left: 10px; border-left: 3px solid #a04252`
+- h2：金色居中 + 两侧幕布红饰记——`<h2 style="text-align: center; font-size: 19px; font-weight: 600; color: #c9a36a; letter-spacing: 4px; margin: 0 0 22px;"><span style="color: #c97a86; letter-spacing: 0;">✦&nbsp;</span>标题文本<span style="color: #c97a86; letter-spacing: 0;">&nbsp;✦</span></h2>`。
+  **饰记不要用 `━`（U+2501）之类的横线字符**：配上 `letter-spacing: 4px` 和居中的衬线中文，读者会把它读成汉字「一」。实测被误读过。挑符号时避开所有与汉字同形的字符
+- h3：`font-size: 16px; font-weight: 600; color: #e8dcd2; text-align: left; margin: 26px 0 12px; padding-left: 10px; border-left: 3px solid #c97a86`
 
 ## 正文与强调
 

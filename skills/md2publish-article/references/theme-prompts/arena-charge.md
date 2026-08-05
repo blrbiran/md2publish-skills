@@ -23,7 +23,9 @@
 
 ## 标题体系
 
-- h2：黑底白字块——`display: inline-block; background-color: #141414; color: #f7f7f5; font-size: 18px; font-weight: 800; padding: 8px 16px; margin: 0 0 20px; letter-spacing: 2px; text-align: left`（radius 0，方角）
+- h2：黑底白字块。**色块只包标题文字，不能上到 h2 本身**——h2 是块级元素、要承担定宽居中，而 `display: inline-block` 的 auto 外边距计算为 0，黑块会贴容器左边、与正文的定宽栏错开。
+  h2 外层：`font-size: 18px; font-weight: 800; color: #141414; margin: 0 0 20px; text-align: left`；
+  文字色块：`display: inline-block; background-color: #141414; color: #f7f7f5; padding: 8px 16px; letter-spacing: 2px; border-radius: 0`（方角）
 - h3：`font-size: 16px; font-weight: 800; color: #141414; text-align: left; margin: 26px 0 12px`，前缀红色斜杠 `<span style="color: #e03131; font-weight: 800;">//&nbsp;</span>`
 
 ## 正文与强调
@@ -35,7 +37,9 @@
 
 ## 引用 / 代码 / 列表 / 表格
 
-- 引用块（战术板/金句）：`background-color: #141414; color: #f7f7f5; padding: 16px 20px; margin: 0 0 16px; font-size: 15px; font-weight: 600; text-align: left; border-left: 4px solid #e03131`——引用反色，是本主题的记忆点
+- 引用块（战术板/金句）：`background-color: #ececea; padding: 14px 18px; margin: 0 0 16px; font-size: 15.5px; line-height: 1.75; color: #141414; font-weight: 600; text-align: left; border-left: 4px solid #e03131`。
+  **不要用实心黑底反色**：实心黑是全篇最重的一块色，会把重音从 h2 标签块和表头抢走；而且调色板里 `#ececea` 的角色写的就是「引用/代码底」，反色是脱离本主题块语言的孤例。
+  与代码块的区分靠三样：边框色（引用红、代码黑）、字体（引用无衬线、代码等宽）、字重
 - 代码块：`<pre>` 底 `#ececea`、文字 `#141414`、`border-left: 4px solid #141414; padding: 14px 16px; font-size: 13px`；行内 code：底 `#ececea`、文字 `#e03131`
 - 列表前缀 `▸&nbsp;&nbsp;`（红色 span：`<span style="color: #e03131;">▸</span>&nbsp;&nbsp;`）
 - 表格（数据/成绩表是主场）：表头 `background-color: #141414; color: #f7f7f5; font-weight: 700`，单元格 `border: 1px solid #d9d9d5; padding: 9px 11px; font-size: 14px`

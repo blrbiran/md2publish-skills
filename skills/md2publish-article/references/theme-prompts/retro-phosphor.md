@@ -12,34 +12,43 @@
 - 磷屏底：`#0d120d`（主容器）
 - 面板：`#131a13`
 - 正文磷光绿（中亮）：`#a8d8a0`
-- 高亮绿（强调）：`#5ee87a`
+- 高亮绿（强调）：`#00ff41`
 - 暗绿（次级/注释）：`#5a7a58`
 - 边线：`#243524`
 
 ## 容器与布局
 
-- 主容器：`background-color: #0d120d; padding: 36px 12px; letter-spacing: 0.5px`
-- 章节面板：`background-color: #131a13; border: 1px solid #243524; border-radius: 4px; padding: 22px 18px; margin: 0 0 30px`
+- 主容器：`background-color: #0d120d; padding: 36px 12px; letter-spacing: 0.5px; font-family: Menlo, Consolas, 'Courier New', monospace`。
+  **正文也必须是等宽**——只把标题和代码设成等宽、正文留无衬线的话，整篇读起来是「普通文章配了绿标题」，终端感立不起来。这是本主题最容易漏的一条
+- 章节面板：`background-color: #131a13; border: 1px solid #243524; border-radius: 0; padding: 22px 18px; margin: 0 0 30px`——**圆角一律为 0**，终端没有圆角
 
 ## 标题体系
 
 - 标题一律等宽字族：`Menlo, Consolas, 'Courier New', monospace`
-- h2：`font-size: 17px; font-weight: 700; color: #5ee87a; text-align: left; margin: 0 0 18px; letter-spacing: 1px`，格式为 `<span style="color: #5a7a58;">$&nbsp;</span>标题文本`（shell 提示符）
+- h2：`font-size: 17px; font-weight: 700; color: #00ff41; text-align: left; margin: 0 0 18px; letter-spacing: 1px`，格式为 `<span style="color: #5a7a58;">$&nbsp;</span>标题文本`（shell 提示符）
 - h3：`font-size: 15px; font-weight: 700; color: #a8d8a0; text-align: left; margin: 24px 0 12px`，前缀 `<span style="color: #5a7a58;">##&nbsp;</span>`
 - 章节分隔可用 ASCII 线：`<p style="color: #243524; font-size: 13px; margin: 0 0 18px; font-family: Menlo, Consolas, monospace; text-align: left;">────────────────────</p>`
 
 ## 正文与强调
 
 - 段落：`font-size: 15px; line-height: 1.8; color: #a8d8a0; margin: 0 0 16px; text-align: left`（正文可用普通字族，全文等宽会太累）
-- strong：`color: #5ee87a; font-weight: 700`
+- strong：`color: #00ff41; font-weight: 700`
 - em / 注释语气：`color: #5a7a58`，可加等宽前缀 `<span style="font-family: Menlo, Consolas, monospace;">//&nbsp;</span>`
 
 ## 引用 / 代码 / 列表 / 表格
 
 - 引用块（日志/摘录）：`background-color: #0a0e0a; border-left: 2px solid #5a7a58; padding: 14px 16px; margin: 0 0 16px; color: #5a7a58; font-size: 14px; text-align: left; font-family: Menlo, Consolas, monospace`
-- 代码块（主场，和正文区分靠更黑的底）：`<pre>` 底 `#080b08`、文字 `#a8d8a0`、`border: 1px solid #243524; border-radius: 4px; padding: 16px; font-size: 13px`；行内 code：底 `#080b08`、文字 `#5ee87a`、`padding: 2px 6px`
-- 列表前缀等宽标记：`<span style="color: #5ee87a; font-family: Menlo, Consolas, monospace;">*</span>&nbsp;&nbsp;`；状态类条目可用 `[ok]` / `[!!]`（`#5ee87a` / `#5a7a58`）
-- 表格：表头底 `#080b08`、文字 `#5ee87a; font-family: Menlo, Consolas, monospace`，单元格 `border: 1px solid #243524; padding: 8px 10px; font-size: 13px; color: #a8d8a0`
+- 代码块（主场，和正文区分靠更黑的底）：`<pre>` 底 `#080b08`、文字 `#a8d8a0`、`border: 1px solid #243524; border-radius: 4px; padding: 16px; font-size: 13px`；行内 code：底 `#080b08`、文字 `#00ff41`、`padding: 2px 6px`
+- 列表前缀等宽标记：`<span style="color: #00ff41; font-family: Menlo, Consolas, monospace;">*</span>&nbsp;&nbsp;`；状态类条目可用 `[ok]` / `[!!]`（`#00ff41` / `#5a7a58`）
+- 表格：表头底 `#080b08`、文字 `#00ff41; font-family: Menlo, Consolas, monospace`，单元格 `border: 1px solid #243524; padding: 8px 10px; font-size: 13px; color: #a8d8a0`
+
+## 收尾
+
+文末一行终端提示符 + 光标块，落在所有面板之外：
+`<span style="color: #5a7a58;">user@wechat</span><span style="color: #a8d8a0;">:~$&nbsp;</span><span style="background-color: #00ff41; color: #0d120d;">&nbsp;</span>`，
+容器 `text-align: left; color: #00ff41; margin: 34px 0 0; font-family: Menlo, Consolas, 'Courier New', monospace; letter-spacing: 0`。
+
+引用块加等宽前缀 `<span style="color: #5a7a58; font-family: Menlo, Consolas, 'Courier New', monospace; letter-spacing: 0;">&gt;&nbsp;</span>`，呼应终端里的引用写法。
 
 ## 分寸提醒
 
