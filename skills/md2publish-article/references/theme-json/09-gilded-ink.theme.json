@@ -1,0 +1,29 @@
+{
+  "container": "background-color: #faf8f4; padding: 44px 14px; letter-spacing: 1px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif",
+  "content_width": 800,
+  "card": "background-color: #ffffff; border: 1px solid #e5ddc9; border-radius: 8px; padding: 28px 24px; margin: 0 0 36px",
+  "card_mode": "section",
+  "p": "font-size: 15.5px; line-height: 1.85; color: #1c1a17; margin: 0 0 18px; text-align: left; overflow-wrap: break-word",
+  "h2": "text-align: center; font-size: 19px; font-weight: 600; color: #1c1a17; letter-spacing: 5px; margin: 0 0 24px; padding: 12px 0; border-top: 1px solid #b08a3e; border-bottom: 1px solid #b08a3e; font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif",
+  "h2_first": "text-align: center; font-size: 19px; font-weight: 600; color: #1c1a17; letter-spacing: 5px; margin: 0 0 24px; padding: 12px 0; border-top: 1px solid #b08a3e; border-bottom: 1px solid #b08a3e; font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif",
+  "h3": "font-size: 16px; font-weight: 600; color: #1c1a17; text-align: left; margin: 28px 0 14px",
+  "h3_prefix_html": "<span style=\"color: #b08a3e;\">◆&nbsp;</span>",
+  "strong": "color: #8f6f2f; font-weight: 700",
+  "em": "color: #6b6355",
+  "blockquote": "background-color: #f5f1e8; border-left: 2px solid #b08a3e; padding: 16px 20px; margin: 0 0 18px; color: #6b6355; font-size: 14.5px; line-height: 1.8; text-align: left",
+  "pre": "background-color: #f5f1e8; border: 1px solid #e5ddc9; border-radius: 6px; padding: 15px 17px",
+  "code": "color: #3a352c; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace; letter-spacing: 0",
+  "inline_code": "background-color: #f5f1e8; color: #8f6f2f; padding: 2px 6px; border-radius: 4px; font-size: 13px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_html": "<span style=\"color: #b08a3e;\">◆</span>&nbsp;&nbsp;",
+  "list_item": "font-size: 15.5px; line-height: 1.85; color: #1c1a17; margin: 0 0 10px; text-align: left; overflow-wrap: break-word",
+  "table": "margin: 0 0 18px",
+  "th": "background-color: #1c1a17; color: #faf8f4; font-weight: 600; border: 1px solid #e5ddc9; padding: 10px 12px; font-size: 14px",
+  "td": "border: 1px solid #e5ddc9; padding: 10px 12px; font-size: 14px; color: #1c1a17",
+  "highlight": {
+    "comment": "#6b6355",
+    "keyword": "#7a5b1f",
+    "string": "#6a4f1a",
+    "key": "#7a5b1f",
+    "number": "#3a352c"
+  }
+}

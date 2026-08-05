@@ -1,0 +1,32 @@
+{
+  "container": "background-color: #f4f4fb; padding: 40px 14px; letter-spacing: 0.3px",
+  "content_width": 800,
+  "card": "background-color: #ffffff; background-image: linear-gradient(135deg, #6a5cff, #38c6d9); background-repeat: no-repeat; background-size: 100% 4px; background-position: top; border-radius: 16px; padding: 26px 22px; margin: 0 0 32px; box-shadow: 0 8px 24px rgba(106, 92, 255, 0.08)",
+  "card_mode": "section",
+  "p": "font-size: 15.5px; line-height: 1.8; color: #33344a; margin: 0 0 16px; overflow-wrap: break-word",
+  "h2": "display: inline-block; background-image: linear-gradient(135deg, #6a5cff, #38c6d9); color: #ffffff; font-size: 17px; font-weight: 700; padding: 7px 18px; border-radius: 20px; margin: 0 0 18px; text-align: left",
+  "h2_first": "display: inline-block; background-image: linear-gradient(135deg, #6a5cff, #38c6d9); color: #ffffff; font-size: 17px; font-weight: 700; padding: 7px 18px; border-radius: 20px; margin: 0 0 18px; text-align: left",
+  "h3": "font-size: 16px; font-weight: 700; color: #33344a; text-align: left; margin: 26px 0 12px; padding-left: 10px; border-left: 3px solid #6a5cff",
+  "strong": "color: #6a5cff; font-weight: 700",
+  "em": "color: #38c6d9; font-weight: 600",
+  "blockquote": "background-color: #ecebfb; border-radius: 12px; padding: 15px 18px; margin: 0 0 16px; color: #61638a; font-size: 14.5px; overflow-wrap: break-word",
+  "pre": "background-color: #282a45; border-radius: 10px; padding: 16px; margin: 0 0 16px",
+  "code": "color: #e8e8f8; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #ecebfb; color: #6a5cff; padding: 2px 6px; border-radius: 4px; font-size: 13px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_cycle": [
+    "<span style=\"color: #6a5cff;\">◆</span>&nbsp;&nbsp;",
+    "<span style=\"color: #38c6d9;\">◆</span>&nbsp;&nbsp;"
+  ],
+  "list_item": "font-size: 15.5px; line-height: 1.8; color: #33344a; margin: 0 0 10px; overflow-wrap: break-word",
+  "table": "margin: 0 0 16px",
+  "th": "background-color: #ecebfb; color: #33344a; font-weight: 700; border: 1px solid #e3e3f0; padding: 9px 12px; font-size: 14px",
+  "td": "border: 1px solid #e3e3f0; padding: 9px 12px; font-size: 14px; color: #33344a",
+  "hr_gap": 56,
+  "highlight": {
+    "comment": "#9a9cc0",
+    "string": "#38c6d9",
+    "key": "#38c6d9",
+    "keyword": "#9a8fff",
+    "number": "#e8e8f8"
+  }
+}

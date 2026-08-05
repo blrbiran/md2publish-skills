@@ -1,0 +1,30 @@
+{
+  "container": "background-color: #f6f4f9; padding: 42px 14px; letter-spacing: 0.6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "content_width": 800,
+  "card": "background-color: #ffffff; border-radius: 18px; padding: 26px 22px; margin: 0 0 34px; box-shadow: 0 8px 24px rgba(127, 106, 158, 0.10)",
+  "card_mode": "section",
+  "p": "font-size: 15.5px; line-height: 1.9; color: #453f4e; margin: 0 0 18px; overflow-wrap: break-word",
+  "h2": "display: inline-block; font-size: 19px; font-weight: 600; color: #5d4b7c; margin: 0 0 20px; padding-bottom: 6px; border-bottom: 3px solid #b9a7d8; text-align: left",
+  "h3": "font-size: 16px; font-weight: 600; color: #453f4e; margin: 26px 0 12px",
+  "h3_prefix_html": "<span style=\"color: #7f6a9e;\">✦&nbsp;</span>",
+  "strong": "color: #5d4b7c; font-weight: 600",
+  "em": "color: #7f6a9e",
+  "blockquote": "background-color: #eee9f5; border-radius: 12px; padding: 16px 20px; margin: 0 0 18px; color: #8d8497; font-size: 14.5px; line-height: 1.85",
+  "pre": "background-color: #eee9f5; border-radius: 12px; padding: 15px 17px",
+  "code": "color: #4d475a; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #eee9f5; color: #7f6a9e; padding: 2px 6px; border-radius: 4px; font-size: 13px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_html": "<span style=\"color: #b9a7d8;\">✦</span>&nbsp;&nbsp;",
+  "list_item": "font-size: 15.5px; line-height: 1.9; color: #453f4e; margin: 0 0 10px; overflow-wrap: break-word",
+  "table": "margin: 0 0 18px",
+  "th": "background-color: #eee9f5; color: #453f4e; font-weight: 600; border: 1px solid #ded5ec; padding: 9px 12px; font-size: 14px",
+  "td": "border: 1px solid #ded5ec; padding: 9px 12px; font-size: 14px; color: #453f4e",
+  "footer": "text-align: center; margin: 36px 0 0; font-size: 14px; color: #5d4b7c",
+  "footer_html": "<span style=\"color: #5d4b7c;\">✦</span>&nbsp;<span style=\"color: #7f6a9e;\">✦</span>&nbsp;<span style=\"color: #b9a7d8;\">✦</span>",
+  "highlight": {
+    "comment": "#8d8497",
+    "keyword": "#7f6a9e",
+    "string": "#5d4b7c",
+    "key": "#5d4b7c",
+    "number": "#5d4b7c"
+  }
+}

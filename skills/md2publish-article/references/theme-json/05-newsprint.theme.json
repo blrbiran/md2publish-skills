@@ -1,0 +1,25 @@
+{
+  "container": "background-color: #f5f1e6; padding: 40px 14px; letter-spacing: 0.3px; font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif",
+  "content_width": 800,
+  "p": "font-size: 16px; line-height: 1.8; color: #1f1d1a; margin: 0 0 18px; text-align: left; overflow-wrap: break-word",
+  "h2": "font-size: 22px; font-weight: 700; color: #1f1d1a; text-align: left; margin: 44px 0 20px; padding-bottom: 10px; border-bottom: 3px double #1f1d1a",
+  "h2_first": "font-size: 22px; font-weight: 700; color: #1f1d1a; text-align: left; margin: 0 0 20px; padding-bottom: 10px; border-bottom: 3px double #1f1d1a",
+  "h3": "font-size: 15px; font-weight: 700; color: #9e2b25; letter-spacing: 3px; text-align: left; margin: 30px 0 14px; text-transform: uppercase",
+  "strong": "color: #9e2b25; font-weight: 700",
+  "em": "color: #55514a",
+  "blockquote": "border-top: 1px solid #c9c2b2; border-bottom: 1px solid #c9c2b2; padding: 16px 8px; margin: 0 0 18px; color: #55514a; font-size: 15px; text-align: left; font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif",
+  "pre": "background-color: #eae5d6; border: 1px solid #c9c2b2; padding: 14px 16px; margin: 0 0 18px",
+  "code": "color: #3a362e; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #eae5d6; color: #9e2b25; padding: 2px 6px; font-size: 14px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_html": "▪&nbsp;&nbsp;",
+  "list_item": "font-size: 16px; line-height: 1.8; color: #1f1d1a; margin: 0 0 18px; text-align: left; overflow-wrap: break-word",
+  "table": "margin: 0 0 18px",
+  "th": "background-color: #1f1d1a; color: #f5f1e6; border: 1px solid #c9c2b2; padding: 9px 11px; font-size: 14px; font-weight: 700",
+  "td": "border: 1px solid #c9c2b2; padding: 9px 11px; font-size: 14px; color: #1f1d1a",
+  "footer": "text-align: right; color: #55514a; font-size: 13px; border-top: 1px solid #c9c2b2; padding-top: 12px; margin-top: 40px",
+  "footer_html": "—— 完 ——",
+  "highlight": {
+    "comment": "#55514a",
+    "keyword": "#9e2b25"
+  }
+}

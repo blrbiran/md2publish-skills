@@ -1,0 +1,30 @@
+{
+  "container": "background-color: #f5f8fb; background-image: linear-gradient(rgba(29, 90, 138, 0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(29, 90, 138, 0.06) 1px, transparent 1px); background-size: 24px 24px; padding: 40px 14px; letter-spacing: 0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "content_width": 800,
+  "card": "background-color: #ffffff; border: 1px solid #1d5a8a; border-radius: 0; padding: 24px 20px; margin: 0 0 34px",
+  "card_mode": "section",
+  "hr_gap": 60,
+  "p": "font-size: 15.5px; line-height: 1.8; color: #23405c; margin: 0 0 16px; overflow-wrap: break-word",
+  "h2": "margin: 0 0 20px; font-size: 17px",
+  "h2_prefix_html": "<span style=\"display: inline-block; background-color: #1d5a8a; color: #f5f8fb; font-weight: 700; padding: 5px 12px; font-family: Menlo, Consolas, monospace; letter-spacing: 0;\">§</span>&nbsp;",
+  "h2_text_style": "display: inline-block; border: 1px solid #1d5a8a; color: #1d5a8a; font-weight: 700; padding: 4px 14px",
+  "h3": "font-size: 15.5px; font-weight: 700; color: #23405c; margin: 26px 0 12px",
+  "h3_prefix_html": "<span style=\"color: #1d5a8a; font-family: Menlo, Consolas, monospace; letter-spacing: 0;\">▹&nbsp;</span>",
+  "strong": "color: #1d5a8a; font-weight: 700",
+  "em": "color: #b26a1b",
+  "blockquote": "border: 1px dashed #b26a1b; background-color: #fdf8f0; padding: 14px 18px; margin: 0 0 16px; color: #8a5c22; font-size: 14.5px",
+  "pre": "background-color: #e7eff7; border: 1px solid #c9d9e8; padding: 15px 17px",
+  "code": "color: #23405c; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #e7eff7; color: #1d5a8a; padding: 1px 6px; font-size: 13.5px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_html": "<span style=\"color: #1d5a8a; font-family: Menlo, Consolas, monospace; letter-spacing: 0;\">▹</span>&nbsp;&nbsp;",
+  "list_item": "font-size: 15.5px; line-height: 1.8; color: #23405c; margin: 0 0 10px; overflow-wrap: break-word",
+  "table": "margin: 0 0 16px",
+  "th": "background-color: #1d5a8a; color: #f5f8fb; font-weight: 700; border: 1px solid #c9d9e8; padding: 9px 11px; font-size: 14px",
+  "td": "border: 1px solid #c9d9e8; padding: 9px 11px; font-size: 14px; color: #23405c",
+  "highlight": {
+    "comment": "#7189a0",
+    "string": "#b26a1b",
+    "key": "#b26a1b",
+    "keyword": "#1d5a8a"
+  }
+}

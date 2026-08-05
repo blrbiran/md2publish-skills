@@ -1,0 +1,31 @@
+{
+  "container": "background-color: #f4f5ef; padding: 42px 14px; letter-spacing: 0.6px; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif",
+  "content_width": 800,
+  "card": "background-color: #fbfcf7; border: 1px solid #d5d9c8; border-radius: 6px; padding: 26px 22px; margin: 0 0 34px",
+  "card_mode": "section",
+  "hr_gap": 56,
+  "p": "font-size: 15.5px; line-height: 1.85; color: #2e3a2a; margin: 0 0 18px; text-align: left; overflow-wrap: break-word",
+  "h2": "font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif; font-size: 20px; font-weight: 600; color: #3f6b3f; text-align: left; margin: 0 0 18px; padding-bottom: 8px; border-bottom: 1px solid #d5d9c8",
+  "h2_first": "font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif; font-size: 20px; font-weight: 600; color: #3f6b3f; text-align: left; margin: 0 0 18px; padding-bottom: 8px; border-bottom: 1px solid #d5d9c8",
+  "h3": "font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif; font-size: 16px; font-weight: 600; color: #2e3a2a; text-align: left; margin: 26px 0 12px",
+  "h3_prefix_html": "<span style=\"color: #3f6b3f;\">❧&nbsp;</span>",
+  "strong": "color: #3f6b3f; font-weight: 700",
+  "em": "color: #8a6d4e; font-style: normal",
+  "blockquote": "font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif; background-color: #fbfcf7; border: 1px solid #d5d9c8; border-left: 4px solid #3f6b3f; padding: 14px 18px; margin: 0 0 18px; color: #77816d; font-size: 14px; line-height: 1.8; text-align: left",
+  "pre": "background-color: #e9ecdf; border: 1px solid #d5d9c8; border-radius: 4px; padding: 14px 16px",
+  "code": "color: #2e3a2a; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #e9ecdf; color: #3f6b3f; padding: 2px 6px; border-radius: 3px; font-size: 13px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_html": "·&nbsp;&nbsp;",
+  "list_item": "font-size: 15.5px; line-height: 1.85; color: #2e3a2a; margin: 0 0 10px; overflow-wrap: break-word",
+  "table": "margin: 0 0 18px",
+  "th": "background-color: #e9ecdf; color: #3f6b3f; font-weight: 700; border: 1px solid #d5d9c8; padding: 9px 11px; font-size: 14px",
+  "td": "border: 1px solid #d5d9c8; padding: 9px 11px; font-size: 14px; color: #2e3a2a",
+  "td_alt": "background-color: #f4f5ef",
+  "highlight": {
+    "comment": "#77816d",
+    "keyword": "#3f6b3f",
+    "string": "#8a6d4e",
+    "key": "#8a6d4e",
+    "number": "#2e3a2a"
+  }
+}

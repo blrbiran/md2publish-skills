@@ -1,0 +1,31 @@
+{
+  "container": "background-color: #f4f1ea; padding: 36px 14px; letter-spacing: 0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "content_width": 800,
+  "card": "background-color: #ffffff; border: 2px solid #171614; border-radius: 0; padding: 24px 20px; margin: 0 0 36px; box-shadow: 6px 6px 0 #171614",
+  "p": "font-size: 15.5px; line-height: 1.8; color: #171614; margin: 0 0 16px",
+  "h2": "font-size: 18px; margin: 0 0 20px",
+  "h2_prefix_html": "<span style=\"display: inline-block; background-color: #f0a500; padding: 6px 5px; color: #f0a500;\">■</span>",
+  "h2_text_style": "display: inline-block; background-color: #171614; color: #f4f1ea; font-weight: 700; padding: 6px 14px",
+  "h3": "font-size: 16px; font-weight: 700; color: #171614; margin: 26px 0 12px; padding-bottom: 4px; border-bottom: 4px solid #005baa; display: inline-block",
+  "strong": "color: #be1e2d; font-weight: 700",
+  "em": "background-color: #f8e8c4; color: #171614; padding: 1px 4px; font-weight: 600",
+  "blockquote": "background-color: #f8e8c4; border-left: 4px solid #171614; padding: 14px 18px; margin: 0 0 16px; color: #171614; font-size: 15px; font-weight: 500",
+  "pre": "background-color: #171614; border-radius: 0; padding: 16px; font-size: 13px; line-height: 1.6; margin: 0 0 18px",
+  "code": "color: #f4f1ea; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #f8e8c4; color: #171614; padding: 1px 5px; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace; letter-spacing: 0",
+  "list_prefix_cycle": [
+    "<span style=\"color: #be1e2d;\">■</span>&nbsp;&nbsp;",
+    "<span style=\"color: #005baa;\">■</span>&nbsp;&nbsp;",
+    "<span style=\"color: #b87700;\">■</span>&nbsp;&nbsp;"
+  ],
+  "list_item": "font-size: 15.5px; line-height: 1.8; color: #171614; margin: 0 0 10px",
+  "table": "margin: 0 0 18px",
+  "th": "background-color: #171614; color: #f4f1ea; border: 2px solid #171614; padding: 9px 11px; font-size: 14px; font-weight: 700",
+  "td": "border: 2px solid #171614; padding: 9px 11px; font-size: 14px; color: #171614",
+  "hr_gap": 60,
+  "highlight": {
+    "comment": "#9a958c",
+    "string": "#f0a500",
+    "keyword": "color: #f4f1ea; font-weight: 700;"
+  }
+}

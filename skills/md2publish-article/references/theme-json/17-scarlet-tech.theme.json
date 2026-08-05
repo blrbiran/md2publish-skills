@@ -1,0 +1,27 @@
+{
+  "container": "background-color: #ffffff; padding: 40px 16px; letter-spacing: 0.2px",
+  "content_width": 800,
+  "p": "font-size: 15.5px; line-height: 1.75; color: #2c2c2e; margin: 0 0 16px; text-align: left; overflow-wrap: break-word",
+  "h2": "font-size: 21px; font-weight: 700; color: #2c2c2e; text-align: left; margin: 48px 0 16px; padding-left: 12px; border-left: 4px solid #d71a1b",
+  "h2_first": "font-size: 21px; font-weight: 700; color: #2c2c2e; text-align: left; margin: 0 0 16px; padding-left: 12px; border-left: 4px solid #d71a1b",
+  "h3": "font-size: 17px; font-weight: 600; color: #2c2c2e; text-align: left; margin: 28px 0 12px",
+  "strong": "color: #d71a1b; font-weight: 600",
+  "em": "color: #8a8a8e",
+  "blockquote": "background-color: #f4f4f6; border-radius: 8px; padding: 16px 20px; margin: 0 0 16px; color: #2c2c2e; font-size: 15px; font-weight: 500; text-align: left; overflow-wrap: break-word",
+  "pre": "background-color: #f4f4f6; border: 1px solid #e3e3e6; border-radius: 8px; padding: 14px 16px; margin: 0 0 16px; letter-spacing: 0",
+  "code": "color: #2c2c2e; font-size: 13px; line-height: 1.6; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #f4f4f6; color: #d71a1b; padding: 2px 6px; border-radius: 4px; font-size: 13px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_html": "·&nbsp;&nbsp;",
+  "list_item": "font-size: 15.5px; line-height: 1.75; color: #2c2c2e; margin: 0 0 8px; text-align: left; overflow-wrap: break-word",
+  "table": "margin: 0 0 16px",
+  "th": "background-color: #f4f4f6; color: #2c2c2e; font-weight: 600; border: 1px solid #e3e3e6; padding: 10px 12px; font-size: 14px; text-align: left",
+  "td": "border: 1px solid #e3e3e6; padding: 10px 12px; font-size: 14px; color: #2c2c2e; text-align: left; overflow-wrap: break-word",
+  "hr": "border: none; border-top: 1px solid #e3e3e6; margin: 40px 0",
+  "highlight": {
+    "comment": "#8a8a8e",
+    "keyword": "#d71a1b",
+    "string": "#2c2c2e",
+    "key": "#2c2c2e",
+    "number": "#2c2c2e"
+  }
+}

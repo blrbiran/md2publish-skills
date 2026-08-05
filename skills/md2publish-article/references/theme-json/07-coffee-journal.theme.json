@@ -1,0 +1,30 @@
+{
+  "container": "background-color: #f3ede4; padding: 40px 12px; letter-spacing: 0.5px",
+  "content_width": 800,
+  "card": "background-color: #fbf7f0; border: 1px dashed #d8cbb8; border-radius: 12px; padding: 24px 20px; margin: 0 0 32px",
+  "card_mode": "section",
+  "p": "font-size: 16px; line-height: 1.85; color: #4b3a2f; margin: 0 0 18px; text-align: left; overflow-wrap: break-word",
+  "h2": "display: inline-block; background-color: #8a5a3b; color: #fbf7f0; font-size: 17px; font-weight: 600; padding: 6px 16px; border-radius: 16px; margin: 0 0 20px; text-align: left",
+  "h3": "font-size: 16px; font-weight: 700; color: #5c4033; margin: 24px 0 12px; text-align: left",
+  "h3_prefix_html": "<span style=\"color: #8a5a3b;\">●&nbsp;</span>",
+  "strong": "color: #8a5a3b; font-weight: 700",
+  "em": "background-color: #efe3d3; padding: 1px 4px",
+  "blockquote": "background-color: #efe3d3; border-radius: 10px; padding: 16px 18px; margin: 0 0 18px; color: #6b5a4c; font-size: 15px; line-height: 1.8; text-align: left; overflow-wrap: break-word",
+  "blockquote_prefix_html": "<span style=\"color: #8a5a3b;\">❝&nbsp;</span>",
+  "footer": "text-align: center; color: #8a5a3b; font-size: 13px; margin: 32px 0 0",
+  "footer_html": "—— 记于排查网关的一个午后 ——",
+  "pre": "background-color: #efe6d8; border: 1px dashed #d8cbb8; border-radius: 8px; padding: 14px 16px; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "code": "color: #4b3a2f; font-size: 13px; line-height: 1.6",
+  "inline_code": "background-color: #efe3d3; color: #8a5a3b; padding: 1px 5px; border-radius: 4px; letter-spacing: 0",
+  "list_prefix_html": "◦&nbsp;&nbsp;",
+  "list_item": "font-size: 16px; line-height: 1.85; color: #4b3a2f; margin: 0 0 12px; text-align: left; overflow-wrap: break-word",
+  "table": "margin: 0 0 18px",
+  "th": "background-color: #efe3d3; color: #4b3a2f; font-weight: 700; border: 1px dashed #d8cbb8; padding: 9px 11px; font-size: 14px",
+  "td": "color: #4b3a2f; border: 1px dashed #d8cbb8; padding: 9px 11px; font-size: 14px",
+  "highlight": {
+    "comment": "#6b5a4c",
+    "string": "#5c4033",
+    "key": "#5c4033",
+    "keyword": "#8a5a3b"
+  }
+}

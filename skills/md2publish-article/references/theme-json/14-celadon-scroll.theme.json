@@ -1,0 +1,32 @@
+{
+  "container": "background-color: #f6f0e2; padding: 42px 14px; letter-spacing: 1px",
+  "content_width": 800,
+  "card": "background-color: #fbf7ec; border: 1px solid #d8cfb8; border-radius: 4px; padding: 26px 22px; margin: 0 0 34px",
+  "card_mode": "section",
+  "p": "font-size: 16px; line-height: 1.9; color: #3a3226; margin: 0 0 20px; text-align: left; overflow-wrap: break-word",
+  "h2": "text-align: center; font-size: 20px; font-weight: 600; color: #2c6e63; letter-spacing: 6px; margin: 0 0 24px; font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif",
+  "h2_prefix_html": "<span style=\"color: #d8cfb8; letter-spacing: 0;\">─&nbsp;</span>",
+  "h3": "font-size: 16px; font-weight: 600; color: #3a3226; text-align: left; margin: 28px 0 14px; font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif",
+  "h3_prefix_html": "<span style=\"color: #a63d2f; letter-spacing: 0;\">◉&nbsp;</span>",
+  "strong": "color: #2c6e63; font-weight: 600",
+  "em": "color: #a63d2f",
+  "blockquote": "background-color: #efe8d5; border-left: 3px solid #2c6e63; padding: 16px 20px; margin: 0 0 20px; color: #7c7365; font-size: 15px; line-height: 1.85; text-align: left",
+  "pre": "background-color: #efe8d5; border: 1px solid #d8cfb8; padding: 15px 17px; margin: 0 0 20px",
+  "code": "color: #4a4234; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #efe8d5; color: #2c6e63; padding: 1px 5px; border-radius: 3px; font-size: 14px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_html": "·&nbsp;&nbsp;",
+  "list_item": "font-size: 16px; line-height: 1.9; color: #3a3226; margin: 0 0 10px; text-align: left; overflow-wrap: break-word",
+  "table": "margin: 0 0 20px",
+  "th": "background-color: #e5dcc4; color: #3a3226; font-weight: 600; border: 1px solid #d8cfb8; padding: 10px 12px; font-size: 14px",
+  "td": "border: 1px solid #d8cfb8; padding: 10px 12px; font-size: 14px; color: #3a3226",
+  "hr_gap": 60,
+  "footer": "text-align: right; color: #a63d2f; margin: 36px 0 0",
+  "footer_html": "<span style=\"display: inline-block; border: 1px solid #a63d2f; color: #a63d2f; font-size: 13px; padding: 3px 6px; letter-spacing: 2px;\">掩卷</span>",
+  "highlight": {
+    "comment": "#7c7365",
+    "string": "#a63d2f",
+    "key": "#a63d2f",
+    "keyword": "#2c6e63",
+    "number": "#4a4234"
+  }
+}

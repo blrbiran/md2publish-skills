@@ -22,16 +22,24 @@
       "card":         "background-color: #1b2438; border: 1px solid ...", # 有值则包卡片
       "card_mode":    "section",                   # section=每章一张（默认）｜single=全文一张大卡
       "p":            "font-size: 15.5px; color: #c9d2e3; ...",
+      "p_first":      "font-size: 17px; border-left: 3px solid #9e2b25; ...",  # 导语：全文
+                                   # 第一个段落（不是每章），与 h2_first 同构、各自独立计数
       "h2":           "...", "h2_prefix_html": "<span style=...>&gt;_&nbsp;</span>",
+      "h2_suffix_html": "<span style=...>&nbsp;◆</span>",   # 与前缀对称，做两侧饰线
       "h2_first":     "...",                       # 首个 h2 顶在页首，通常要去掉上间距/节前线
       "h2_text_style": "background-color: #171614; color: #f4f1ea; ...",  # 标题文字自带色块时用
       "h3":           "...", "h3_prefix_html": "<span style=...>#&nbsp;</span>",
       "strong":       "color: #39d0d8; font-weight: 600",
+      "strong_alt":   {"keywords": ["注意", "警告", "不要", "会导致"],   # 警示语义的 strong
+                       "style": "color: #ff4ba3; font-weight: 600"},   # 换一套样式
       "em":           "color: #ff4ba3",
       "blockquote":   "...",
       "blockquote_prefix_html": "<span style=...>❝&nbsp;</span>",   # 提示卡上不加
-      "footer":       "text-align: center; margin: 40px 0 0",  # 文末装饰：印章 / 落款 /
-      "footer_html":  "<span style=...>終</span>",             # 「終」字，落在所有卡片之外
+      "footer":       "text-align: center; color: #8a5a3b; margin: 40px 0 0",  # 文末装饰：
+      "footer_html":  "<span style=...>終</span>",   # 印章 / 落款 / 「終」字，在所有卡片之外
+                                                     # ↑ footer 要自带 color：它是唯一没有
+                                                     #   `p` 兜底的段落（脚本会退回正文色，
+                                                     #   但那通常不是落款该有的分量）
       "alert":        {"note": {"style": "...",           # 提示卡，文章 md 里写 `> [!NOTE]` 触发；
                                 "label_html": "..."},     # 值也可以只是样式串（无标签）
                        "warning": "..."},                 # 主题没配 alert 就退化成普通引用块
@@ -39,6 +47,8 @@
       "inline_code":  "color: #39d0d8",
       "list_prefix_html": "<span style=\\"color: #39d0d8;\\">▸</span>&nbsp;&nbsp;",
       "list_prefix_cycle": ["<span ...>■</span>&nbsp;&nbsp;", "..."],   # 多色轮换，有它就盖过上一行
+      "list_prefix_ol_html": "<span style=...>{n}</span>&nbsp;&nbsp;",  # 有序项，`{n}` = 源文序号
+                                                                       # 不配就退回纯文本 `N.`
       "list_item":    "...",
       "table": "...", "th": "...", "td": "...",
       "td_alt":       "background-color: #f6f8fa",  # 斑马纹：叠加在偶数数据行的 td 上
@@ -180,8 +190,23 @@ def inline(text, T):
     out = esc(text)
     out = re.sub(r"`([^`]+)`",
                  lambda m: f'<span style="{T.get("inline_code", "")}">{m.group(1)}</span>', out)
-    out = re.sub(r"\*\*([^*]+)\*\*",
-                 lambda m: f'<strong style="{T.get("strong", "")}">{m.group(1)}</strong>', out)
+    def strong_tag(m):
+        """strong 默认走 `strong`；配了 `strong_alt` 且文字命中关键词就换一套样式。
+
+        几个主题把「注意 / 警告 / 不要 / 会导致」这类警示性 strong 规定成另一个色。
+        这条规范本来就是按关键词写的、机械可判，只是过去没有挂载点，于是在产物里静默
+        丢失（cyber-neon 的品红 36 处，落在 strong 上 0 处）。
+
+        命中判定要剥掉标签：此处行内 code 已经变成 `<span style=...>`，不剥的话关键词
+        会去和样式串比对。
+        """
+        inner = m.group(1)
+        alt = T.get("strong_alt")
+        if alt and any(k in re.sub(r"<[^>]+>", "", inner) for k in alt.get("keywords", [])):
+            return f'<strong style="{alt.get("style", "")}">{inner}</strong>'
+        return f'<strong style="{T.get("strong", "")}">{inner}</strong>'
+
+    out = re.sub(r"\*\*([^*]+)\*\*", strong_tag, out)
     out = re.sub(r"(?<![*\w])\*([^*\n]+)\*(?!\*)",
                  lambda m: f'<em style="{T.get("em", "")}">{m.group(1)}</em>', out)
     out = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1（\2）", out)   # 公众号正文不支持外链
@@ -282,7 +307,7 @@ def build(md, T, source_name, meta):
     W = width_style(T)
     use_cards = bool(T.get("card"))
     single_card = use_cards and T.get("card_mode") == "single"   # 全文一张大卡（editor-slate 那种）
-    out, card_open, seen_h2 = [], False, False
+    out, card_open, seen_h2, seen_p = [], False, False, False
 
     def close_card(gap=None, force=False):
         """单卡主题下 h2 不切卡，只有收尾时（force）才真的闭合。"""
@@ -329,14 +354,20 @@ def build(md, T, source_name, meta):
                 base_h2 = T["h2_first"] if (seen_h2 is False and T.get("h2_first")) else T.get("h2", "")
                 seen_h2 = True
                 out.append(f'<h2 style="{sty(base_h2, boxed=not card_open)}">'
-                           f'{T.get("h2_prefix_html", "")}{text}</h2>')
+                           f'{T.get("h2_prefix_html", "")}{text}'
+                           f'{T.get("h2_suffix_html", "")}</h2>')
             else:
                 open_card()                      # h3 也可能是一章的开头（源文里 h2 后直接跟 h3）
                 out.append(f'<h3 style="{sty(T.get("h3",""), boxed=not card_open)}">'
                            f'{T.get("h3_prefix_html", "")}{inline(body, T)}</h3>')
         elif kind == "p":
             open_card()
-            out.append(f'<p style="{sty(T.get("p",""), boxed=not card_open)}">{inline(body, T)}</p>')
+            # 导语：全文第一个段落走另一套样式（报纸体的首段引语）。与 h2_first 同构，
+            # 计数各自独立。「全文第一段」按文档级算，不是每章一段——主题文件写的是「全文」。
+            # 列表/代码/引用打头时它们不占这个位次，导语落在第一个真正的段落上。
+            base_p = T["p_first"] if (seen_p is False and T.get("p_first")) else T.get("p", "")
+            seen_p = True
+            out.append(f'<p style="{sty(base_p, boxed=not card_open)}">{inline(body, T)}</p>')
         elif kind == "code":
             open_card()
             out.append(f'<pre style="{sty(T.get("pre",""), boxed=not card_open, extra_css="; overflow-x: auto; letter-spacing: 0")}">'
@@ -358,7 +389,10 @@ def build(md, T, source_name, meta):
             for item in body:
                 ordered = re.match(r"^\s*(\d+)\.\s+(.*)$", item)
                 if ordered:
-                    pre, text = f'{ordered.group(1)}.&nbsp;&nbsp;', ordered.group(2)
+                    text = ordered.group(2)
+                    ol_tpl = T.get("list_prefix_ol_html")   # `{n}` 占位符换成源文里的序号
+                    pre = (ol_tpl.replace("{n}", ordered.group(1)) if ol_tpl
+                           else f'{ordered.group(1)}.&nbsp;&nbsp;')
                 else:
                     text = re.sub(r"^\s*[-*+]\s+", "", item)
                     pre = (cycle[bullet_n % len(cycle)] if cycle
@@ -390,7 +424,14 @@ def build(md, T, source_name, meta):
     # 文末装饰（印章 / 落款 / 「終」字）。落在所有卡片之外、主容器之内，自己承担定宽——
     # 它是顶层块，和 hr 同一层。6 个主题的规范里有这一笔，早先没有挂载点时是静默丢掉的。
     if T.get("footer_html"):
-        out.append(f'<p style="{sty(T.get("footer", ""), boxed=True)}">{T["footer_html"]}</p>')
+        # 铁律要求每个 <p> 有显式 color，而 footer 是唯一一处「主题没写就真的没有」的
+        # 段落——别的段落至少还有 `p` 兜着。用了这个字段的主题曾经 3/3 全栽在这上面。
+        # 兜底色拼在最前面：主题若自己写了 color，它在后面自然覆盖。
+        fs = T.get("footer", "")
+        if not re.search(r"(^|;)\s*color\s*:", fs):
+            m = re.search(r"(?:^|;)\s*color\s*:\s*([^;]+)", T.get("p", ""))
+            fs = f'color: {m.group(1).strip() if m else "inherit"}; {fs}'
+        out.append(f'<p style="{sty(fs, boxed=True)}">{T["footer_html"]}</p>')
     head = ('<!-- md2publish ' + json.dumps(
         {"title": meta.get("title", ""), "author": meta.get("author", ""),
          "digest": meta.get("digest", ""), "source": source_name},

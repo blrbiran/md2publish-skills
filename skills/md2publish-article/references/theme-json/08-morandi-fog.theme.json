@@ -1,0 +1,27 @@
+{
+  "container": "background-color: #eeecea; padding: 42px 14px; letter-spacing: 0.8px",
+  "content_width": 800,
+  "card": "background-color: #f7f5f3; border-radius: 14px; padding: 26px 22px; margin: 0 0 36px; box-shadow: 0 6px 20px rgba(74, 72, 70, 0.06)",
+  "card_mode": "section",
+  "p": "font-size: 15.5px; line-height: 1.85; color: #4a4846; margin: 0 0 18px; text-align: left; overflow-wrap: break-word",
+  "h2": "display: inline-block; font-size: 19px; font-weight: 600; color: #4a4846; margin: 0 0 20px; padding: 0 4px; background-image: linear-gradient(transparent 62%, rgba(176, 142, 138, 0.35) 62%); text-align: left",
+  "h3": "font-size: 16px; font-weight: 600; color: #8fa3ad; text-align: left; margin: 26px 0 12px; padding-left: 10px; border-left: 3px solid #8fa3ad",
+  "strong": "color: #b08e8a; font-weight: 600",
+  "em": "color: #8fa3ad",
+  "blockquote": "background-color: #e6e1de; border-radius: 10px; padding: 16px 20px; margin: 0 0 18px; color: #8c8884; font-size: 14.5px; line-height: 1.8; text-align: left",
+  "pre": "background-color: #e6e1de; border-radius: 10px; padding: 15px 17px; margin: 0 0 18px",
+  "code": "color: #55514e; font-size: 13px; line-height: 1.6; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #e6e1de; color: #b08e8a; padding: 2px 6px; border-radius: 4px; font-size: 13px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_html": "—&nbsp;&nbsp;",
+  "list_item": "font-size: 15.5px; line-height: 1.85; color: #4a4846; margin: 0 0 8px; text-align: left; overflow-wrap: break-word",
+  "table": "margin: 0 0 18px",
+  "th": "background-color: #e6e1de; color: #4a4846; font-weight: 600; border: 1px solid #ddd8d4; padding: 9px 12px; font-size: 14px",
+  "td": "border: 1px solid #ddd8d4; padding: 9px 12px; font-size: 14px; color: #4a4846",
+  "highlight": {
+    "comment": "#8c8884",
+    "string": "#8fa3ad",
+    "key": "#8fa3ad",
+    "keyword": "#b08e8a",
+    "number": "#55514e"
+  }
+}

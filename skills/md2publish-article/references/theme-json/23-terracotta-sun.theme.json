@@ -1,0 +1,29 @@
+{
+  "container": "background-color: #f8f0e7; padding: 40px 14px; letter-spacing: 0.5px",
+  "content_width": 800,
+  "card": "background-color: #fdf8f1; border: 1px solid #e0cdb5; border-radius: 24px 24px 8px 8px; padding: 26px 22px; margin: 0 0 34px",
+  "card_mode": "section",
+  "p": "font-size: 15.5px; line-height: 1.85; color: #4f382b; margin: 0 0 17px; text-align: left; overflow-wrap: break-word",
+  "h2": "display: inline-block; background-color: #c2593b; color: #fdf8f1; font-size: 17px; font-weight: 700; padding: 7px 18px; border-radius: 18px 18px 4px 4px; margin: 0 0 20px; text-align: left",
+  "h3": "font-size: 16px; font-weight: 700; color: #8f3f28; text-align: left; margin: 26px 0 12px",
+  "h3_prefix_html": "<span style=\"color: #6f7a4d;\">☘&nbsp;</span>",
+  "strong": "color: #c2593b; font-weight: 700",
+  "em": "color: #6f7a4d",
+  "blockquote": "background-color: #efe0cd; border-radius: 16px 16px 6px 6px; padding: 16px 20px; margin: 0 0 17px; color: #7d6250; font-size: 14.5px; line-height: 1.8; text-align: left",
+  "pre": "background-color: #efe0cd; border-radius: 10px; padding: 14px 16px; margin: 0 0 17px; overflow-x: auto",
+  "code": "color: #4f382b; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #efe0cd; color: #8f3f28; padding: 2px 6px; border-radius: 4px; font-size: 13px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_html": "<span style=\"color: #c2593b;\">●</span>&nbsp;&nbsp;",
+  "list_item": "font-size: 15.5px; line-height: 1.85; color: #4f382b; margin: 0 0 10px; text-align: left; overflow-wrap: break-word",
+  "table": "margin: 0 0 17px",
+  "th": "background-color: #efe0cd; color: #8f3f28; font-weight: 700; border: 1px solid #e0cdb5; padding: 9px 11px; font-size: 14px",
+  "td": "border: 1px solid #e0cdb5; padding: 9px 11px; font-size: 14px; color: #4f382b",
+  "td_alt": "background-color: #f8f0e7",
+  "highlight": {
+    "comment": "#9c8a72",
+    "string": "#8f3f28",
+    "key": "#8f3f28",
+    "keyword": "#c2593b",
+    "number": "#4f382b"
+  }
+}

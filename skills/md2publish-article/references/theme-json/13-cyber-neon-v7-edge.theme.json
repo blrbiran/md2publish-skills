@@ -1,0 +1,21 @@
+{
+  "container": "background-color: #0f1420; padding: 36px 12px; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "content_width": 800,
+  "card": "background-color: #1b2438; border: 1px solid #39456b; border-top: 2px solid #39d0d8; border-radius: 10px; padding: 24px 20px; margin: 0 0 32px",
+  "p": "font-size: 15.5px; line-height: 1.8; color: #c9d2e3; margin: 0 0 16px",
+  "h2": "font-size: 19px; font-weight: 700; color: #39d0d8; margin: 0 0 20px; letter-spacing: 2px",
+  "h2_prefix_html": "<span style=\"font-family: Menlo, Consolas, monospace; color: #ff4ba3;\">&gt;_&nbsp;</span>",
+  "h3": "font-size: 16px; font-weight: 600; color: #c9d2e3; margin: 26px 0 12px; padding-left: 10px; border-left: 3px solid #ff4ba3",
+  "strong": "color: #39d0d8; font-weight: 600",
+  "em": "color: #ff4ba3",
+  "blockquote": "background-color: #10182a; border-left: 2px solid #39d0d8; padding: 14px 18px; margin: 0 0 16px; color: #7a869e; font-size: 14.5px",
+  "pre": "background-color: #0a0e18; border: 1px solid #39456b; border-radius: 8px; padding: 16px; font-size: 13px; margin: 0 0 18px; line-height: 1.6",
+  "code": "color: #c9d2e3; font-family: Menlo, Consolas, monospace",
+  "inline_code": "background-color: #39456b; color: #c9d2e3; padding: 1px 5px; border-radius: 3px; font-family: Menlo, Consolas, monospace; letter-spacing: 0",
+  "list_prefix_html": "<span style=\"color: #39d0d8;\">▸</span>&nbsp;&nbsp;",
+  "list_item": "font-size: 15.5px; line-height: 1.8; color: #c9d2e3; margin: 0 0 10px",
+  "table": "margin: 0 0 18px", "th": "background-color: #0a0e18; color: #39d0d8; border: 1px solid #445280; padding: 9px 11px; font-size: 14px",
+  "td": "border: 1px solid #445280; padding: 9px 11px; font-size: 14px; color: #c9d2e3",
+  "hr_gap": 56,
+  "highlight": {"comment": "#7a869e", "string": "#39d0d8", "key": "#39d0d8", "keyword": "#ff4ba3", "number": "#c9d2e3"}
+}

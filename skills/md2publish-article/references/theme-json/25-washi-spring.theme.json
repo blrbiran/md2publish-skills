@@ -1,0 +1,29 @@
+{
+  "container": "background-color: #faf6f2; padding: 44px 16px; letter-spacing: 1px",
+  "content_width": 800,
+  "p": "font-size: 15.5px; line-height: 1.95; color: #4a4340; margin: 0 0 20px; text-align: left; overflow-wrap: break-word",
+  "h2": "text-align: center; font-size: 18px; font-weight: 600; color: #4a4340; letter-spacing: 6px; margin: 0 0 24px; padding: 10px 0; border-top: 1px solid #d98e9f; border-bottom: 1px solid #d98e9f",
+  "h2_first": "text-align: center; font-size: 18px; font-weight: 600; color: #4a4340; letter-spacing: 6px; margin: 0 0 24px; padding: 10px 0; border-top: 1px solid #d98e9f; border-bottom: 1px solid #d98e9f",
+  "h3": "font-size: 15.5px; font-weight: 600; color: #4a4340; text-align: left; margin: 28px 0 14px",
+  "h3_prefix_html": "<span style=\"color: #8a9b6e;\">◦&nbsp;</span>",
+  "strong": "color: #b56b7d; font-weight: 600",
+  "em": "color: #8a9b6e",
+  "blockquote": "background-color: #f3e9e7; padding: 16px 20px; margin: 0 0 20px; color: #8f8781; font-size: 14.5px; line-height: 1.9; text-align: left",
+  "pre": "background-color: #f1ebe4; border: 1px solid #e5dcd4; padding: 14px 16px",
+  "code": "color: #4a4340; font-size: 13px; line-height: 1.7; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "inline_code": "background-color: #f3e9e7; color: #b56b7d; padding: 2px 5px; font-size: 14px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
+  "list_prefix_html": "・&nbsp;&nbsp;",
+  "list_item": "font-size: 15.5px; line-height: 1.95; color: #4a4340; margin: 0 0 20px; text-align: left; overflow-wrap: break-word",
+  "table": "margin: 0 0 20px",
+  "th": "background-color: #f3e9e7; color: #b56b7d; font-weight: 600; border: 1px solid #e5dcd4; padding: 10px 12px; font-size: 14px",
+  "td": "border: 1px solid #e5dcd4; padding: 10px 12px; font-size: 14px; color: #4a4340",
+  "hr": "width: 60px; border-top: 1px solid #e5dcd4; margin: 48px auto",
+  "footer": "text-align: center; color: #b56b7d; margin: 40px 0 0",
+  "footer_html": "<span style=\"display: inline-block; border: 1px solid #d98e9f; color: #b56b7d; font-size: 13px; padding: 3px 8px; letter-spacing: 2px;\">終</span>",
+  "highlight": {
+    "comment": "#8f8781",
+    "string": "#8a9b6e",
+    "key": "#8a9b6e",
+    "keyword": "#b56b7d"
+  }
+}
