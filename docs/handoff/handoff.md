@@ -1,6 +1,6 @@
 # Handoff：md2publish-skills 交接文档
 
-> 更新于 2026-08-05。接手前先读本文，再按「下一步候选」开工。
+> 更新于 2026-08-05（第二轮）。接手前先读本文，再按「下一步候选」开工。
 > 仓库位置：`~/code/skills/writing/md2publish-skills/`
 >
 > **本文不记录 commit hash**——提交本文这个动作本身就会移动 HEAD。仓库状态一律以实时的
@@ -19,71 +19,125 @@
 
 架构与职责边界见 `skills/README.md`；给人读的全流程教程在 `~/org/markdown/prompt/@inbox/md-to-wechat-draft-free-path.md`（仓库外）。
 
-## 二、当前状态
+## 二、生成 HTML 的工作方式（这是现在的主路径，先看这节）
+
+**不要手敲 HTML，也不要另写转换脚本。**机械层已经固化在 `scripts/md2html.py`：
+
+```bash
+python3 skills/md2publish-article/scripts/md2html.py <article.md> <theme.json> -o <out.html>
+```
+
+它包办转义顺序、`&nbsp;` 边界、span 不跨 `<br>`、结构包裹、语法高亮、定宽分层、H1 不进正文、代码块逐字节自校验。**你的工作单元是那份 `theme.json`**——把主题文件的散文规范翻译成内联样式串，外加脚本判断不了的语义判断（哪段升格提示卡、主题没覆盖的元素怎么补）。字段说明见脚本头部注释。
+
+第二轮新增 8 个字段（原脚本只对 cyber-neon 一种形状验证过，另外 5 个主题一上就露洞）：
+
+| 字段 | 解决什么 |
+|---|---|
+| `h3_prefix_html` | **27 个主题里 18 个需要**，原来只有 h2 有前缀字段 |
+| `card_mode: "single"` | 全文一张大卡（editor-slate），区别于默认的每章一卡 |
+| `h2_first` | 正文不渲染 H1，首个 h2 顶在页首，要单独去掉上间距/节前线 |
+| `h2_text_style` | 标题文字自带色块（bauhaus-pop 的黑底白字） |
+| `td_alt` | 表格斑马纹 |
+| `list_prefix_cycle` | 列表前缀多色轮换（bauhaus-pop / candy-pop / aurora-flow） |
+
+另有两处与规范冲突的修正：`sty()` 原来无条件追加 `text-align: left`，会盖掉主题指定的居中；`highlight` 的值原来只能是裸色值，现在也接受完整样式串（无彩色主题靠字重和字形区分 token，只能上色就没有区分手段了）。
+
+跑完必须过 `references/wechat-html.md` 末尾的自检脚本到 PASS。抽取方法：
+
+```bash
+awk '/^python3 - <<.EOF.$/{f=1;next} /^EOF$/{f=0} f' skills/md2publish-article/references/wechat-html.md > selfcheck.py
+python3 selfcheck.py <out.html>
+```
+
+## 三、当前状态
 
 ### 已实测验证
 
-- **全链路 E2E 两次跑通**：litellm 技术文（2.8 万字符、13 代码块）用 autumn-warm 和 editor-slate v2 生成 HTML → 自检 PASS → `create_draft` 推草稿 → 用户手机预览确认。产物在 `~/code/skills/writing/wechat_test/litellm-multi-provider-gateway/`
-- **主题库 27 个**（不是 26），清单见 `references/theme-prompts/INDEX.md`。三个原 CLI 内置主题已重写为扩展主题格式，全库统一走「`_common-tech.md` + 主题文件 + 原文」一条生成路径
-- **主题批量实测第一批 6 个**：ocean-calm / ink-wash / editor-slate / bauhaus-pop / cyber-neon / monochrome-mag。产物在实验目录的 `out/`，编号按 INDEX.md 顺序，每份配一份 `.report.md`。**剩余 21 个未跑**
-- **全库落点审计归零**：`scripts/audit-themes.py` 扫 27 个主题，0 条嫌疑
+- **全链路 E2E 两次跑通**：litellm 技术文（1.7 万字符、13 代码块、11 个 h2、7 个 h3、3 处 `---`）→ HTML → 自检 PASS → `create_draft` → 手机预览确认
+- **主题库 27 个**，清单见 `references/theme-prompts/INDEX.md`，全库统一走「`_common-tech.md` + 主题文件 + 原文」一条路径
+- **主题实测 7 个**：autumn-warm / ocean-calm / ink-wash / editor-slate / bauhaus-pop / cyber-neon / monochrome-mag。**剩余 20 个未跑**
+- **宽度/居中修复已在三种结构上验证成立**：分章卡片（定宽落每张 `<section>`）、全文单卡（落那一张卡，卡内 0 处误加定宽）、无卡片（落每个顶层块）
+- **editor-slate 复测通过**：正文强调蓝落点 11 → **68 处**，「给 strong 上色」这个修复成立
+- **全库审计归零**：`scripts/audit-themes.py` 27 个主题 0 条
 
-### 关键产出（这一轮新增）
+### 产物位置
 
-- **`scripts/md2html.py`**——机械层共享脚本。此前每次生成都由模型现写一份转换脚本，等于每次都有一次写错的机会。现在转义顺序、`&nbsp;` 边界、span 不跨 `<br>`、结构包裹、语法高亮、定宽分层、H1 处理、代码块逐字节自校验全部固定下来，主题差异从 `theme.json` 传入。**用法见 `_common-tech.md` 的「生成方式」节，不要再另写转换脚本**。示例配置：实验目录的 `out/13-cyber-neon-v3.theme.json`
-- **`scripts/audit-themes.py`**——主题落点审计，四档：`DEAD`（零落点）/ `LOW`（文字色落点全在 em、链接等中文文章里可能为零的元素）/ `DECOR`（强调色只当边框细线用，无文字色落点）/ `DESYNC`（改了组件值没同步调色板）。四档都做过变异测试
-- **`wechat-finetune` skill**：画像存 cwd 的 `./.md2publish/audience-profile.md`；标题出 4–5 个不同路子的候选让用户选；`scripts/verify.py` 自检（代码块逐字节保真、frontmatter 三字段限长、正文无残留 H1、删减比例）。**eval 循环尚未跑**（用户选择后置）
-- **`docs/theme-design-lessons.md` 扩到三个案例、七条规则**，新增/改主题前必读
+实验目录 `~/code/skills/writing/wechat_test/litellm-multi-provider-gateway/out/`，每份 HTML 旁边配一份同名 `.theme.json`（**这是复现和继续的入口，比 HTML 本身重要**）：
 
-## 三、关键契约（教训换来的，别再踩）
+- `01-autumn-warm-v1.html`、`02-ocean-calm-v5.html`、`04-ink-wash-v5.html`、`06-editor-slate-v5.html`、`11-bauhaus-pop-v5.html`、`20-monochrome-mag-v5.html`
+- `13-cyber-neon-v7-edge.html` 是 cyber-neon 定稿；同目录的 v5/v6/v7-grid 是中间产物，可清理（**删文件前问用户**）
+- 更早的无版本号产物带旧宽度结构，已作废
+
+## 四、关键契约（教训换来的，别再踩）
 
 ### 发布相关
 
-1. **正式发草稿只用 `create_draft` + JSON**；`test-draft` 的标题/摘要在 CLI 源码里硬编码（`cmd/md2wechat/test_draft.go`）
+1. **正式发草稿只用 `create_draft` + JSON**；`test-draft` 的标题/摘要在 CLI 源码里硬编码
 2. **封面用 `media_id`，正文图用 `wechat_url`**（`upload_image` 返回两个字段，别混）
-3. **配置必须扁平 `wechat.appid/secret`**；`accounts:` 命名账号或 `proxy_url` 会触发付费 key 校验（`API_KEY_REQUIRED`）
+3. **配置必须扁平 `wechat.appid/secret`**；`accounts:` 或 `proxy_url` 会触发付费 key 校验
 4. `doctor` 的 `api.config FAIL` / `overall: blocked` 在免费路径是**预期状态**，只看 `wechat.config PASS`
-5. 用户微信凭证已配好（`~/.config/md2wechat/config.yaml`，勿外传勿改）；IP 白名单已配，家庭网络 IP 变动会报 `ip not in whitelist`，`curl ifconfig.me` 重查后更新即可
+5. 用户微信凭证已配好（勿外传勿改）；IP 白名单已配，家庭网络 IP 变动会报错，重查后更新即可
 
 ### 生成 HTML 相关
 
-6. 五条铁律在 `references/wechat-html.md`，每条对应真实翻车；末尾自检脚本**生成后必须跑到 PASS**
-7. **标题只进元数据注释，正文不渲染 H1**；去掉 H1 后 H2/H3 层级不上提，开篇按 `_common-tech.md` 的处理顺序补起手式
-8. **背景与定宽分层**：主 `<div>` 负责铺满（背景、padding、**不写 max-width**），定宽居中落在内容块上（卡片式主题落每张卡，无卡片主题落每个顶层块）
-9. **定宽居中的样式串必须拼在主题样式之后**，且用 longhand。拼前面会被主题的 `margin` 简写覆盖，结果是定宽生效但内容贴左边——这个错肉眼看代码看不出来，两个属性都在、值也对，只是顺序错了
-10. **行内 code 装饰要克制**：技术文里它有一两百处，实心深底 + padding 在手机断行时裂成两截（实测 193 处中 46 处跨行）。断行本身避免不了，能控制的只是裂开时有多难看。它也不承担强调色落点
+6. 五条铁律在 `references/wechat-html.md`，末尾自检脚本**生成后必须跑到 PASS**
+7. **标题只进元数据注释，正文不渲染 H1**；去掉 H1 后 H2/H3 层级不上提，首个 h2 用 `h2_first` 单独处理
+8. **背景与定宽分层**：主 `<div>` 铺满（背景、padding、**不写 max-width**），定宽落在内容块上
+9. **定宽居中的样式串必须拼在主题样式之后**，且用 longhand。拼前面会被主题的 `margin` 简写覆盖——这个错肉眼看代码看不出来
+10. **`---` 的语义降级按主题结构分三路**：卡片主题加大卡间距（`hr_gap`）、无卡片主题画分隔线（`hr`）、h2 自带边框的丢弃。测试文里 3 处 `---` 全部紧邻 h2
 
 ### 改主题相关
 
-11. **规范行里不夹叙述、不留旧色值**。一句「别只挂在 em 上」会让审计脚本把该行判成 em 落点；一个「原先的 `#xxxxxx` 是 1.11:1」会让旧值看起来仍有落点。这既是脚本的要求，也是给生成模型的要求——它可能真把旧值用上
-12. **改完跑 `audit-themes.py` 到 0 条**，改自检脚本或审计脚本后做变异测试（故意制造缺陷确认报警），否则你分不清「真没问题」和「根本没在查」
+11. **规范行里不夹叙述、不留旧色值**。一句「别只挂在 em 上」会让审计脚本把该行判成 em 落点
+12. **改完跑 `audit-themes.py` 到 0 条**；改检查脚本后做变异测试
+13. **提交前把 diff 完整读一遍**。第二轮就是在 diff 里才看见 `cyber-neon.md` 同一段里留着「亮一档」和「暗一档」两个相反的指令——改写时静默留下旧条款，只有读 diff 才抓得到
 
-## 四、悬而未决的问题
+## 五、这一轮新增的判据（写进了 `docs/theme-design-lessons.md` 规则 7）
 
-- **暗色主题在微信浅色模式下可能全篇不可读**。cyber-neon 实测：模拟「浅色模式把背景映射为白」后，正文 1.52:1、主强调 1.88:1，且**不存在两边都安全的配色**。影响 cyber-neon / midnight-study / velvet-stage / retro-phosphor 四个。**必须真机双模式预览才能定论**——要么确认微信不做这个映射，要么接受它们只在深色模式可用，要么改成「深色卡 + 浅色页面底」的结构
-- **editor-slate 的历史修复只做了一半**：补语法高亮让代码块变彩了，但正文强调蓝落点不足的根因刚修（给 strong 上色），**未复测**。代码占比低的文章仍是风险场景
-- **第一批 6 份产物和 bauhaus-pop v2 都带旧的宽度结构**，要看正确效果需用新脚本重生成。目前唯一结构正确的产物是 `out/13-cyber-neon-v4.html`
+- **暗色主题上分层要往亮里走**。给 cyber-neon 行内 code 加底，第一次调成比卡底更暗的 `#10182a`，对卡底只有 **1.14:1**，用户反馈仍「看不清」；改成比卡底亮一档的 `#39456b`（1.65:1）才立得起边界。文字对比度从来不是这里的瓶颈（11.6:1）——**量错了对象就会连修两轮**
+- **行内 code 的判据是「撞不撞形」，不是「用没用强调色」**。全库 17/27 给行内 code 派了强调色文字，其中 15 个带淡底、形状上和 strong 分得开，实测观感达标。真正翻车的只有 cyber-neon 那种「无底 + 强调色文字」
+- **一个检查项报了大半个库，通常是判据下宽了，不是库烂了**。OVER 档第一版报了 15 个主题，收窄成「带底不报」后归零
+- **变异用例的书写形态要够杂**。第一轮 4 个变异全是「行内 code 独占一行」，漏掉了「代码块与行内 code 写在同一行」（autumn-warm 就是这么写的），导致漏报
 
-## 五、下一步候选
+## 六、审计脚本现状
 
-按价值排序，与用户确认后再动：
+`scripts/audit-themes.py` 五档：`DEAD` 零落点 / `LOW` 只落在 em、链接等低频元素 / `DECOR` 只当边框细线 / **`OVER` 行内 code 无底色又用强调色当文字色** / `DESYNC` 改了组件没同步调色板。
 
-1. **用 `md2html.py` 重生成已测主题**，确认宽度/居中修复在各主题上都成立（成本很低，不必开 subagent，写好 `theme.json` 直接跑）
-2. **跑剩余 21 个主题**（第一批 6 个 ≈ $45 量级，全量按同等负载估计三到四倍，跑前先跟用户确认预算）
-3. **暗色主题真机双模式验证**（见上，唯一能解那个悬案的办法）
-4. **`wechat-finetune` 实测 + eval 循环**：拿一篇真文章走一遍比跑 eval 更直接；skill-creator 的 description 优化循环也未做
-5. **`md2publish-images` skill 从未实测**（宿主生图 + 上传封面未走通）
-6. **教程文档校订**：`@inbox/md-to-wechat-draft-free-path.md` 写于主题统一重构之前，「第二步：拿排版设计指令」仍以 CLI convert 为主路径，且未反映 `md2html.py`
+支持豁免注记（HTML 注释，不进渲染，脚本查落点前先剥注释以免注记里的色值变成假落点）：
 
-## 六、Suggested skills
+```
+<!-- audit-ok: OVER #3d6a8a 一句话理由 -->
+```
 
-- `superpowers:verification-before-completion` — 任何「改完了」之前跑验证。本项目里这条格外重要：宽度问题连续改错两次，都是因为只验证了「我改的属性在不在」，没验证「渲染出来是什么样」
+**⚠️ 变异测试脚本目前在会话临时目录里，会随会话消失。** 它覆盖 5 个形态：无底+强调色应报、带底不该报、代码块与行内 code 同行时要取对色值、豁免生效、豁免注记里的色值不能变成假落点。**接手后第一件事建议是把它重建到仓库里**（例如 `scripts/test-audit-themes.sh`），否则下次改审计脚本又要从零写变异用例。
+
+## 七、悬而未决
+
+- **暗色主题在微信浅色模式下可能全篇不可读**。cyber-neon 模拟「浅色模式把背景映射为白」后正文仅 1.52:1，且不存在两边都安全的配色。影响 cyber-neon / midnight-study / velvet-stage / retro-phosphor 四个。**必须真机双模式预览才能定论**，用户表示自己验证，结论未回
+- **INDEX.md 与主题文件色值不一致**：INDEX 里 cyber-neon 副强调写 `#ff2d95`，`cyber-neon.md` 里是 `#ff4ba3`。审计脚本只扫主题文件，扫不到 INDEX，这类「两处并存」正是 DESYNC 想抓的形态。未处理
+- **editor-slate 的 GitHub Alert 提示卡未实现**。属判断层，脚本不管。测试文 5 处引用都是「旁注」型补充说明，按该主题自己的判据本就该走普通引用块，所以缺口不大，但 2–4 张的规定没兑现
+- **`wechat-finetune` 未实测**，eval 循环未跑
+- **`md2publish-images` 从未实测**（宿主生图 + 上传封面未走通）
+
+## 八、下一步候选
+
+1. **把变异测试脚本重建进仓库**（见第六节的警告，成本极低，优先做）
+2. **跑剩余 20 个主题**——每个主题的工作是「读主题文件 → 写 theme.json → 跑脚本 → 过自检 → 看落点」。**强烈建议开新会话跑**：实测下来单个主题的实际工作量只有约 2k 输出 token，成本几乎全部来自上下文重发。大上下文会话里每轮 $3–6，剩余 20 个约 $150–200；新会话上下文只需 `_common-tech.md` + `md2html.py` 用法 + 自检脚本 + 一份主题文件（约 25k），总计约 $25–35
+3. **修 INDEX 与主题文件的色值不一致**（顺手可做）
+4. **暗色主题真机双模式验证**（在用户那边）
+5. **`wechat-finetune` 实测 + eval 循环**
+6. **教程文档校订**：`@inbox/md-to-wechat-draft-free-path.md` 写于主题统一重构之前，未反映 `md2html.py`
+
+## 九、Suggested skills
+
+- `superpowers:verification-before-completion` — 本项目里这条格外重要：宽度问题连续改错两次、cyber-neon 对比度连续改错两次，都是因为只验证了「我改的属性在不在」，没验证「渲染出来是什么样」，或者量错了对象
 - `skill-creator` — 改 skill 结构、跑 evals、做 description 优化
 - `superpowers:brainstorming` — 用户提新主题/新功能方向时先收敛需求
 - `tech-writer` — 校订教程文档时（该文档按讲解体写成，改动要守住其风格）
 
-## 七、环境速查
+## 十、环境速查
 
 - md2wechat CLI 3.2.0 已装（npm 全局）；源码在 `~/code/skills/writing/md2wechat-skill/`（另一个 git 仓库，别混）
 - 实验目录 `~/code/skills/writing/wechat_test/`
-- 用户偏好：HTML 生成用 **Opus 模型 subagent**；**传图、建草稿、git commit/push 一律先经用户确认**；成本敏感，大批量跑 subagent 前先报预估
+- 用户偏好：**传图、建草稿、git commit/push 一律先经用户确认**；成本敏感，大批量开跑前先报预估
+- 用户在 main 分支上直接提交，不开特性分支
