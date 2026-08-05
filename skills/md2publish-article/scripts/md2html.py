@@ -29,6 +29,9 @@
       "strong":       "color: #39d0d8; font-weight: 600",
       "em":           "color: #ff4ba3",
       "blockquote":   "...",
+      "alert":        {"note": {"style": "...",           # 提示卡，文章 md 里写 `> [!NOTE]` 触发；
+                                "label_html": "..."},     # 值也可以只是样式串（无标签）
+                       "warning": "..."},                 # 主题没配 alert 就退化成普通引用块
       "pre":          "...", "code":  "...",
       "inline_code":  "color: #39d0d8",
       "list_prefix_html": "<span style=\\"color: #39d0d8;\\">▸</span>&nbsp;&nbsp;",
@@ -204,7 +207,16 @@ def parse(md):
             buf = []
             while i < len(lines) and lines[i].strip().startswith(">"):
                 buf.append(re.sub(r"^\s*>\s?", "", lines[i])); i += 1
-            blocks.append(("quote", "\n".join(buf).strip(), None))
+            # GitHub Alert 标记：首行 `[!NOTE]` 之类把这个引用块升格成提示卡。
+            # 标记无论认不认都要剥掉——主题没配 alert 只是退化成普通引用块，
+            # 漏剥则是 `[!NOTE]` 六个字符直接印进文章。
+            # GitHub 要求标记独占一行，但写成 `> [!NOTE] 正文` 的人不少，两种都认。
+            alert = None
+            m = re.match(r"^\s*\[!([A-Za-z]+)\]\s*(.*)$", buf[0]) if buf else None
+            if m:
+                alert = m.group(1).lower()
+                buf = ([m.group(2)] if m.group(2).strip() else []) + buf[1:]
+            blocks.append(("quote", "\n".join(buf).strip(), alert))
         elif re.match(r"^\s*\|.*\|\s*$", line):
             buf = []
             while i < len(lines) and re.match(r"^\s*\|", lines[i]):
@@ -227,6 +239,27 @@ def parse(md):
 
 
 # ── 生成 ────────────────────────────────────────────────────────────────────
+
+# GitHub 五种 Alert，但主题一般只配 note/warning 两档。配不全时按语气归并，
+# 而不是静默掉回灰引用块——`[!CAUTION]` 掉成普通引用块，警示语义就丢了。
+ALERT_ALIAS = {"tip": "note", "important": "note", "caution": "warning"}
+
+
+def alert_spec(T, kind):
+    """取提示卡样式。返回 {} 表示这个块照普通引用块渲染。
+
+    `alert` 的值两种写法都认（与 `highlight` 同样的宽松策略）：
+        "note": "border-left: 4px solid #0969da; background-color: #ddf4ff; ..."
+        "note": {"style": "...", "label_html": "<span style=...>注意</span><br>"}
+    """
+    table = T.get("alert") or {}
+    if not kind or not table:
+        return {}
+    spec = table.get(kind, table.get(ALERT_ALIAS.get(kind, "")))
+    if spec is None:
+        return {}
+    return {"style": spec} if isinstance(spec, str) else dict(spec)
+
 
 def width_style(T):
     """定宽 + 水平居中，加在内容块上（不加在主容器上——主容器要铺满，背景才不会被夹成一条）。
@@ -309,8 +342,11 @@ def build(md, T, source_name, meta):
                        f'{render_code(body, extra, T.get("highlight"))}</code></pre>')
         elif kind == "quote":
             open_card()
-            out.append(f'<p style="{sty(T.get("blockquote",""), boxed=not card_open)}">'
-                       f'{inline(body, T)}</p>')
+            spec = alert_spec(T, extra)
+            style = spec.get("style") or T.get("blockquote", "")
+            label = spec.get("label_html", "")
+            out.append(f'<p style="{sty(style, boxed=not card_open)}">'
+                       f'{label}{inline(body, T)}</p>')
         elif kind == "list":
             open_card()
             cycle = T.get("list_prefix_cycle")

@@ -39,6 +39,7 @@ python3 skills/md2publish-article/scripts/md2html.py <article.md> <theme.json> -
 | `h2_text_style` | 标题文字自带色块（bauhaus-pop 的黑底白字） |
 | `td_alt` | 表格斑马纹 |
 | `list_prefix_cycle` | 列表前缀多色轮换（bauhaus-pop / candy-pop / aurora-flow） |
+| `alert` | 提示卡（第三轮补）。文章 md 里写 `> [!NOTE]` 触发，主题没配就剥掉标记按普通引用块渲染 |
 
 另有两处与规范冲突的修正：`sty()` 原来无条件追加 `text-align: left`，会盖掉主题指定的居中；`highlight` 的值原来只能是裸色值，现在也接受完整样式串（无彩色主题靠字重和字形区分 token，只能上色就没有区分手段了）。
 
@@ -109,24 +110,27 @@ python3 selfcheck.py <out.html>
 <!-- audit-ok: OVER #3d6a8a 一句话理由 -->
 ```
 
-**⚠️ 变异测试脚本目前在会话临时目录里，会随会话消失。** 它覆盖 5 个形态：无底+强调色应报、带底不该报、代码块与行内 code 同行时要取对色值、豁免生效、豁免注记里的色值不能变成假落点。**接手后第一件事建议是把它重建到仓库里**（例如 `scripts/test-audit-themes.sh`），否则下次改审计脚本又要从零写变异用例。
+变异测试已进仓库，改审计脚本前先跑：
+
+```bash
+bash skills/md2publish-article/scripts/test-audit-themes.sh
+```
+
+14 条用例覆盖五档各自的正例、OVER 的三种真实书写形态（中文「底/文字」、纯 CSS、代码块与行内 code 同行）、散文句混在规范里、带前缀的 `*-color:` 不算文字色、豁免生效、豁免注记里的色值不能变成假落点；最后一条顺带要求真实主题库仍是 0 条。**这套用例本身也验过牙齿**：对审计脚本做了 9 种定点破坏（去掉截断、去掉「有底不报」守卫、不剥注释、不过滤豁免、逐档删掉 DEAD/LOW/DECOR/OVER、去掉 `color:` 的反向断言），9 种全部有用例变红。
 
 ## 七、悬而未决
 
 - **暗色主题在微信浅色模式下可能全篇不可读**。cyber-neon 模拟「浅色模式把背景映射为白」后正文仅 1.52:1，且不存在两边都安全的配色。影响 cyber-neon / midnight-study / velvet-stage / retro-phosphor 四个。**必须真机双模式预览才能定论**，用户表示自己验证，结论未回
-- **INDEX.md 与主题文件色值不一致**：INDEX 里 cyber-neon 副强调写 `#ff2d95`，`cyber-neon.md` 里是 `#ff4ba3`。审计脚本只扫主题文件，扫不到 INDEX，这类「两处并存」正是 DESYNC 想抓的形态。未处理
-- **editor-slate 的 GitHub Alert 提示卡未实现**。属判断层，脚本不管。测试文 5 处引用都是「旁注」型补充说明，按该主题自己的判据本就该走普通引用块，所以缺口不大，但 2–4 张的规定没兑现
+- **cyber-neon 的品红落点第 2 条挂在一个它自己没定义的元素上**。`cyber-neon.md` 写「提示卡里属于警示性质的那种用品红」，但该主题文件没有提示卡规范、`theme.json` 也没配 `alert`，这条永远不触发（它的第 3 条兜底说「两者都没有就不用品红」，所以不算破，但是条悬空引用）。暗色提示卡要配色验证，且 cyber-neon 正卡在浅色模式那个悬案上，暂不动
 - **`wechat-finetune` 未实测**，eval 循环未跑
 - **`md2publish-images` 从未实测**（宿主生图 + 上传封面未走通）
 
 ## 八、下一步候选
 
-1. **把变异测试脚本重建进仓库**（见第六节的警告，成本极低，优先做）
-2. **跑剩余 20 个主题**——每个主题的工作是「读主题文件 → 写 theme.json → 跑脚本 → 过自检 → 看落点」。**强烈建议开新会话跑**：实测下来单个主题的实际工作量只有约 2k 输出 token，成本几乎全部来自上下文重发。大上下文会话里每轮 $3–6，剩余 20 个约 $150–200；新会话上下文只需 `_common-tech.md` + `md2html.py` 用法 + 自检脚本 + 一份主题文件（约 25k），总计约 $25–35
-3. **修 INDEX 与主题文件的色值不一致**（顺手可做）
-4. **暗色主题真机双模式验证**（在用户那边）
-5. **`wechat-finetune` 实测 + eval 循环**
-6. **教程文档校订**：`@inbox/md-to-wechat-draft-free-path.md` 写于主题统一重构之前，未反映 `md2html.py`
+1. **跑剩余 20 个主题**——每个主题的工作是「读主题文件 → 写 theme.json → 跑脚本 → 过自检 → 看落点」。**强烈建议开新会话跑**：实测下来单个主题的实际工作量只有约 2k 输出 token，成本几乎全部来自上下文重发。大上下文会话里每轮 $3–6，剩余 20 个约 $150–200；新会话上下文只需 `_common-tech.md` + `md2html.py` 用法 + 自检脚本 + 一份主题文件（约 25k），总计约 $25–35
+2. **暗色主题真机双模式验证**（在用户那边）
+3. **`wechat-finetune` 实测 + eval 循环**
+4. **教程文档校订**：`@inbox/md-to-wechat-draft-free-path.md` 写于主题统一重构之前，未反映 `md2html.py`
 
 ## 九、Suggested skills
 

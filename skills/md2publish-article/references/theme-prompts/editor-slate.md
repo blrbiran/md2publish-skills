@@ -77,10 +77,10 @@ README 的阅读体验：正文克制到近乎素净，**颜色几乎全部集�
 - 列表前缀 `-&nbsp;&nbsp;`（连字符，Markdown 味）
 - 表格：`width: 100%; border-collapse: collapse; table-layout: fixed`；表头 `background-color: #f6f8fa; font-weight: 600`；单元格 `border: 1px solid #d0d7de; padding: 8px 12px; font-size: 14px; word-break: break-word`；**偶数行加斑马纹** `background-color: #f6f8fa`（GitHub 表格的标志性特征）
 
-## 提示卡（遇到就用，不是可选）
+## 提示卡（遇到就用，但别凑数）
 
-正文里凡是"注意 / 提醒 / 前提 / 坑"性质的段落，用 GitHub Alert 样式，不要混在普通引用块里——它是本主题在正文区唯一的彩色，承担着打破大段黑白的作用：
+正文里凡是"注意 / 提醒 / 前提 / 坑"性质的段落，用 GitHub Alert 样式，不要混在普通引用块里——普通引用块在本主题是灰边框无彩色，提示卡是正文里唯一带底色的块，比 strong 高一档：
 
 - 提示（NOTE）：`border-left: 4px solid #0969da; background-color: #ddf4ff; padding: 12px 16px; border-radius: 0 6px 6px 0; color: #24292f`，首行加粗蓝字标签 `<span style="color: #0969da; font-weight: 700;">注意</span>`
 - 警告（WARNING）：`border-left: 4px solid #bc4c00; background-color: #fff1e5;`，标签色 `#bc4c00`，文案如"小心"
-- 全文提示卡数量控制在 2–4 个，多了就失去强调意义；判断标准是"读者跳过这段会踩坑"，只是补充说明的仍走普通引用块
+- 全文提示卡**不超过 4 个**，多了就失去强调意义。判断标准是"读者跳过这段会踩坑"，只是补充说明的仍走普通引用块——**够不上这个标准就一张都不做，别为了凑数把旁注升格**。这是上限不是配额：正文彩色由 strong 保底，不靠提示卡撑
