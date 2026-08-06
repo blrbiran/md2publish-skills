@@ -1,10 +1,20 @@
 # Handoff：md2publish-skills 交接文档
 
-> 更新于 2026-08-06（第四轮）。接手前先读本文，再按第七节开工。
-> 仓库位置：`~/code/skills/writing/md2publish-skills/`
+> 更新于 2026-08-06（第四轮）。仓库位置：`~/code/skills/writing/md2publish-skills/`
 >
-> **本文不记录 commit hash**——提交本文这个动作本身就会移动 HEAD。仓库状态一律以实时的
-> `git log` / `git status` 为准；本文只描述「做到哪一步了」，不描述「在哪个提交上」。
+> 本文只说「做到哪一步了」，不写 commit hash——提交本文本身就会移动 HEAD，写死了立刻就是错的。
+> 要确认仓库实际状态，跑 `git log` / `git status`。
+
+## 快速接手入口（读完这 8 行就能开工，细节再往下翻）
+
+1. 项目：Markdown → 微信公众号可粘贴 HTML 的 skill 链。**唯一转换入口是 `skills/md2publish-article/scripts/md2html.py`，你的工作单元只有 `theme.json`**——别手敲 HTML、别另写脚本。
+2. 27 个主题全部跑完并修过一轮；`theme.json` 27 份已入仓（`references/theme-json/`），HTML 产物在仓库外的 `~/code/skills/writing/wechat_test/litellm-multi-provider-gateway/out/`。
+3. **动手前先跑第三节那四条基线**（审计 0 条 / 变异 14 绿 / md2html 测试 25 绿 / 产物自检 PASS），确认没被上一轮改坏。
+4. **下一件事看第六节第 1 条：产物落点普查脚本**，那是目前唯一没有护栏的一层，也是唯一的大件。
+5. 最要紧的认知：**`audit-themes.py` 报 0 条不等于主题成立**——它查主题文件里有没有*声明*落点，不查产物里这个色出现几次。本仓库已知四次「规范白纸黑字写着、产物里 0 处」全部逃过了现有的每一条检查。
+6. 因此本项目的通用做法是：**改完必须去数产物**，不是看自检 PASS 就算完。
+7. 改任何主题文件之前必读 `docs/theme-design-lessons.md`（规则 11–14 和两条判例是第四轮新立的）。
+8. 红线：**传图、建草稿、git commit/push 一律先经用户确认**；成本敏感，大批量开跑前先报预估。
 
 ## 零、文档地图（先看这张表，别读错文档）
 
@@ -18,21 +28,11 @@
 
 三条使用约定：
 
-1. **`theme-design-lessons.md` 是承重文档**，被 8 处引用，其中两处是脚本（`audit-themes.py`、`test-audit-themes.sh`），还有 `_common-tech.md`、`INDEX.md` 和 `editor-slate.md`。**不要把它并进别的文档**，会同时断掉这些引用并把长期判据埋进一份每轮重写的文件里。
+1. **`theme-design-lessons.md` 是承重文档**：除本文外还被 5 个文件引用（共 6 处），其中两处在脚本里（`audit-themes.py`、`test-audit-themes.sh`），另外三处在 `_common-tech.md`（2 处）、`INDEX.md`、`editor-slate.md`。**不要把它并进别的文档**——会同时断掉这些引用，并把长期判据埋进一份每轮重写的文件里。
 2. **新学到的主题设计教训回写进 lessons，不要留在会话里，也不要另开文件。** 判断标准：这条结论换一篇文章、换一个主题还成立吗？成立就是 lessons 的规则；只描述「这一轮做到哪了」就是 handoff 的状态。
 3. **允许在一轮进行中开临时的发现记录**（如 `phaseN-findings.md`）当草稿，但**必须在该轮收尾时溶解**——durable 的进 lessons，status 的进本文，测量数据就地写进对应的主题文件。**不许沉淀**，否则每轮攒一个，一年后 `docs/handoff/` 就没法看了。第四轮的 `phase2-findings.md` 已按此溶解删除。
 
-## 一、Executive Summary（下一位 agent 从这里进）
-
-1. 项目：把 Markdown 变成微信公众号可粘贴 HTML 的 skill 链。**唯一转换入口是 `scripts/md2html.py`，你的工作单元只有 `theme.json`**——别手敲 HTML、别另写脚本。
-2. **27 个主题全部实测跑完**。`theme.json` **已入仓**（`skills/md2publish-article/references/theme-json/`，27 份），是可 diff、可 review 的一等文件；HTML 产物仍在仓库外的实验目录。
-3. **四条基线**，动手前先跑一遍确认没被上一轮改坏，命令见第四节。
-4. **接手就干第七节**。目前唯一的大件是「产物落点普查脚本」。
-5. 最重要的一条认知：**`audit-themes.py` 报 0 条不等于主题成立**——它查的是主题文件里有没有*声明*落点，不是产物里这个色出现了几次。本仓库已知四次「规范白纸黑字写着、产物里 0 处」全部逃过了所有现有检查。
-6. 改主题前必读 `docs/theme-design-lessons.md`，规则 11–14 和两条判例是第四轮新立的。
-7. 红线：**传图、建草稿、git commit/push 一律先经用户确认**；成本敏感，大批量开跑前先报预估。
-
-## 二、项目是什么
+## 一、项目是什么
 
 基于 [md2wechat CLI](https://github.com/geekjourneyx/md2wechat-skill) **免费路径**（不买 `MD2WECHAT_API_KEY`）的公众号发布 skill 组合，四个 skill 各管一段：
 
@@ -45,7 +45,7 @@
 
 架构与职责边界见 `skills/README.md`；给人读的全流程教程在 `~/org/markdown/prompt/@inbox/md-to-wechat-draft-free-path.md`（仓库外，**写于主题统一重构之前，未反映 `md2html.py`**）。
 
-## 三、生成 HTML 的工作方式（主路径，先看这节）
+## 二、生成 HTML 的工作方式（主路径，先看这节）
 
 **不要手敲 HTML，也不要另写转换脚本。**机械层已经固化在 `scripts/md2html.py`：
 
@@ -67,7 +67,7 @@ python3 skills/md2publish-article/scripts/md2html.py <article.md> <theme.json> -
 
 **加字段的准入线**（lessons 规则 14）：机械可判 + 无替代表达 + 当前静默丢失，三条同时成立才加。只满足前两条不该加。
 
-## 四、四条基线（动手前先跑）
+## 三、四条基线（动手前先跑）
 
 ```bash
 cd ~/code/skills/writing/md2publish-skills
@@ -89,7 +89,7 @@ python3 /tmp/selfcheck.py <out.html>
 
 第 3 条的 PART B 从 `references/theme-json/` 读 theme.json、与实验目录里的定稿 HTML 逐字节比对。**故意改了某份 theme.json 之后要先重新生成它的 HTML 再跑**，否则那里报的红是预期内的改动，不是回归——别反过来改测试迁就它。语料目录缺失时 PART B 会整体 SKIP 并把退出码标红（静默跳过等于没有护栏）。
 
-## 五、当前状态
+## 四、当前状态
 
 ### 主题库
 
@@ -101,7 +101,7 @@ python3 /tmp/selfcheck.py <out.html>
 ### 第四轮做完的
 
 - **`md2html.py` 有测试了**：新增 `scripts/test-md2html.sh`，25 条。PART A 是字段行为用例（每个字段配一条「没配时默认行为不变」的对照），PART B 是 27 份主题的逐字节回归（第三轮是手工做的）。对脚本做过定点破坏验证这张网有牙齿——去掉 h3 前缀输出，15 个主题立刻变红
-- **5 个新字段**（见第三节），全部按 TDD 加，每条都先看着它红且红在预期原因上
+- **5 个新字段**（见第二节），全部按 TDD 加，每条都先看着它红且红在预期原因上
 - **8 个主题修完**：
   - arena-charge（h2 黑块与正文左边缘不齐——`inline-block` 撞定宽层；旁注块实心黑改浅灰底）
   - apple-air（唯一强调蓝全文 1 处 → 17 处）
@@ -112,8 +112,12 @@ python3 /tmp/selfcheck.py <out.html>
   - aurora-flow（删死色、现造色转正、补代码块子调色板）
   - newsprint（导语从 0 处 → 1 处落地）
 - **主题 `.md` 与 `theme.json` 已同步**，两侧逐值比对一致
+- **文档按生命周期重组**：四份 720 行 → 三份（见第零节）。`phase2-findings.md` 已溶解删除——
+  durable 的进了 lessons（规则 11–14 + 两条判例），status 的进了本文，测量数据早已就地写进
+  各主题文件的说明里。根因不是「文件太多」，是 handoff 过时之后 findings 事实上接管了它的岗位，
+  **两份文档抢同一个岗位**才是乱的来源
 
-## 六、关键契约（教训换来的，别再踩）
+## 五、关键契约（教训换来的，别再踩）
 
 ### 发布相关
 
@@ -137,9 +141,12 @@ python3 /tmp/selfcheck.py <out.html>
 12. **规范行里不夹叙述、不留旧色值**。一句「别只挂在 em 上」会让审计脚本把该行判成 em 落点
 13. **改完跑 `audit-themes.py` 到 0 条**；改检查脚本后做变异测试
 14. **改完主题 `.md` 要同步 `theme.json`**（反之亦然）。两者失步没有任何检查会报——第四轮自己制造过一次
-15. **提交前把 diff 完整读一遍**。第四轮又踩一次：velvet-stage 做全局色值替换时把警告文字里的旧色值也换掉了，「不要调回 `#a04252`」变成「不要调回 `#c97a86`」，一句自相矛盾的规范。**全局替换要么先做、后写说明，要么说明里根本不写旧色值**
+15. **批量替换有两个咬人的形态，都只有事后核对才抓得到**。第四轮各踩一次：
+    - **替换吃掉了自己的说明文字**：velvet-stage 做全局色值替换时把警告里的旧色值也换了，「不要调回 `#a04252`」变成「不要调回 `#c97a86`」，一句自相矛盾的规范。**全局替换要么先做、后写说明，要么说明里根本不写旧色值**
+    - **链式替换：前一条规则的输出成了后一条的输入**。本文重编号时先 `第四节→第三节`、再 `第三节→第二节`，结果原本的第四节被连着换了两次，指到了第二节。**一批替换里若新值可能命中另一条规则的旧值，就不能顺序跑**——要么一次性映射，要么倒序，要么替换完逐条核对指向
+16. **提交前把 diff 完整读一遍。**上面两条都是在核对时才发现的，代码和文本本身看不出问题——被替换掉的地方语法完全正确，只是意思错了
 
-## 七、剩下的活（按价值排序）
+## 六、剩下的活（按价值排序）
 
 ### 1. 产物落点普查脚本（唯一的大件）
 
@@ -185,15 +192,15 @@ python3 /tmp/selfcheck.py <out.html>
 
 同样不加的字段（准入线三条不全满足）：blueprint-grid 的章节自增编号（有 `§` 顶着）、aurora-flow 的卡顶渐变条（已用 `background-image` 等价绕过）。
 
-## 八、Suggested skills
+## 七、Suggested skills
 
 - `superpowers:verification-before-completion` — **本项目里这条是第一位的**。历史上宽度问题连续改错两次、cyber-neon 对比度连续改错两次，都是只验证了「我改的属性在不在」而没验证「渲染出来是什么样」，或者量错了对象。第四轮的通用做法是：**改完必须去数产物**，不是看自检 PASS
-- `superpowers:brainstorming` — 做第七节那个普查脚本之前先用它收敛判据
+- `superpowers:brainstorming` — 做第六节那个普查脚本之前先用它收敛判据
 - `superpowers:test-driven-development` — 给 `md2html.py` 加字段时照搬 `test-md2html.sh` 的范式：先造会失败的用例，再实现
 - `tech-writer` — 校订教程文档时
 - `skill-creator` — 改 skill 结构、跑 evals、做 description 优化
 
-## 九、环境速查
+## 八、环境速查
 
 - md2wechat CLI 3.2.0 已装（npm 全局）；源码在 `~/code/skills/writing/md2wechat-skill/`（另一个 git 仓库，别混）
 - 实验目录 `~/code/skills/writing/wechat_test/`
