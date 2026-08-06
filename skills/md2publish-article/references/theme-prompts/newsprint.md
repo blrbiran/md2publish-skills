@@ -15,6 +15,7 @@
 - 次级灰褐：`#55514a`
 - 线条：`#c9c2b2`
 - 引用/代码底：`#eae5d6`
+- 代码文字：`#3a362e`（比正文铅字墨色略浅一档，避免代码块整块发死）
 
 ## 容器与布局
 
@@ -30,7 +31,8 @@
 ## 正文与强调
 
 - 段落：`font-size: 16px; line-height: 1.8; color: #1f1d1a; margin: 0 0 18px; text-align: left`
-- 全文第一段做导语处理：`font-size: 17px; color: #55514a; border-left: 3px solid #9e2b25; padding-left: 14px`
+- 全文第一段做导语处理（机械层的 `p_first` 字段，**只作用于全文第一个段落，不是每章第一段**）：`font-size: 17px; line-height: 1.8; color: #55514a; border-left: 3px solid #9e2b25; padding-left: 14px; margin: 0 0 18px`。
+  这一条曾经静默丢失过：机械层原本所有段落一律走「段落」那条规范，导语的红边框在产物里 **0 处**。写位置性的规范时先确认机械层有对应的挂载点，否则它只是写在文件里好看
 - strong：`color: #9e2b25; font-weight: 700`
 - em：`color: #55514a`
 
