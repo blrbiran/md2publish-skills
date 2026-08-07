@@ -432,6 +432,41 @@ mk desync <<'EOF'
 EOF
 check desync "DEAD #cc3366" "DESYNC #cc3366"
 
+# ------------------------------------------------ 守卫：palette 的解析纪律
+
+# 15. 调色板行里带第二个色值（说明用），只有第一个算声明 → 一条都不该报。
+#     破坏 declared_colors 成「取全部色值」，#aa1144 会变成零落点死色 → DEAD。
+mk guard-first-color-only <<'EOF'
+# fixture：调色板行里带第二个色值（说明用）
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 主强调：`#cc3366`——旧值 `#aa1144` 在白底上只有 3.1:1，已弃用
+
+## 容器与布局
+
+- 主容器：`background-color: #ffffff; padding: 40px 10px`
+
+## 正文与强调
+
+- 段落：`color: #222222; font-size: 16px`
+- strong：`color: #cc3366; font-weight: 700`
+EOF
+check guard-first-color-only
+
+# 16. 缺「## 色彩系统」段要报 NOSPEC，不许静默跳过。
+#     删掉 NOSPEC 分支改为 return []，这条会变红。
+mk guard-nospec <<'EOF'
+# fixture：没有色彩系统段
+
+## 容器与布局
+
+- 主容器：`background-color: #ffffff; padding: 40px 10px`
+EOF
+check guard-nospec "NOSPEC -"
+
 # ---------------------------------------------------------------- 真实主题库回归
 
 # 变异用例全绿只说明判据的方向对，不说明它对真实文件的写法都认。真实库必须仍是 0 条——

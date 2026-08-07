@@ -46,39 +46,14 @@ import re
 import sys
 from pathlib import Path
 
+from theme_lib import strip_comments, element_of, palette as declared_colors
+
 # 中文技术文里可能整篇为零的元素——强调色只落在这些上面，产物必然掉色
 LOW_FREQ = ("em", "斜体", "链接", "脚注", "作品名", "a 标签")
 # 只有被调色板标为「强调」的颜色才需要查落点质量。
 # 边线色、代码块底色这类本来就只该出现在装饰上，对它们报 DECOR 是纯噪音。
 ACCENT_ROLE = ("强调", "点睛", "accent", "主色")
 SKIP = {"INDEX.md", "_common-tech.md"}
-
-
-def element_of(line):
-    """从「- h3：`font-size...`」里取出元素名 h3。取不到就返回整行。
-
-    按元素名判定，而不是拿关键词在整行里搜——否则规范里一句
-    「别只挂在 em 上」这样的说明文字，会把该行误判成 em 落点。
-    """
-    m = re.match(r"^[-*]\s*\*{0,2}([^：:`]{1,24})", line.strip())
-    return (m.group(1) if m else line).strip().rstrip("*")
-
-
-def declared_colors(palette):
-    """调色板里真正被「声明」的颜色 → 它那行的角色描述。
-
-    一行只声明一个色，取该行的第一个色值。后面解释里引用的其它色值
-    （「`#2a3550` 在新底色上只有 1.27:1」这种）不算声明——否则一句解释
-    就会凭空造出一个零落点的死色。
-    """
-    out = {}
-    for line in palette.splitlines():
-        if not line.strip().startswith(("-", "*")):
-            continue
-        m = re.search(r"#[0-9a-fA-F]{6}", line)
-        if m and m.group() not in out:
-            out[m.group()] = line
-    return out
 
 
 def inline_code_fg(body):
@@ -118,7 +93,7 @@ def audit(path):
     raw = path.read_text(encoding="utf-8")
     exempt = exemptions(raw)
     # 先剥注释再查落点：豁免注记里的色值不能算落点，否则一条注记就能把 DEAD 检查骗过去
-    text = re.sub(r"<!--.*?-->", "", raw, flags=re.S)
+    text = strip_comments(raw)
     start = text.find("## 色彩系统")
     if start < 0:
         return [(path.name, "-", "NOSPEC", "没有「## 色彩系统」段，无法审计")]
