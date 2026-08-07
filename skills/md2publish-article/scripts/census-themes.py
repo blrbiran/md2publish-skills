@@ -17,9 +17,10 @@
 
 **基线是「未销掉的 = 0 条」**，与 audit-themes.py 同一套约定。
 
-本文件（L1）只实现 UNCARRIED / INVENTED / INLINE-BLOCK 三档——主题 .md ↔
-theme.json 的比对，不需要语料。UNMOUNTED / ZERO / NEAR-ZERO / DECOR / INVERT /
-STALE-NOTE 六档接产物语料（L2/L3），由后续任务补上；豁免机制同样留给后续任务。
+本文件目前实现 UNCARRIED / INVENTED / INLINE-BLOCK（L1，主题 .md ↔ theme.json
+色值/键位比对）与 UNMOUNTED（L3，散文语义条款 ↔ theme.json 机械字段）四档，
+都不需要产物语料。ZERO / NEAR-ZERO / DECOR / INVERT / STALE-NOTE 五档接产物
+语料（L2），由后续任务补上；豁免机制同样留给后续任务。
 配套的变异测试见 test-census-themes.sh。
 """
 
@@ -118,9 +119,104 @@ def check_l1(name, md_text, theme):
     return found
 
 
+# 关键词 → 必须存在的 theme.json 字段。信号写成**组合**而不是字面整串：
+# 第一版写「警示性 strong」，而 cyber-neon.md:36 的原文是「这类警示语义的 `strong`」，
+# 字面不匹配——靶子就是这么丢的。
+# 每项：(必须全部出现的信号组, 字段名, 前缀黑名单)
+KEYWORD_FIELDS = [
+    ((("导语", "首段", "全文第一段"),), "p_first", ("引",)),
+    ((("首个 h2", "第一个 h2", "首节标题"),), "h2_first", ()),
+    ((("警示", "注意", "警告"), ("strong",)), "strong_alt", ()),
+    ((("印章", "落款", "文末装饰"),), "footer_html", ()),
+    ((("提示卡",),), "alert", ()),
+    ((("斑马纹", "隔行"),), "td_alt", ()),
+    ((("有序列表", "序号"),), "list_prefix_ol_html", ()),
+    ((("语法高亮",),), "highlight", ()),
+    ((("轮换", "轮转"),), "list_prefix_cycle", ()),
+    ((("对称饰线", "两侧饰线"),), "h2_suffix_html", ()),
+]
+
+# md2html.py docstring 字段表里的位置性/语义性字段，每个都必须在上表里有条目。
+# 新增字段时忘记同步会立刻 FAIL，而不是静默漏检——与 theme_pairs 的完整性断言同一招。
+SEMANTIC_FIELDS = {
+    "p_first", "h2_first", "strong_alt", "footer_html", "alert", "td_alt",
+    "list_prefix_ol_html", "highlight", "list_prefix_cycle", "h2_suffix_html",
+}
+
+NEGATIONS = ("不要", "别", "不用", "建议改用")
+# 引号内的否定词不算——引号里是被引用的字面串，不是作者在否定什么。
+_QUOTED = re.compile(r"「[^」]*」|\"[^\"]*\"|“[^”]*”|`[^`]*`")
+
+
+def _negated(line, pos, word):
+    """关键词命中位置附近有没有真正的否定。
+
+    三条护栏缺一不可，第一版三条全踩了：
+      1. 只在前后各 8 字的局部窗口内判，不做整行布尔判定
+      2. 引号内的否定词不算（cyber-neon.md:36 的「不要」躺在被引用的枚举里，
+         距关键词约 10 字，光靠窗口挡不住）
+      3. 单字「无」只在「无<关键词>」这种紧邻组合里算否定
+         （全库到处是「无序前缀」「无卡片」「无彩色」）
+    """
+    masked = _QUOTED.sub(lambda m: "　" * len(m.group()), line)
+    lo, hi = max(0, pos - 8), min(len(masked), pos + len(word) + 8)
+    window = masked[lo:hi]
+    if any(n in window for n in NEGATIONS):
+        return True
+    return ("无" + word) in masked
+
+
+def check_l3(name, md_text, theme):
+    """L3：散文条款 ↔ 机械字段。不需要语料。"""
+    found = []
+    lines = spec_lines(strip_comments(md_text))
+    for signals, field, blacklist in KEYWORD_FIELDS:
+        if theme.get(field):
+            continue
+        for _, line in lines:
+            hits = []
+            for group in signals:
+                hit = None
+                for word in group:
+                    for m in re.finditer(re.escape(word), line):
+                        # 前缀黑名单：CJK 没有词边界，\b 在汉字之间永不成立
+                        if any(line[max(0, m.start() - len(b)):m.start()] == b
+                               for b in blacklist):
+                            continue
+                        if _negated(line, m.start(), word):
+                            continue
+                        hit = (m.start(), word)
+                        break
+                    if hit:
+                        break
+                if not hit:
+                    hits = []
+                    break
+                hits.append(hit)
+            if hits:
+                found.append(("UNMOUNTED", name, field,
+                              f"规范里写了这条，theme.json 无 {field} 字段"))
+                break
+    return found
+
+
+def assert_keyword_table_complete():
+    """语义字段必须在关键词表里有条目，缺一条 FAIL。"""
+    covered = {f for _, f, _ in KEYWORD_FIELDS}
+    missing = SEMANTIC_FIELDS - covered
+    if missing:
+        print(f"FAIL 关键词表漏了语义字段：{sorted(missing)}")
+        print("     新增 md2html.py 字段时要同步 KEYWORD_FIELDS。")
+        return False
+    return True
+
+
 def report(found):
+    # 每列后补一个空格再垫宽，保证列之间至少有一个分隔符——不然像
+    # list_prefix_ol_html（20 字符）这种超过 12 宽的键会跟 why 文本连写，
+    # 靠空白分列的 awk（test-census-themes.sh 的 check()）就取不出正确的列。
     for tier, theme, key, why in found:
-        print(f"{tier:<13}{theme:<24}{key:<12}{why}")
+        print(f"{tier + ' ':<13}{theme + ' ':<24}{key + ' ':<12}{why}")
     print(f"\n普查完毕，{len(found)} 条未销")
     return 1 if found else 0
 
@@ -131,6 +227,8 @@ def main():
     args = ap.parse_args()
 
     found = []
+    if not assert_keyword_table_complete():
+        return 1
     if args.fixture_dir:
         d = args.fixture_dir
         for f in sorted(os.listdir(d)):
@@ -140,15 +238,16 @@ def main():
             jp = os.path.join(d, name + ".theme.json")
             if not os.path.exists(jp):
                 continue
-            found += check_l1(name, open(os.path.join(d, f)).read(),
-                              json.load(open(jp)))
+            md_text, theme = open(os.path.join(d, f)).read(), json.load(open(jp))
+            found += check_l1(name, md_text, theme) + check_l3(name, md_text, theme)
     else:
         ref = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references")
         for base, md, js in theme_pairs(ref):
             if not os.path.exists(md):
                 print(f"FAIL 对照表不完整：{base} 找不到 {md}")
                 return 1
-            found += check_l1(base, open(md).read(), json.load(open(js)))
+            md_text, theme = open(md).read(), json.load(open(js))
+            found += check_l1(base, md_text, theme) + check_l3(base, md_text, theme)
     return report(found)
 
 

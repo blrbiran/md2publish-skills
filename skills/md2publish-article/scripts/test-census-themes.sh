@@ -316,5 +316,189 @@ mkjson l1-inlineblock-table <<'EOF'
 EOF
 check l1-inlineblock-table "INLINE-BLOCK table"
 
+echo "── L3：UNMOUNTED（语义条款没有机械挂载点）──────────"
+
+# 10. 缩进有序条款行 + 关键词枚举里含否定词 → 该报 strong_alt。
+#     这是设计文档第四节三个陷阱的现场（cyber-neon.md:36）。
+#     「不要」躺在被引用的枚举里，距关键词「警示」约 10 字——8 字窗口挡不住，
+#     救它的是引号护栏。
+mkmd l3-cyberneon-form <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#0f1420`（主容器）
+- 主文字：`#c9d2e3`
+- 副强调：`#ff4ba3`
+
+## 正文与强调
+
+- 段落：`color: #c9d2e3`
+  1. 原文里带「注意 / 警告 / 不要 / 会导致」这类警示语义的 `strong`，改用 `color: #ff4ba3; font-weight: 600`
+EOF
+mkjson l3-cyberneon-form <<'EOF'
+{"container": "background-color: #0f1420", "p": "color: #c9d2e3",
+ "strong": "color: #ff4ba3"}
+EOF
+check l3-cyberneon-form "UNMOUNTED strong_alt"
+
+# 11. 对照：同样的条款，theme.json 配了 strong_alt → 不该报
+mkmd l3-strongalt-ok <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#0f1420`（主容器）
+- 主文字：`#c9d2e3`
+- 副强调：`#ff4ba3`
+
+## 正文与强调
+
+- 段落：`color: #c9d2e3`
+  1. 原文里带「注意 / 警告 / 不要 / 会导致」这类警示语义的 `strong`，改用 `color: #ff4ba3; font-weight: 600`
+EOF
+mkjson l3-strongalt-ok <<'EOF'
+{"container": "background-color: #0f1420", "p": "color: #c9d2e3",
+ "strong": "color: #c9d2e3",
+ "strong_alt": {"keywords": ["注意", "警告"], "style": "color: #ff4ba3"}}
+EOF
+check l3-strongalt-ok
+
+# 12. 散文体带完整 style 串的规范 → 该报 footer_html（ink-wash.md:47 的形态）
+mkmd l3-prose-footer <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#f7f6f2`（主容器）
+- 朱砂：`#b5432a`
+
+## 正文与强调
+
+- 段落：`color: #333333`
+
+## 收尾
+
+文末居中放一个朱砂色小印章式符号：`<p style="text-align: center; color: #b5432a; font-size: 18px;">□</p>` 可换为「完」字。
+EOF
+mkjson l3-prose-footer <<'EOF'
+{"container": "background-color: #f7f6f2", "p": "color: #333333",
+ "strong": "color: #b5432a"}
+EOF
+check l3-prose-footer "UNMOUNTED footer_html"
+
+# 13. 纯比喻句不带实体 → 不该报（ink-wash.md:8 的形态）
+mkmd l3-metaphor <<'EOF'
+# fixture
+
+## 核心愿景
+
+朱砂红是唯一的颜色，出现频率要低——像印章落在水墨画上，多了就俗。
+
+## 色彩系统
+
+- 背景：`#f7f6f2`（主容器）
+- 朱砂：`#b5432a`
+
+## 正文与强调
+
+- 段落：`color: #333333`
+- strong：`color: #b5432a`
+EOF
+mkjson l3-metaphor <<'EOF'
+{"container": "background-color: #f7f6f2", "p": "color: #333333",
+ "strong": "color: #b5432a"}
+EOF
+check l3-metaphor
+
+# 14. 「引导语」不该命中「导语」→ 不该报 p_first（apple-air 的子串误报面）
+mkmd l3-substring <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 强调：`#0071e3`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #0071e3`
+- eyebrow 引导语用小号蓝字：`color: #0071e3; font-size: 12px`
+EOF
+mkjson l3-substring <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #0071e3"}
+EOF
+check l3-substring
+
+# 15. 「无序前缀」里的单字「无」不该杀掉同行的「有序列表」条款 → 该报
+mkmd l3-wu-not-negation <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#eef7f2`（主容器）
+- 主强调：`#2fa47e`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 列表：无序前缀 `<span style="color: #2fa47e;">✓</span>`，步骤类有序列表用绿色序号 `color: #2fa47e`
+EOF
+mkjson l3-wu-not-negation <<'EOF'
+{"container": "background-color: #eef7f2", "p": "color: #222222",
+ "strong": "color: #2fa47e",
+ "list_prefix_html": "<span style=\"color: #2fa47e;\">✓</span>&nbsp;&nbsp;"}
+EOF
+check l3-wu-not-negation "UNMOUNTED list_prefix_ol_html"
+
+# 16. 真正的否定句 → 不该报（「不要写…条款」）
+mkmd l3-real-negation <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 强调：`#0071e3`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #0071e3`
+- **不要写导语条款**：本主题第一段与其余段落同样处理，`color: #222222`
+EOF
+mkjson l3-real-negation <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #0071e3"}
+EOF
+check l3-real-negation
+
+# 17. 自查补充用例（非任务简报原文）：l3-cyberneon-form（用例 10）的注释声称
+#     「8 字窗口挡不住，救它的是引号护栏」，但实测「不要」到「警示」的字符距离是
+#     11——已经超出 ±8 窗口，窗口本身就把它挡住了，引号护栏在那条用例里其实没有
+#     被真正踩到（用 python3 逐字符核过位置，也拿掉引号护栏跑过整套用例验证：
+#     19 条全绿，一条不少）。这条补一个「不要」确实落在窗口内、且被引号包住的
+#     构造，真正让引号护栏成为唯一救命的一环——没有它这条会被误判为「已否定」
+#     而漏报。
+mkmd l3-quote-guard-pin <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 强调：`#ff4ba3`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 警示性 `strong`：引用「不要」这个词举例时也要换色 `color: #ff4ba3; font-weight: 600`
+EOF
+mkjson l3-quote-guard-pin <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #ff4ba3"}
+EOF
+check l3-quote-guard-pin "UNMOUNTED strong_alt"
+
 printf '\n%d 通过，%d 失败\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
