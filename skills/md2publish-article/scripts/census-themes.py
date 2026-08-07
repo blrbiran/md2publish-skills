@@ -265,6 +265,18 @@ def render(article, theme_path, workdir, name):
     return open(out).read(), None
 
 
+def bucket_sum(landing, bucket):
+    """某个色的落点计数器（landings() 返回值里某个色对应的 Counter[(标签, 桶)]）
+    里，某一个桶（text/fill/line）的落点总数。
+
+    check_l2 的 text_count 与 --counts 的 print_counts 共用这一个函数——两处
+    「文字」的口径必须是同一份代码，不能各自重新写一遍 sum(...)。否则谁改了
+    DECOR/INVERT 用的桶定义，--counts 会悄悄跟丢，人类拿着 --counts 印出来的
+    旧数字写豁免注记，注记从写下来那一刻就是错的（Trap 3）。
+    """
+    return sum(v for (_, b), v in landing.items() if b == bucket)
+
+
 def check_l2(name, md_text, html, already):
     """L2：theme.json ↔ 产物。already 是 L1 已报过 UNCARRIED 的色值集合。"""
     found = []
@@ -272,7 +284,7 @@ def check_l2(name, md_text, html, already):
     pal = palette(strip_comments(md_text))
 
     def text_count(c):
-        return sum(v for (_, b), v in land.get(c, {}).items() if b == "text")
+        return bucket_sum(land.get(c, {}), "text")
 
     for color, line in pal.items():
         total = sum(land.get(color, {}).values())
@@ -363,8 +375,9 @@ def print_counts(name, md_text, html):
     """--counts：每个调色板色的落点分解。把「改完必须去数产物」变成一条命令。
 
     数的口径与三档判据同源：都是先 landings(html) 拿 Counter[(标签, 桶)]，
-    再按同一套 text/fill/line 分桶方式求和——不另起一套计数逻辑，否则
-    --counts 和 ZERO/NEAR-ZERO/DECOR 的判断依据就可能对不上。
+    再调 bucket_sum ——跟 check_l2.text_count 完全同一个函数、同一处定义，
+    不是「凑巧写得一样」的两份 sum(...)。谁改了 DECOR/INVERT 用的桶定义，
+    这里必然跟着变（Trap 3：不许有第二个真相源）。
     """
     land = landings(html)
     pal = palette(strip_comments(md_text))
@@ -372,9 +385,9 @@ def print_counts(name, md_text, html):
     for color, line in pal.items():
         c = land.get(color, {})
         tot = sum(c.values())
-        tx = sum(v for (_, b), v in c.items() if b == "text")
-        fl = sum(v for (_, b), v in c.items() if b == "fill")
-        ln = sum(v for (_, b), v in c.items() if b == "line")
+        tx = bucket_sum(c, "text")
+        fl = bucket_sum(c, "fill")
+        ln = bucket_sum(c, "line")
         print(f"{color:<10}{_label(line)[:22]:<24}{tot:>5}{tx:>6}{fl:>5}{ln:>5}")
 
 
@@ -393,7 +406,9 @@ def main():
     ap.add_argument("--fixture-dir")
     ap.add_argument("--article", help="语料文章；不给则从 MD2HTML_CORPUS 推")
     ap.add_argument("--counts", metavar="<主题名>",
-                     help="真实库模式：输出该主题每个调色板色的落点分解，不跑普查")
+                     help="输出该主题每个调色板色的落点分解，不跑普查。真实库模式按名字"
+                          "匹配 references/；配合 --fixture-dir 时改从该目录取，供变异"
+                          "测试用一份本地小语料把这条模式钉死，不必依赖真实语料库。")
     args = ap.parse_args()
 
     corpus = os.environ.get(
@@ -403,15 +418,24 @@ def main():
     has_corpus = os.path.exists(article)
 
     if args.counts:
-        ref = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references")
-        match = next((p for p in theme_pairs(ref) if p[0] == args.counts), None)
-        if not match:
-            print(f"FAIL --counts：主题库里没有 {args.counts}")
-            return 1
+        if args.fixture_dir:
+            d = args.fixture_dir
+            md = os.path.join(d, args.counts + ".md")
+            js = os.path.join(d, args.counts + ".theme.json")
+            if not (os.path.exists(md) and os.path.exists(js)):
+                print(f"FAIL --counts：{d} 里没有 {args.counts}")
+                return 1
+            base = args.counts
+        else:
+            ref = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references")
+            match = next((p for p in theme_pairs(ref) if p[0] == args.counts), None)
+            if not match:
+                print(f"FAIL --counts：主题库里没有 {args.counts}")
+                return 1
+            base, md, js = match
         if not has_corpus:
             print(f"FAIL --counts：语料不在 {article}，无法渲染产物")
             return 1
-        base, md, js = match
         with tempfile.TemporaryDirectory() as workdir:
             html, err = render(article, js, workdir, base)
         if err:

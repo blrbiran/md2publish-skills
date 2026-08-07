@@ -90,6 +90,23 @@ checkl2() {
   fi
 }
 
+# checkcounts <用例名> <色值> <期望"总 文字 面 线">：断言 --counts 某一行的
+# 四个数字。awk 用默认空白分列取第 3-6 个字段——本节 fixture 的角色标签都不
+# 含 ASCII 空格（沿用全库既有 fixture 的写法），列对不齐的风险因此可控。
+checkcounts() {
+  local name="$1" color="$2" expected="$3"
+  local actual
+  actual="$(python3 "$CENSUS" --fixture-dir "$WORK/$name" --article "$ART" --counts "$name" 2>&1 |
+    awk -v c="$color" '$1==c {print $3, $4, $5, $6}')"
+  if [ "$actual" = "$expected" ]; then
+    printf 'ok   %s --counts %s\n' "$name" "$color"; pass=$((pass + 1))
+  else
+    printf 'FAIL %s --counts %s\n     期望: %s\n     实得: %s\n' \
+      "$name" "$color" "$expected" "${actual:-<空>}"
+    fail=$((fail + 1))
+  fi
+}
+
 echo "── L1：UNCARRIED / INVENTED / INLINE-BLOCK ──────────"
 
 # 1. 主题文件表格行声明了 token 色，theme.json 没兑现 → UNCARRIED
@@ -1093,6 +1110,156 @@ if [[ "$out" == *"STALE-NOTE"* ]]; then
 else
   printf 'ok   ex-stale-layergate\n'; pass=$((pass + 1))
 fi
+
+echo "── 豁免机制 fix round 1（review 补漏）──────────"
+
+# 29.（Minor）错档名注记盖在键对的发现上：一次钉两个 mutation。
+#     note = (INVENTED, #d2a8ff)：档名 INVENTED 是从 #6a4f1a 那条真实发现
+#     借来的「对档不对键」，键 #d2a8ff 是从 UNCARRIED 那条真实发现借来的
+#     「对键不对档」。正确实现：(tier, key) 必须同时精确匹配，这条注记两头
+#     都够不着，UNCARRIED #d2a8ff 与 INVENTED #6a4f1a 都照报，注记自己变成
+#     STALE-NOTE。
+#       - 若匹配退化成「只看键，不看档」（drop-tier-from-match）：注记的键
+#         #d2a8ff 会碰上 UNCARRIED #d2a8ff，把它错销掉。
+#       - 若匹配退化成「只看档，不看键」（drop-key-from-match）：注记的档名
+#         INVENTED 会碰上 INVENTED #6a4f1a，把它错销掉。
+#     两种退化各自只错销一条、放过另一条，且注记本身都不再是 stale——跟正确
+#     实现「两条都在、注记本身 stale」三向都对不上，一条 fixture 堵两个洞。
+mkmd wrong-tier-right-key <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 语法高亮
+
+| 角色 | 色值 | 落点 |
+|---|---|---|
+| 函数名 | `#d2a8ff` | 定义或调用处 |
+
+<!-- census-ok: INVENTED #d2a8ff 键对错了档，钉 drop-tier/drop-key 两个 mutation -->
+EOF
+mkjson wrong-tier-right-key <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "highlight": {"comment": "#6a4f1a"}}
+EOF
+check wrong-tier-right-key "UNCARRIED #d2a8ff" "INVENTED #6a4f1a" "STALE-NOTE #d2a8ff"
+
+# 30.（Important 3，方向一）L1 档注记 + 无语料 → 照样 STALE-NOTE。
+#     钉住「按层设门写成全局门」这个 mutation：把
+#     `if tier in L2_TIERS and not l2_active: continue` 错写成
+#     `if not l2_active: continue`，无语料时会把这条本不该被门槛拦住的 L1
+#     注记也放过，不报 stale。之前的 case 26/27/28 全部走 --article（l2_active
+#     恒真），这条 mutation 在那三条上完全隐形——INVENTED 不在 L2_TIERS 里，
+#     `not l2_active` 恒假，跟正确实现的判断结果毫无差别。补一条无语料、纯 L1
+#     的孤儿注记才踩得到这条分支。
+mkmd ex-stale-l1-nocorpus <<'EOF'
+# fixture
+
+<!-- census-ok: INVENTED #aabbcc 这个色不存在，钉住「无语料时 L1 注记也该判 stale」 -->
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+EOF
+mkjson ex-stale-l1-nocorpus <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222"}
+EOF
+check ex-stale-l1-nocorpus "STALE-NOTE #aabbcc"
+
+# 31.（Important 3，方向二）L2 档注记 + 有语料 → 照样 STALE-NOTE。
+#     钉住「L2 档注记恒不判 stale」这个 mutation：把
+#     `if tier in L2_TIERS and not l2_active: continue` 错写成
+#     `if tier in L2_TIERS: continue`，把 l2_active 这个条件整个丢掉，L2 档
+#     注记不管有没有语料都不判 stale。case 28（ex-stale-layergate）是无语料
+#     场景，这个 mutation 底下它本该「不判 stale」，跟正确实现的结果长得
+#     一模一样，完全测不出来——这正是复审报告里「gate ignores l2_active →
+#     L2 notes never stale」那行标 ❌ green 的原因。补一条**有语料**、销不到
+#     任何发现的 L2 档孤儿注记（tier=NEAR-ZERO，键 #aabbcc 根本没在 .md 里
+#     声明过，check_l2 不可能产出这个键），才能把这条分支的两个条件都跑到。
+mkmd ex-stale-l2-corpus <<'EOF'
+# fixture
+
+<!-- census-ok: NEAR-ZERO #aabbcc 这个色根本没声明过，钉住「有语料时 L2 注记也该判 stale」 -->
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson ex-stale-l2-corpus <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222"}
+EOF
+checkl2 ex-stale-l2-corpus "NEAR-ZERO #ffffff" "STALE-NOTE #aabbcc"
+
+# 32.（Important 2，第一问）--counts 从来没有自动化断言过——之前只有 Step 5
+#     的人工跑一遍核对。钉住「文字列写死成 0」这类 mutation：随便改
+#     print_counts 里 tx 的算法（甚至直接写死 0），40 条既有变异测试一条都不会
+#     动，因为它们全部走 census 主流程，没有一条调用过 --counts。用 ART 里
+#     已知恒定的「strong 6 处」造一个干净配色：#0071e3 只挂在 strong 上，
+#     6 次全部是 `color:` 属性（text 桶），断言这一行的 总/文字/面/线。
+mkmd counts-basic <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 强调：`#0071e3`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #0071e3`
+EOF
+mkjson counts-basic <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #0071e3"}
+EOF
+checkcounts counts-basic "#0071e3" "6 6 0 0"
+
+# 33.（Important 2，第二问）--counts 的「文字」列必须跟 check_l2.text_count
+#     用同一份计算，不能各自维护一套。这条 fixture 跟 l2-decor（case 19）
+#     同型但换了名字（避免复用同一个 $WORK 子目录）：#cc3366 标为主强调，却
+#     只落在 h3/list_item 的 border-left 上（line 桶），check_l2 靠
+#     `text_count(color) == 0` 判出 DECOR。--counts 报的「文字」必须也是 0，
+#     跟 DECOR 判据用的同一个数字——这就是 census-themes.py 里 bucket_sum()
+#     这个共享函数存在的理由（Important 1 的重构）。mutation 证据见报告：
+#     单独改 bucket_sum 的 "text" 分支，DECOR 判定和这一行会一起错。
+mkmd counts-decor <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 主强调：`#cc3366`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- h3：`border-left: 3px solid #cc3366`
+EOF
+mkjson counts-decor <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222",
+ "h3": "color: #222222; border-left: 3px solid #cc3366",
+ "list_item": "color: #222222; border-left: 2px solid #cc3366"}
+EOF
+checkl2 counts-decor "NEAR-ZERO #ffffff" "DECOR #cc3366"
+checkcounts counts-decor "#cc3366" "6 0 0 6"
 
 printf '\n%d 通过，%d 失败\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
