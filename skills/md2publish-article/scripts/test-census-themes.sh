@@ -500,5 +500,147 @@ mkjson l3-quote-guard-pin <<'EOF'
 EOF
 check l3-quote-guard-pin "UNMOUNTED strong_alt"
 
+# ── 修复轮 1：负局部性（negation locality）与相邻护栏的正/反方向补测 ──────────
+# 复审 mutation-test 出 8 处「实现错了但全部用例照样绿」的缺口，逐条记在
+# task-4-report.md「修复轮 1」一节。以下每条用例专门钉一个缺口，注释里点名
+# 对应哪个 mutation。
+
+# 18.（必修）一行两个互不相关的语义信号：真否定紧贴其中一个（该被压），
+#     另一个离否定词 17 字远（该照报）。同时钉住两个 mutation：
+#       - 整行布尔否定（不看局部窗口，一个「不要」压掉全行全部信号）
+#       - 窗口从 8 放宽到 40（17 字仍落进 40 字窗口，一样被错压）
+#     正确实现：td_alt 照报，alert 因为紧邻「不要」不该报。
+mkmd l3-locality-mixed-signal <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 强调：`#0071e3`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 不要给提示卡加阴影，正文表格另外用一种斑马纹底色区分奇偶行文字更清楚 `color: #0071e3`
+EOF
+mkjson l3-locality-mixed-signal <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #0071e3"}
+EOF
+check l3-locality-mixed-signal "UNMOUNTED td_alt"
+
+# 19. 单字「无」紧邻关键词——正方向：真的因为「无斑马纹」而不该报。
+#     钉住「去掉无+word 规则」那个 mutation（此前只有反方向用例
+#     l3-wu-not-negation，这条补正方向）。
+mkmd l3-wu-adjacent-negates <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主强调：`#2fa47e`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 说明：本表无斑马纹底色处理，保持纯色背景 `background-color: #ffffff`
+EOF
+mkjson l3-wu-adjacent-negates <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #2fa47e"}
+EOF
+check l3-wu-adjacent-negates
+
+# 20. 单字「无」落在窗口内但不紧邻关键词——不该被当否定。
+#     钉住「无在窗口内任意位置都算否定」这个 mutation：正确实现只认
+#     「无」+关键词紧邻组合，这条的「无」和「斑马纹」中间隔着「网格线，」，
+#     窗口内但不紧邻，该照报。
+mkmd l3-wu-window-not-adjacent <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主强调：`#2fa47e`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 说明：表格无网格线，斑马纹底色仍要保留 `background-color: #ffffff`
+EOF
+mkjson l3-wu-window-not-adjacent <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #2fa47e"}
+EOF
+check l3-wu-window-not-adjacent "UNMOUNTED td_alt"
+
+# 21. HTML 注释里的关键词不算规范条款。钉住「check_l3 里漏剥注释」这个
+#     mutation——不剥的话，注释里凑巧带着 style 串的草稿句会被当成真规范。
+mkmd l3-comment-not-spec <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 强调：`#0071e3`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+
+<!-- 提示卡建议用 `background-color: #ddf4ff` -->
+EOF
+mkjson l3-comment-not-spec <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #0071e3"}
+EOF
+check l3-comment-not-spec
+
+# 22. 「别」这个否定词紧邻关键词——钉住「NEGATIONS 被削成只剩『不要』」这个
+#     mutation：「别把这段当导语处理」不该报 p_first。
+mkmd l3-bie-negation <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 强调：`#0071e3`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #0071e3`
+- 说明：别把这段当导语处理，普通段落即可 `color: #222222`
+EOF
+mkjson l3-bie-negation <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #0071e3"}
+EOF
+check l3-bie-negation
+
+# 23. 同一行两次出现「导语」：一次紧跟在「引」后面（该被黑名单挡住），另一次
+#     前面是「的」（不该被挡，该照报）。钉住「黑名单改成非定位判定」这个
+#     mutation——错误实现只要行里出现过一次「引导语」，就会连累这一行里
+#     所有「导语」命中，把第二个本该照报的也错杀掉。
+mkmd l3-blacklist-positional <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 强调：`#0071e3`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #0071e3`
+- eyebrow 引导语用于装饰，正文的导语仍要独立样式 `color: #0071e3`
+EOF
+mkjson l3-blacklist-positional <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #0071e3"}
+EOF
+check l3-blacklist-positional "UNMOUNTED p_first"
+
 printf '\n%d 通过，%d 失败\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

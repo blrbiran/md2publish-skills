@@ -137,7 +137,12 @@ KEYWORD_FIELDS = [
 ]
 
 # md2html.py docstring 字段表里的位置性/语义性字段，每个都必须在上表里有条目。
-# 新增字段时忘记同步会立刻 FAIL，而不是静默漏检——与 theme_pairs 的完整性断言同一招。
+# 这份表和 KEYWORD_FIELDS 一样是手写的、都写在本文件里——assert_keyword_table_
+# complete 只核对这两份手写表彼此同步，并不读 md2html.py，所以查不出"md2html.py
+# 本身新增了一个语义字段、这里两份表都忘了加"这种情况（那需要真的去解析
+# md2html.py 的字段表，这份断言做不到）。它能查出的是「这两份手写表自己漏同步」，
+# 比如给 KEYWORD_FIELDS 加了新字段却忘了把字段名加进 SEMANTIC_FIELDS，反过来
+# 也一样——立刻 FAIL，而不是静默漏检。
 SEMANTIC_FIELDS = {
     "p_first", "h2_first", "strong_alt", "footer_html", "alert", "td_alt",
     "list_prefix_ol_html", "highlight", "list_prefix_cycle", "h2_suffix_html",
