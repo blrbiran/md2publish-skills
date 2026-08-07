@@ -286,12 +286,19 @@ mkjson l1-inlineblock-fragment <<'EOF'
 EOF
 check l1-inlineblock-fragment
 
-# 10. INVENTED 的色只出现在 HTML 注释里（预演 Task 4 的豁免注记形态：
-#     `<!-- census-ok: INVENTED highlight #6a4f1a ... -->`），theme.json 里现造的色
-#     真身。规范文一次都没提过这个色——L1 本档还不解析豁免注记（那是 Task 4/6 的活），
-#     所以正确实现应该照报 INVENTED，不该被注释里的这次「提及」蒙混过去。
-#     踩 theme_lib.py:21-24 记的陷阱一：查落点前必须先剥注释，不剥的话注释里的色值会
-#     被当成一次真实出现，把 INVENTED 骗过去。
+# 10. INVENTED 的色只出现在 HTML 注释里，theme.json 里现造的色真身。规范文
+#     一次都没提过这个色——所以正确实现应该照报 INVENTED，不该被注释里的这次
+#     「提及」蒙混过去。踩 theme_lib.py:21-24 记的陷阱一：查落点前必须先剥
+#     注释，不剥的话注释里的色值会被当成一次真实出现，把 INVENTED 骗过去。
+#     Task 6 补记：这条本来写的是 `<!-- census-ok: INVENTED highlight #6a4f1a
+#     ... -->`，当时（Task 3/4）L1 还不解析豁免注记，这行纯粹是普通注释、
+#     对判据没有任何效力。Task 6 把 census-ok 解析接上了之后，这行会被真的
+#     当成一条注记去匹配——而且键还写错了（"highlight" 是 theme.json 的字段名，
+#     不是 INVENTED 行真正用的键即色值本身），匹配不到，会多报一条
+#     `STALE-NOTE highlight`，把这条测的东西（注释里的色值不算「声明」）跟
+#     豁免机制自己的行为搅在一起。改成不带 census-ok 前缀的普通注释，只保留
+#     「色值出现在注释里」这一件事，测的东西不变，也不会误触发新解析的注记
+#     语法。
 mkmd l1-invented-in-comment <<'EOF'
 # fixture
 
@@ -304,7 +311,7 @@ mkmd l1-invented-in-comment <<'EOF'
 
 - 段落：`color: #222222`
 
-<!-- census-ok: INVENTED highlight #6a4f1a 待真机定夺 -->
+<!-- 待定色，先记一笔：#6a4f1a -->
 EOF
 mkjson l1-invented-in-comment <<'EOF'
 {"container": "background-color: #ffffff", "p": "color: #222222",
@@ -959,6 +966,132 @@ if MD2HTML_CORPUS="$WORK/no-such-corpus-dir" python3 "$CENSUS" --fixture-dir "$W
 else
   printf '\rok   l2-nocorpus-fails-loud                    \n'
   pass=$((pass + 1))
+fi
+
+echo "── 豁免机制 ──────────"
+
+# 自查发现（同一类偏离，第二次出现——case 24/l2-nocorpus-fails-loud 已经踩过
+# 一次）：brief 原文的 case 25/27 checkl2 期望值同样没有对着参照实现实测过。
+# 这两条都用 --article "$ART" 走 checkl2，而 ART 的 container 全文只渲染一次
+# （test-census-themes.sh:702-720 那段总注释已经记过这个恒等式），
+# 「背景：#ffffff」在这两条 fixture 里都只声明在 container 上、没有另配
+# 复用同一色值的键，落点恒为 1，精确落进 NEAR-ZERO 阈值——且两条注记都只点名
+# 了各自的 INVENTED 目标，不会捎带把这条 NEAR-ZERO 也销掉。逐条用
+# `python3 census-themes.py --fixture-dir ... --article ...` 核实过（非手算），
+# 下面按实测结果补上 "NEAR-ZERO #ffffff"，不改注记匹配逻辑本身、不改判据/
+# 阈值——这条 NEAR-ZERO 恰好还顺带证明了 trap 1 要求的性质：INVENTED 注记
+# 只销 INVENTED，不会连累同一 fixture 里其它档的发现。
+
+# 25. 写了对应注记 → 该发现被销掉（NEAR-ZERO #ffffff 不在注记射程内，照报）
+mkmd ex-silenced <<'EOF'
+# fixture
+
+<!-- census-ok: INVENTED #6a4f1a 为凑代码块对比度所加，待主题文件补声明 -->
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson ex-silenced <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222", "highlight": {"comment": "#6a4f1a"}}
+EOF
+checkl2 ex-silenced "NEAR-ZERO #ffffff"
+
+# 26. 档名打错 → FAIL，不许静默地什么都不销
+mkmd ex-badtier <<'EOF'
+# fixture
+
+<!-- census-ok: INVENTD #6a4f1a 档名打错了 -->
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson ex-badtier <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222", "highlight": {"comment": "#6a4f1a"}}
+EOF
+# 用变量捕获 + 子串判断而不是 `| grep -q`：管道直接喂给 grep 在本机偶发漏判
+# （同一条命令反复跑，命中率不稳定，疑似沙箱里 grep 被 rtk/ugrep 代理接管后对
+# 实时管道的读取有时序竞争——文件落盘后再 grep 或者这里改用的变量捕获都稳定
+# 命中，纯 grep 直接接子进程管道的读法不稳）。command substitution 会等子
+# 进程彻底跑完再把全部输出收进变量，没有管道时序这一层，断言的仍是同一个
+# 子串「档名不认识」，不改判据。
+out="$(python3 "$CENSUS" --fixture-dir "$WORK/ex-badtier" --article "$ART" 2>&1)"
+if [[ "$out" == *"档名不认识"* ]]; then
+  printf 'ok   ex-badtier\n'; pass=$((pass + 1))
+else
+  printf 'FAIL ex-badtier\n     期望: 报「档名不认识」\n     实得: %s\n' "$out"; fail=$((fail + 1))
+fi
+
+# 27. 注记销不到任何东西 → STALE-NOTE（同样带着不在射程内的 NEAR-ZERO #ffffff）
+mkmd ex-stale <<'EOF'
+# fixture
+
+<!-- census-ok: INVENTED #aabbcc 这个色早就不在 theme.json 里了 -->
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson ex-stale <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222"}
+EOF
+checkl2 ex-stale "STALE-NOTE #aabbcc" "NEAR-ZERO #ffffff"
+
+# 28. 无语料时 L2 的注记不判 stale（否则一跑就是一片凭空 ERROR）
+#     显式把 MD2HTML_CORPUS 指到不存在的路径——本机真实语料库确实存在
+#     （case 24 的注释已经记过这件事），brief 原文这条没有显式覆盖，在本机会
+#     绕开 SKIP 分支：默认语料真实存在，L2 会正常跑起来，INVERT 是 L2_TIERS
+#     的成员，注记又确实销不到任何发现（fixture 的 .md 里根本没有 #f28ba8
+#     这个色值，check_l2 不可能产出这个键的行），于是 l2_active 恒真会让它
+#     被判成真正的 STALE-NOTE，跟这条用例本该测的「无语料」路径正好对不上——
+#     跟 case 24 是同一个坑，补同一个显式覆盖。
+mkmd ex-stale-layergate <<'EOF'
+# fixture
+
+<!-- census-ok: INVERT #f28ba8 待真机观感定夺 -->
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson ex-stale-layergate <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222"}
+EOF
+# 同 case 26：变量捕获 + 子串判断，不直接管道喂 grep（原因见 case 26 注释）。
+out="$(MD2HTML_CORPUS="$WORK/no-such-corpus-dir" python3 "$CENSUS" --fixture-dir "$WORK/ex-stale-layergate" 2>&1)"
+if [[ "$out" == *"STALE-NOTE"* ]]; then
+  printf 'FAIL ex-stale-layergate\n     期望: 无语料时 L2 注记不判 stale\n     实得: %s\n' "$out"; fail=$((fail + 1))
+else
+  printf 'ok   ex-stale-layergate\n'; pass=$((pass + 1))
 fi
 
 printf '\n%d 通过，%d 失败\n' "$pass" "$fail"

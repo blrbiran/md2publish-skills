@@ -15,13 +15,17 @@
 
     <!-- census-ok: <档名> <键> <一句话理由> -->
 
+`census-ok` 与 audit-themes.py 的 `audit-ok` 前缀故意不同——两套注记共存于
+同一批主题文件，各认各的前缀。注记若销不到任何发现，报第十档 STALE-NOTE；
+档名打错（SEVERITY 里没有的档）直接 FAIL，不许静默地什么都不销。
 **基线是「未销掉的 = 0 条」**，与 audit-themes.py 同一套约定。
 
 本文件目前实现 UNCARRIED / INVENTED / INLINE-BLOCK（L1，主题 .md ↔ theme.json
 色值/键位比对）、UNMOUNTED（L3，散文语义条款 ↔ theme.json 机械字段），以及
 ZERO / NEAR-ZERO / DECOR / INVERT（L2，theme.json ↔ 产物 HTML，需要
 `--article`/`MD2HTML_CORPUS` 指到的语料；语料缺失时 L2 整体 SKIP 并把退出码
-标红，不静默跳过）。STALE-NOTE 与豁免注记机制留给后续任务。
+标红，不静默跳过），加上豁免注记与 STALE-NOTE（按层设门：L2 SKIP 的一轮里，
+L2 档的注记不判 stale）。
 配套的变异测试见 test-census-themes.sh。
 """
 
@@ -35,7 +39,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from theme_lib import strip_comments, spec_lines, theme_pairs, palette, landings
+from theme_lib import strip_comments, spec_lines, theme_pairs, palette, landings, exemptions
 
 SEVERITY = {
     "UNCARRIED": "ERROR", "INVENTED": "ERROR", "INLINE-BLOCK": "ERROR",
@@ -318,6 +322,62 @@ def check_l2(name, md_text, html, already):
     return found
 
 
+L2_TIERS = {"ZERO", "ZERO-DUP", "NEAR-ZERO", "DECOR", "INVERT"}
+
+
+def apply_exemptions(name, md_text, rows, l2_active):
+    """豁免在去重之后、输出之前。返回 (剩余发现, stale 注记)。
+
+    注记读的是原始 md_text（未剥注释）——注记本身就活在 HTML 注释里，
+    strip_comments 会把它连同其它注释一起剥掉，那样就永远解析不到任何注记。
+    """
+    notes = exemptions(md_text, "census-ok")
+    for tier, key, _ in notes:
+        if tier not in SEVERITY:
+            print(f"FAIL {name}：豁免注记档名不认识 —— {tier}")
+            print(f"     合法档名：{sorted(SEVERITY)}")
+            raise SystemExit(1)
+    used = set()
+    kept = []
+    for row in rows:
+        tier, _, key, _ = row
+        idx = next((i for i, (t, k, _) in enumerate(notes)
+                    if t == tier and k == key and i not in used), None)
+        if idx is None:
+            kept.append(row)
+        else:
+            used.add(idx)
+    stale = []
+    for i, (tier, key, _) in enumerate(notes):
+        if i in used:
+            continue
+        # 按层设门：某层 SKIP 时该层的注记一律不判 stale，否则语料缺失
+        # 会把所有 L2 注记变成凭空的 ERROR——而它们恰恰是要求写下来留档的。
+        if tier in L2_TIERS and not l2_active:
+            continue
+        stale.append(("STALE-NOTE", name, key, f"这条 {tier} 注记销不到任何发现"))
+    return kept, stale
+
+
+def print_counts(name, md_text, html):
+    """--counts：每个调色板色的落点分解。把「改完必须去数产物」变成一条命令。
+
+    数的口径与三档判据同源：都是先 landings(html) 拿 Counter[(标签, 桶)]，
+    再按同一套 text/fill/line 分桶方式求和——不另起一套计数逻辑，否则
+    --counts 和 ZERO/NEAR-ZERO/DECOR 的判断依据就可能对不上。
+    """
+    land = landings(html)
+    pal = palette(strip_comments(md_text))
+    print(f"{'色值':<10}{'角色':<24}{'总':>5}{'文字':>6}{'面':>5}{'线':>5}")
+    for color, line in pal.items():
+        c = land.get(color, {})
+        tot = sum(c.values())
+        tx = sum(v for (_, b), v in c.items() if b == "text")
+        fl = sum(v for (_, b), v in c.items() if b == "fill")
+        ln = sum(v for (_, b), v in c.items() if b == "line")
+        print(f"{color:<10}{_label(line)[:22]:<24}{tot:>5}{tx:>6}{fl:>5}{ln:>5}")
+
+
 def report(found):
     # 每列后补一个空格再垫宽，保证列之间至少有一个分隔符——不然像
     # list_prefix_ol_html（20 字符）这种超过 12 宽的键会跟 why 文本连写，
@@ -332,6 +392,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fixture-dir")
     ap.add_argument("--article", help="语料文章；不给则从 MD2HTML_CORPUS 推")
+    ap.add_argument("--counts", metavar="<主题名>",
+                     help="真实库模式：输出该主题每个调色板色的落点分解，不跑普查")
     args = ap.parse_args()
 
     corpus = os.environ.get(
@@ -339,6 +401,25 @@ def main():
         os.path.expanduser("~/code/skills/writing/wechat_test/litellm-multi-provider-gateway"))
     article = args.article or os.path.join(corpus, "litellm-multi-provider-gateway.md")
     has_corpus = os.path.exists(article)
+
+    if args.counts:
+        ref = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references")
+        match = next((p for p in theme_pairs(ref) if p[0] == args.counts), None)
+        if not match:
+            print(f"FAIL --counts：主题库里没有 {args.counts}")
+            return 1
+        if not has_corpus:
+            print(f"FAIL --counts：语料不在 {article}，无法渲染产物")
+            return 1
+        base, md, js = match
+        with tempfile.TemporaryDirectory() as workdir:
+            html, err = render(article, js, workdir, base)
+        if err:
+            print(f"FAIL --counts：渲染失败 —— {err}")
+            return 1
+        print_counts(base, open(md).read(), html)
+        return 0
+
     if not has_corpus:
         print(f"SKIP L2：语料不在 {article}")
         print("     这不是通过。设 MD2HTML_CORPUS 或 --article 再跑，否则产物侧没有护栏。")
@@ -366,7 +447,8 @@ def main():
                     else:
                         already = {c for t, _, c, _ in l1 if t == "UNCARRIED"}
                         rows += check_l2(name, md_text, html, already)
-                found += rows
+                rows, stale = apply_exemptions(name, md_text, rows, has_corpus)
+                found += rows + stale
         else:
             ref = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references")
             for base, md, js in theme_pairs(ref):
@@ -383,7 +465,8 @@ def main():
                     else:
                         already = {c for t, _, c, _ in l1 if t == "UNCARRIED"}
                         rows += check_l2(base, md_text, html, already)
-                found += rows
+                rows, stale = apply_exemptions(base, md_text, rows, has_corpus)
+                found += rows + stale
     code = report(found)
     return code or (0 if has_corpus else 1)   # 语料缺失也要标红
 
