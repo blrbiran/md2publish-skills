@@ -174,6 +174,19 @@ def _negated(line, pos, word):
 def check_l3(name, md_text, theme):
     """L3：散文条款 ↔ 机械字段。不需要语料。"""
     found = []
+    # L3 只看 spec_lines 挑出来的、带可机械化实体的行（#hex / style= / 属性: 值，
+    # 见 theme_lib.py:59 的 _ENTITY）。一句只用中文名字指色、不带 hex/style= 的
+    # 散文条款，对这一层是不可见的——已知现存实例：
+    # references/theme-prompts/cyber-neon.md:37「提示卡里属于警示性质的那种，
+    # 标题和左边框用品红」，`13-cyber-neon-v7-edge` 的 theme.json 没有 `alert`
+    # 键，字面上完全满足 UNMOUNTED 的定义，但因为这行没有 hex/style=/属性:值，
+    # 进不了 spec_lines，眼下报的是 0。人已经在 2026-08-07 裁定接受这个已知
+    # 局限、不为了扩大这里的口径去动 _ENTITY——量过替代方案的代价：把这里的
+    # 过滤条件去掉、对全部行（而不只是 spec_lines 挑出的行）跑同一套关键词表，
+    # 全库只多出 2 条：上面这条真阳性，外加 `06-editor-slate:82`「比 strong
+    # 高一档」这一条假阳性（那行的「注意」说的是提示卡触发语法，「strong」只是
+    # 拿来类比优先级，不是警示性 strong 的规范条款）。这个已知空洞记在
+    # task-4-report.md 的「留给 Task 7」一节，由人工兜底，不在这一层扩口径去追。
     lines = spec_lines(strip_comments(md_text))
     for signals, field, blacklist in KEYWORD_FIELDS:
         if theme.get(field):
