@@ -284,6 +284,9 @@ def check_l2(name, md_text, html, already):
                 found.append(("ZERO", name, color, "调色板声明了，产物里 0 处"))
             continue
         if total <= 2:
+            # continue 在这里：落点≤2 时不再往下判 DECOR，即便这 ≤2 处全是边框/
+            # 底色——NEAR-ZERO 已经把这个色标出来了，不需要 DECOR 再报一遍同一个
+            # 「几乎没有」的事实。属于故意，不是漏判（review 2026-08-08 确认）。
             found.append(("NEAR-ZERO", name, color, f"产物里只有 {total} 处"))
             continue
         if is_accent and text_count(color) == 0:

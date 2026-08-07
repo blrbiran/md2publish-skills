@@ -885,6 +885,66 @@ mkjson l2-dedup <<'EOF'
 EOF
 checkl2 l2-dedup "UNCARRIED #767676" "NEAR-ZERO #ffffff"
 
+# ── fix round 1（code review 补漏）──────────────────────────────────────
+# check_l2 里 INVERT 判据有两条分支：主强调 vs 副/辅强调（用例 21/22 已覆盖），
+# 主强调 vs「参照色」（`for rc, rl in refs:`，`text_count(rc) > 3 * max(n, 1)`）。
+# 上面 7 条 fixture 里每一条的非强调色标签都落进了 REF_EXCLUDE（背景/主文字/
+# 次级……），`refs` 因此恒为空集，参照色分支在这批用例下是死代码——真实库里
+# gilded-ink/mint-breeze/terracotta-sun 那 3 条 INVERT 恰恰全靠这条分支才报出来
+# （见 task-5-report.md 真实库列表），删掉这条分支或把阈值改到离谱，34 条用例
+# 一条不掉。下面两条钉住它：main 挂在 h3 上（ART 恒为 2 次），参照色标签仿真实
+# 库 gilded-ink 的形态「深金（strong 用）」——不含强调关键词、也不含 REF_EXCLUDE
+# 任何一个子串，是货真价实能进 `refs` 的角色。
+
+# 25.（必修，钉参照色分支）参照色文字落点 9，是主强调 2 的 4.5 倍，超过三分之一
+#     阈值（9 > 3×2=6）→ 该报 INVERT。
+mkmd l2-invert-ref <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 深橘（主强调）：`#a34a1f`
+- 深金（strong 用）：`#b08a3e`
+
+## 正文与强调
+
+- 段落：`color: #b08a3e`
+- h3：`color: #a34a1f`
+EOF
+mkjson l2-invert-ref <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #b08a3e",
+ "h3": "color: #a34a1f"}
+EOF
+checkl2 l2-invert-ref "INVERT #a34a1f" "NEAR-ZERO #ffffff" "NEAR-ZERO #a34a1f"
+
+# 26. 对照（近失手）：参照色文字落点 5（只落在真正的段落上，列表项另配了第三个
+#     颜色、不再落回 p 的兜底），是主强调 2 的 2.5 倍，没有过三分之一阈值
+#     （5 不 > 6）→ 不该报 INVERT。这条和用例 25 只差「列表项要不要单独配色」
+#     一行，逼参照色分支的比较是真的在算数，不是「只要存在一个非强调色落点
+#     比主强调多就报」这种粗判。
+mkmd l2-invert-ref-nearmiss <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 深橘（主强调）：`#a34a1f`
+- 深金（strong 用）：`#b08a3e`
+
+## 正文与强调
+
+- 段落：`color: #b08a3e`
+- 列表：`color: #556677`
+- h3：`color: #a34a1f`
+EOF
+mkjson l2-invert-ref-nearmiss <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #b08a3e",
+ "list_item": "color: #556677",
+ "h3": "color: #a34a1f"}
+EOF
+checkl2 l2-invert-ref-nearmiss "NEAR-ZERO #ffffff" "NEAR-ZERO #a34a1f"
+
 # 24. 无语料时 L2 整体 SKIP，退出码要标红（静默跳过等于没有护栏），
 #     且 L1/L3 照常出结论。
 #     显式把 MD2HTML_CORPUS 指到不存在的路径——本机真实语料库确实存在
