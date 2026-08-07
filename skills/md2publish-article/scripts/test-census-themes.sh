@@ -261,10 +261,19 @@ EOF
 check l1-invented-in-comment "INVENTED #6a4f1a"
 
 # 11. 对照：theme.json 里的色，在正文（非注释）里确实提过 → 不该报 INVENTED。
-#     INVENTED 的负方向用例——第 4 条只测了「真现造」，没测「真声明」，
-#     一个把判据错写成「色值不在 declared 里」而非「不在 all_md 里」的实现，
-#     在当前 _ENTITY（含色值本身即为规范行判据）下与本实现逐条同分，这条测的是
-#     方向完整性，不是当下能分辨这两种实现——一旦 _ENTITY 收窄，这条才会咬人。
+#     INVENTED 的负方向用例——第 4 条只测了「真现造」，没测「真声明」。
+#
+#     **已知没有牙齿，如实记录**：这条只断言「色在 .md 正文里声明过就不该报
+#     INVENTED」，**分辨不了** INVENTED 该用 `jc - all_md` 算还是错写成
+#     `jc - declared` 算——把 census-themes.py 里 INVENTED 的判据换成
+#     `jc - declared`，这条照样绿，因为 declared 与 all_md 在当前 _ENTITY 下
+#     恒等（见 census-themes.py:86-99 那段注释：_ENTITY 第一个分支就是裸色值
+#     正则本身，任何带色值的行天然落进 spec_lines，declared 必然等于 all_md）。
+#     只要 _ENTITY 的色值分支还在，**没有任何 fixture** 能让这两种写法在这条
+#     判据上分出胜负，不是这条用例写弱了。一旦 _ENTITY 的色值分支被收窄
+#     （declared 不再恒等于 all_md），这条才重新具备分辨力，届时要回来对着
+#     `jc - declared` 变体重新验证一遍（走 census-themes.py:86-99 那段注释里
+#     记的「改 _ENTITY 后要做的事」）。
 mkmd l1-invented-declared-ok <<'EOF'
 # fixture
 
