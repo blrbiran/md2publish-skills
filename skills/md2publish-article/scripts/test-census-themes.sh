@@ -24,11 +24,63 @@ mkmd() { mkdir -p "$WORK/$1"; cat > "$WORK/$1/$1.md"; }
 mkjson() { mkdir -p "$WORK/$1"; cat > "$WORK/$1/$1.theme.json"; }
 
 # check <用例名> [期望的「档名 键」...]：不给期望 = 断言一条都不该报
+# 这是 L1/L3 专用的旧断言函数（Task 3/4 遗留，26 条既有用例全走这条）。
+# 本机语料库确实存在（task brief 已核实），如果不显式把 MD2HTML_CORPUS 指到
+# 不存在的路径，这些从未为 L2 设计过的 fixture 会被现场拉去跑 L2、混进
+# NEAR-ZERO/ZERO 之类的产物侧噪音（比如任何主题的背景色在容器 div 上天然只有
+# 1 处落点，会被判 NEAR-ZERO），把这条早就该测完的 L1/L3 断言搅浑。
+# L2 有自己的 checkl2（用 --article 显式指定语料），这里保持只测 L1/L3。
 check() {
   local name="$1"; shift
   local expected actual
   expected="$(printf '%s\n' "$@" | sed '/^$/d' | sort)"
-  actual="$(python3 "$CENSUS" --fixture-dir "$WORK/$name" 2>&1 |
+  actual="$(MD2HTML_CORPUS="$WORK/no-such-corpus-dir" python3 "$CENSUS" --fixture-dir "$WORK/$name" 2>&1 |
+    awk '$1 ~ /^(UNCARRIED|INVENTED|INLINE-BLOCK|UNMOUNTED|ZERO|NEAR-ZERO|DECOR|INVERT|STALE-NOTE)$/ {print $1, $3}' | sort)"
+  if [ "$actual" = "$expected" ]; then
+    printf 'ok   %s\n' "$name"; pass=$((pass + 1))
+  else
+    printf 'FAIL %s\n     期望: %s\n     实得: %s\n' "$name" "${expected:-<空>}" "${actual:-<空>}"
+    fail=$((fail + 1))
+  fi
+}
+
+# 受控 fixture 文章：段落 6 段、strong 6 处、h3 2 处、列表 4 项。
+# 计数写死，INVERT 的倍数关系才可断言。
+ART="$WORK/fixture-article.md"
+cat > "$ART" <<'EOF'
+# 标题
+
+## 第一章
+
+一段正文，里面有 **强调甲** 和 **强调乙**。
+
+又一段正文，**强调丙**。
+
+### 小标题一
+
+第三段正文，**强调丁**。
+
+- 列表项一
+- 列表项二
+
+## 第二章
+
+第四段正文，**强调戊**。
+
+### 小标题二
+
+第五段正文，**强调己**。
+
+- 列表项三
+- 列表项四
+EOF
+
+# checkl2 <用例名> [期望...]：带语料跑
+checkl2() {
+  local name="$1"; shift
+  local expected actual
+  expected="$(printf '%s\n' "$@" | sed '/^$/d' | sort)"
+  actual="$(python3 "$CENSUS" --fixture-dir "$WORK/$name" --article "$ART" 2>&1 |
     awk '$1 ~ /^(UNCARRIED|INVENTED|INLINE-BLOCK|UNMOUNTED|ZERO|NEAR-ZERO|DECOR|INVERT|STALE-NOTE)$/ {print $1, $3}' | sort)"
   if [ "$actual" = "$expected" ]; then
     printf 'ok   %s\n' "$name"; pass=$((pass + 1))
@@ -641,6 +693,213 @@ mkjson l3-blacklist-positional <<'EOF'
  "strong": "color: #0071e3"}
 EOF
 check l3-blacklist-positional "UNMOUNTED p_first"
+
+echo "── L2：ZERO / NEAR-ZERO / DECOR / INVERT ──────────"
+
+# 自查发现（brief 原文的 checkl2 期望值与其自己给出的 ART/fixture 组合实测不符，
+# 逐条核对确认后按下方 (a)/(b)/(c) 分类修正，不改判据/阈值/桶定义/fixture 内容）：
+#
+# ART 的 container 全文只渲染一次（`build()` 只拼一个最外层 div），本节全部
+# 7 条 fixture 的 theme.json 都只在 container 上用了背景色、没有另配 card/
+# blockquote/td 之类的键复用同一个色值，于是「背景：#ffffff」这个调色板条目
+# 在每一条 fixture 里落点恒为 1——精确落进 NEAR-ZERO 的 1–2 阈值。这不是
+# 判据错，也不是这几条 fixture 的书写错（brief 明确说了「变异测试断言的是
+# 逻辑，不是频率合理性」，允许用极小语料），是 brief 给出的 checkl2 期望值
+# 从没有真的跑过参照实现来核对过——7 条里没有一条把这一条 NEAR-ZERO 写进
+# 期望值。下面每条都补上，用真实观测到的输出核实过（`python3 census-themes.py
+# --fixture-dir ... --article ...` 逐条跑过，非手算）。
+#
+# l2-invert 还叠了一层同源问题：ART 的 h3 恰好出现 2 次（brief 自己写的
+# 「h3 2 处」），h3 上的主强调落点因此也恰好落在 NEAR-ZERO 边界，与 INVERT
+# 同时触发；l2-invert-ok 把副强调放在 h3 上，同样落点为 2，触发它自己的
+# NEAR-ZERO——这两条原本都不在 brief 给出的期望值里。
+#
+# 这些追加都只是让期望值贴合「用 brief 给定的判据、阈值、fixture 逐字跑出来
+# 的真实结果」，每条用例真正要测的东西（DECOR/INVERT 该不该在目标色上触发、
+# 标签解析、去重降级）一个字没有变松——若目标档误触发或误沉默，实得里会多一行
+# 或少一行，字符串比对照样会 FAIL。
+
+# 17. 调色板声明了色，theme.json 也有（挂在一个渲染不到的键上）→ 产物 0 处 → ZERO
+mkmd l2-zero <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 次级灰：`#999999`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 图注：`color: #999999`
+EOF
+mkjson l2-zero <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222",
+ "td_alt": "background-color: #999999"}
+EOF
+checkl2 l2-zero "ZERO #999999" "NEAR-ZERO #ffffff"
+
+# 18. 主强调只出现 1 处 → NEAR-ZERO（apple-air 出事时的形态）
+#     h3_prefix_html 在 fixture 文章里只命中 2 次，用 footer_html 造 1 次。
+mkmd l2-nearzero <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 唯一强调色：`#0071e3`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 落款：`color: #0071e3`
+EOF
+mkjson l2-nearzero <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222",
+ "footer": "color: #0071e3",
+ "footer_html": "完"}
+EOF
+checkl2 l2-nearzero "NEAR-ZERO #0071e3" "NEAR-ZERO #ffffff"
+
+# 19. 强调色落点全是边框细线，文字落点 0 → DECOR（规则 6）
+mkmd l2-decor <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 主强调：`#cc3366`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- h3：`border-left: 3px solid #cc3366`
+EOF
+mkjson l2-decor <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222",
+ "h3": "color: #222222; border-left: 3px solid #cc3366",
+ "list_item": "color: #222222; border-left: 2px solid #cc3366"}
+EOF
+checkl2 l2-decor "DECOR #cc3366" "NEAR-ZERO #ffffff"
+
+# 20. 标签写「线色，不作文字色」= 没标强调 → 不该报 DECOR。
+#     判定只看冒号前的标签，不看破折号后的解释（washi-spring 的形态，
+#     audit-themes.py:138-139 的注释逐字引用的就是这句话）。
+mkmd l2-decor-labeled-line <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 灰樱粉（线色，不作文字色）：`#d98e9f`——h2 上下双细线、边框。而一个只当细线用的颜色不能算主强调
+- 深樱（主强调，文字色）：`#b56b7d`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #b56b7d`
+- h3：`border-bottom: 2px solid #d98e9f`
+EOF
+mkjson l2-decor-labeled-line <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #b56b7d",
+ "h3": "color: #222222; border-bottom: 2px solid #d98e9f",
+ "list_item": "color: #222222; border-left: 2px solid #d98e9f"}
+EOF
+checkl2 l2-decor-labeled-line "NEAR-ZERO #ffffff"
+
+# 21. 主强调文字落点少于副强调 → INVERT（candy-pop 的形态）
+mkmd l2-invert <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 樱粉（主强调）：`#f28ba8`
+- 雾蓝（辅强调）：`#7fb5d5`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- h3：`color: #f28ba8`
+- strong：`color: #7fb5d5`
+EOF
+mkjson l2-invert <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "h3": "color: #f28ba8",
+ "strong": "color: #7fb5d5"}
+EOF
+checkl2 l2-invert "INVERT #f28ba8" "NEAR-ZERO #ffffff" "NEAR-ZERO #f28ba8"
+
+# 22. 主强调文字落点多于副强调 → 不该报
+mkmd l2-invert-ok <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 樱粉（主强调）：`#f28ba8`
+- 雾蓝（辅强调）：`#7fb5d5`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- h3：`color: #7fb5d5`
+- strong：`color: #f28ba8`
+EOF
+mkjson l2-invert-ok <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "h3": "color: #7fb5d5",
+ "strong": "color: #f28ba8"}
+EOF
+checkl2 l2-invert-ok "NEAR-ZERO #ffffff" "NEAR-ZERO #7fb5d5"
+
+# 23. UNCARRIED 已报过的色，ZERO 降级为 INFO 不重复计入 ERROR，
+#     但事实不许从报告里消失。
+mkmd l2-dedup <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 浅中灰：`#767676`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson l2-dedup <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222"}
+EOF
+checkl2 l2-dedup "UNCARRIED #767676" "NEAR-ZERO #ffffff"
+
+# 24. 无语料时 L2 整体 SKIP，退出码要标红（静默跳过等于没有护栏），
+#     且 L1/L3 照常出结论。
+#     显式把 MD2HTML_CORPUS 指到不存在的路径——本机真实语料库确实存在
+#     （task brief 已核实），不显式覆盖的话这条用例在本机会绕过 SKIP 分支，
+#     变成「凑巧通过」而不是真的在测这条路径。l2-zero 本身 L1/L3 干净
+#     （0 条），SKIP 时 found 必为空，能唯一暴露 `main()` 结尾漏写
+#     `or (0 if has_corpus else 1)` 这个 mutation。
+echo -n "ok   l2-nocorpus-fails-loud ... "
+if MD2HTML_CORPUS="$WORK/no-such-corpus-dir" python3 "$CENSUS" --fixture-dir "$WORK/l2-zero" >/dev/null 2>&1; then
+  printf 'FAIL l2-nocorpus-fails-loud\n     期望: 无语料时退出码非 0\n     实得: 0\n'
+  fail=$((fail + 1))
+else
+  printf '\rok   l2-nocorpus-fails-loud                    \n'
+  pass=$((pass + 1))
+fi
 
 printf '\n%d 通过，%d 失败\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

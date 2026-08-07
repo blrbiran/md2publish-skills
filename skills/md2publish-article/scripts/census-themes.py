@@ -18,9 +18,10 @@
 **基线是「未销掉的 = 0 条」**，与 audit-themes.py 同一套约定。
 
 本文件目前实现 UNCARRIED / INVENTED / INLINE-BLOCK（L1，主题 .md ↔ theme.json
-色值/键位比对）与 UNMOUNTED（L3，散文语义条款 ↔ theme.json 机械字段）四档，
-都不需要产物语料。ZERO / NEAR-ZERO / DECOR / INVERT / STALE-NOTE 五档接产物
-语料（L2），由后续任务补上；豁免机制同样留给后续任务。
+色值/键位比对）、UNMOUNTED（L3，散文语义条款 ↔ theme.json 机械字段），以及
+ZERO / NEAR-ZERO / DECOR / INVERT（L2，theme.json ↔ 产物 HTML，需要
+`--article`/`MD2HTML_CORPUS` 指到的语料；语料缺失时 L2 整体 SKIP 并把退出码
+标红，不静默跳过）。STALE-NOTE 与豁免注记机制留给后续任务。
 配套的变异测试见 test-census-themes.sh。
 """
 
@@ -29,14 +30,16 @@ import collections
 import json
 import os
 import re
+import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from theme_lib import strip_comments, spec_lines, theme_pairs
+from theme_lib import strip_comments, spec_lines, theme_pairs, palette, landings
 
 SEVERITY = {
     "UNCARRIED": "ERROR", "INVENTED": "ERROR", "INLINE-BLOCK": "ERROR",
-    "UNMOUNTED": "ERROR", "ZERO": "ERROR", "NEAR-ZERO": "WARN",
+    "UNMOUNTED": "ERROR", "ZERO": "ERROR", "ZERO-DUP": "INFO", "NEAR-ZERO": "WARN",
     "DECOR": "WARN", "INVERT": "INFO", "STALE-NOTE": "ERROR",
 }
 
@@ -229,6 +232,89 @@ def assert_keyword_table_complete():
     return True
 
 
+ACCENT_ROLE = ("强调", "点睛", "accent", "主色")
+# 参照色的排除项：装饰面计数天然高或天然低；正文色必然压倒一切强调色，
+# 拿它作参照会把全库都报了。
+REF_EXCLUDE = ("底", "背景", "线", "边", "卡片", "面板", "纸面", "块",
+               "正文", "主文字", "默认文字", "次级")
+
+
+def _label(line):
+    """只取冒号前的角色标签，不看破折号后的解释文字。
+
+    这是 audit-themes.py:138-139 已有的纪律。washi-spring 的
+    「灰樱粉（线色，不作文字色）：#d98e9f——……不能算主强调」整行搜「强调」
+    会把它误判成强调色，而它恰恰声明了自己不是。
+    """
+    return re.split(r"[：:]", line.lstrip("-* "), 1)[0]
+
+
+def render(article, theme_path, workdir, name):
+    """现场用 md2html.py 生成产物。不读 out/ 定稿——那套 -v1/-v5 命名混乱，
+    且「定稿与 theme.json 同步」这个假设失效恰恰是本脚本要报的毛病之一。"""
+    out = os.path.join(workdir, name + ".html")
+    md2html = os.path.join(os.path.dirname(os.path.abspath(__file__)), "md2html.py")
+    r = subprocess.run([sys.executable, md2html, article, theme_path, "-o", out],
+                       capture_output=True)
+    if r.returncode != 0:
+        return None, r.stderr.decode()[:200]
+    return open(out).read(), None
+
+
+def check_l2(name, md_text, html, already):
+    """L2：theme.json ↔ 产物。already 是 L1 已报过 UNCARRIED 的色值集合。"""
+    found = []
+    land = landings(html)
+    pal = palette(strip_comments(md_text))
+
+    def text_count(c):
+        return sum(v for (_, b), v in land.get(c, {}).items() if b == "text")
+
+    for color, line in pal.items():
+        total = sum(land.get(color, {}).values())
+        label = _label(line)
+        is_accent = any(k in label for k in ACCENT_ROLE)
+
+        if total == 0:
+            if color in already:
+                # 去重只降级不消失：若直接删掉，一旦给 UNCARRIED 写了豁免注记，
+                # 「这个色在产物里 0 处」这个事实就从报告里彻底消失了。
+                found.append(("ZERO-DUP", name, color, "产物 0 处（已由 UNCARRIED 报过）"))
+            else:
+                found.append(("ZERO", name, color, "调色板声明了，产物里 0 处"))
+            continue
+        if total <= 2:
+            found.append(("NEAR-ZERO", name, color, f"产物里只有 {total} 处"))
+            continue
+        if is_accent and text_count(color) == 0:
+            found.append(("DECOR", name, color,
+                          f"标为强调却没有文字色落点（{total} 处全是边框/底色）"))
+
+    # INVERT：主强调的文字落点少于副/辅强调，或不足参照色的三分之一
+    mains = [(c, l) for c, l in pal.items()
+             if "主强调" in _label(l) or "唯一强调" in _label(l)]
+    subs = [(c, l) for c, l in pal.items()
+            if "副强调" in _label(l) or "辅强调" in _label(l)]
+    refs = [(c, l) for c, l in pal.items()
+            if not any(k in _label(l) for k in ACCENT_ROLE)
+            and not any(k in _label(l) for k in REF_EXCLUDE)]
+    for c, _ in mains:
+        n = text_count(c)
+        why = None
+        for sc, sl in subs:
+            if text_count(sc) > n:
+                why = f"主强调文字落点 {n}，少于副/辅强调 {_label(sl)} 的 {text_count(sc)}"
+                break
+        if not why:
+            for rc, rl in refs:
+                if text_count(rc) > 3 * max(n, 1):
+                    why = f"主强调文字落点 {n}，不足参照色 {_label(rl)}（{text_count(rc)}）的三分之一"
+                    break
+        if why:
+            found.append(("INVERT", name, c, why))
+    return found
+
+
 def report(found):
     # 每列后补一个空格再垫宽，保证列之间至少有一个分隔符——不然像
     # list_prefix_ol_html（20 字符）这种超过 12 宽的键会跟 why 文本连写，
@@ -242,31 +328,61 @@ def report(found):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--fixture-dir")
+    ap.add_argument("--article", help="语料文章；不给则从 MD2HTML_CORPUS 推")
     args = ap.parse_args()
+
+    corpus = os.environ.get(
+        "MD2HTML_CORPUS",
+        os.path.expanduser("~/code/skills/writing/wechat_test/litellm-multi-provider-gateway"))
+    article = args.article or os.path.join(corpus, "litellm-multi-provider-gateway.md")
+    has_corpus = os.path.exists(article)
+    if not has_corpus:
+        print(f"SKIP L2：语料不在 {article}")
+        print("     这不是通过。设 MD2HTML_CORPUS 或 --article 再跑，否则产物侧没有护栏。")
 
     found = []
     if not assert_keyword_table_complete():
         return 1
-    if args.fixture_dir:
-        d = args.fixture_dir
-        for f in sorted(os.listdir(d)):
-            if not f.endswith(".md"):
-                continue
-            name = f[:-3]
-            jp = os.path.join(d, name + ".theme.json")
-            if not os.path.exists(jp):
-                continue
-            md_text, theme = open(os.path.join(d, f)).read(), json.load(open(jp))
-            found += check_l1(name, md_text, theme) + check_l3(name, md_text, theme)
-    else:
-        ref = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references")
-        for base, md, js in theme_pairs(ref):
-            if not os.path.exists(md):
-                print(f"FAIL 对照表不完整：{base} 找不到 {md}")
-                return 1
-            md_text, theme = open(md).read(), json.load(open(js))
-            found += check_l1(base, md_text, theme) + check_l3(base, md_text, theme)
-    return report(found)
+    with tempfile.TemporaryDirectory() as workdir:
+        if args.fixture_dir:
+            d = args.fixture_dir
+            for f in sorted(os.listdir(d)):
+                if not f.endswith(".md"):
+                    continue
+                name = f[:-3]
+                jp = os.path.join(d, name + ".theme.json")
+                if not os.path.exists(jp):
+                    continue
+                md_text, theme = open(os.path.join(d, f)).read(), json.load(open(jp))
+                l1 = check_l1(name, md_text, theme)
+                rows = l1 + check_l3(name, md_text, theme)
+                if has_corpus:
+                    html, err = render(article, jp, workdir, name)
+                    if err:
+                        rows.append(("RENDER-FAIL", name, "-", err))
+                    else:
+                        already = {c for t, _, c, _ in l1 if t == "UNCARRIED"}
+                        rows += check_l2(name, md_text, html, already)
+                found += rows
+        else:
+            ref = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "references")
+            for base, md, js in theme_pairs(ref):
+                if not os.path.exists(md):
+                    print(f"FAIL 对照表不完整：{base} 找不到 {md}")
+                    return 1
+                md_text, theme = open(md).read(), json.load(open(js))
+                l1 = check_l1(base, md_text, theme)
+                rows = l1 + check_l3(base, md_text, theme)
+                if has_corpus:
+                    html, err = render(article, js, workdir, base)
+                    if err:
+                        rows.append(("RENDER-FAIL", base, "-", err))
+                    else:
+                        already = {c for t, _, c, _ in l1 if t == "UNCARRIED"}
+                        rows += check_l2(base, md_text, html, already)
+                found += rows
+    code = report(found)
+    return code or (0 if has_corpus else 1)   # 语料缺失也要标红
 
 
 if __name__ == "__main__":
