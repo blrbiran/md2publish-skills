@@ -84,6 +84,19 @@ def check_l1(name, md_text, theme):
     jc = json_colors(theme)
 
     # UNCARRIED：规范行里声明的色，theme.json 一次都不出现
+    #
+    # 走 spec_lines 而不是直接对 clean 做 re.findall，是为了让 declared 的定义
+    # 「规范行里的色」在语义上独立于 all_md 的定义「全文任意处的色」——即使两者
+    # 在当前实现下取值恒等（见下）。theme_lib.py:59 的 _ENTITY 第一个分支就是
+    # `#[0-9a-fA-F]{6}` 本身：任何带色值的行天然满足「含可机械化实体」，落进
+    # spec_lines。因此 declared（spec_lines 各行色值的并集）与 all_md（全文色值
+    # 集合）在当前 _ENTITY 下恒等——已对全库 27 对主题验证，0 处不同，
+    # spec_lines 这一步在 L1 里眼下是零过滤。这不是本档的 bug，是 _ENTITY 定义
+    # 的必然结果，记在这里防止以后有人「优化」成直接对 clean 取色值当作 declared。
+    # 但这条恒等关系是**脆的**：_ENTITY 的色值分支若被收窄（比如为了堵 URL 假阳性
+    # 把它删掉，只留 style=/CSS 声明两个分支），declared 就会立刻变窄于 all_md，
+    # UNCARRIED 的判定含义随之改变——届时需要一条真正区分两者的 fixture，
+    # 而不是继续依赖当前这个恒等关系。
     declared = set()
     for _, line in spec_lines(clean):
         declared.update(c.lower() for c in re.findall(r"#[0-9a-fA-F]{6}", line))

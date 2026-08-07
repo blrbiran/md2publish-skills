@@ -234,5 +234,78 @@ mkjson l1-inlineblock-fragment <<'EOF'
 EOF
 check l1-inlineblock-fragment
 
+# 10. INVENTED 的色只出现在 HTML 注释里（预演 Task 4 的豁免注记形态：
+#     `<!-- census-ok: INVENTED highlight #6a4f1a ... -->`），theme.json 里现造的色
+#     真身。规范文一次都没提过这个色——L1 本档还不解析豁免注记（那是 Task 4/6 的活），
+#     所以正确实现应该照报 INVENTED，不该被注释里的这次「提及」蒙混过去。
+#     踩 theme_lib.py:21-24 记的陷阱一：查落点前必须先剥注释，不剥的话注释里的色值会
+#     被当成一次真实出现，把 INVENTED 骗过去。
+mkmd l1-invented-in-comment <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+
+<!-- census-ok: INVENTED highlight #6a4f1a 待真机定夺 -->
+EOF
+mkjson l1-invented-in-comment <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "highlight": {"comment": "#6a4f1a"}}
+EOF
+check l1-invented-in-comment "INVENTED #6a4f1a"
+
+# 11. 对照：theme.json 里的色，在正文（非注释）里确实提过 → 不该报 INVENTED。
+#     INVENTED 的负方向用例——第 4 条只测了「真现造」，没测「真声明」，
+#     一个把判据错写成「色值不在 declared 里」而非「不在 all_md 里」的实现，
+#     在当前 _ENTITY（含色值本身即为规范行判据）下与本实现逐条同分，这条测的是
+#     方向完整性，不是当下能分辨这两种实现——一旦 _ENTITY 收窄，这条才会咬人。
+mkmd l1-invented-declared-ok <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 高亮：`#6a4f1a`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+EOF
+mkjson l1-invented-declared-ok <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "highlight": {"comment": "#6a4f1a"}}
+EOF
+check l1-invented-declared-ok
+
+# 12. 无卡片主题，table（TOP_BLOCK 里非 h2 的成员）承担定宽却是 inline-block → 该报。
+#     前 9 条里 TOP_BLOCK 只有 h2 被真正练到过——`TOP_BLOCK = ("h2",)` 也能过全部
+#     9 条。这条钉住 p/p_first/h3/blockquote/pre/table/list_item/hr 至少有一个
+#     真的在测。
+mkmd l1-inlineblock-table <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+EOF
+mkjson l1-inlineblock-table <<'EOF'
+{"container": "background-color: #ffffff", "content_width": 800,
+ "p": "color: #222222",
+ "table": "color: #222222; display: inline-block"}
+EOF
+check l1-inlineblock-table "INLINE-BLOCK table"
+
 printf '\n%d 通过，%d 失败\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
