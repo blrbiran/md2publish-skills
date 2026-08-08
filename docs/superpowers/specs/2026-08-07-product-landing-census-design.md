@@ -368,9 +368,16 @@ apple-air 有 17 处——**而 17 是修好之后的数字，出事时是 1 处
 
 | 形态 | 判别位 | 修法 |
 |---|---|---|
-| 失步 | 组件规范里**有**落点，`theme.json` 没兑现 | 补 `theme.json`（editor-slate） |
+| 失步 | 组件规范里**有**落点，`theme.json` 没兑现 | 补 `theme.json` |
 | 错值/死色 | 组件规范里**无**落点 | 改主题 `.md`，或按规则 3 从调色板删掉（bauhaus-pop） |
-| 无挂载点 | 有落点，但对应元素在 `md2html.py` 字段表里不存在 | 按规则 14 判定加不加字段（monochrome-mag） |
+| 无挂载点 | 有落点，但对应元素在 `md2html.py` 字段表里不存在 | 按规则 14 判定加不加字段（monochrome-mag、editor-slate） |
+
+> **2026-08-08 更正（Task 7 核实）**：上表原把 editor-slate `#d2a8ff`/`#ffa657` 归为「失步」型，
+> 结论是错的，已在此更正。Task 7 逐行核对 `md2html.py:104-126` 的语法高亮 tokenizer，确认它
+> 只产出 `comment`/`string`/`key`/`keyword`/`number` 五个类，没有「函数名/类名」「变量/属性/参数」
+> 这两类——`theme.json` 的 `highlight` 字段根本没有地方可挂这两个色，不是「没兑现」，是「没有
+> 挂载点」，和 monochrome-mag 的浅中灰同类。这一处的规则化处置已写进
+> `docs/theme-design-lessons.md` 规则 15。
 
 ### 已实测、需在第 5 步逐条裁决的
 

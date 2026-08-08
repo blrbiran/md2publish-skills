@@ -1,6 +1,6 @@
 # Handoff：md2publish-skills 交接文档
 
-> 更新于 2026-08-06（第四轮）。仓库位置：`~/code/skills/writing/md2publish-skills/`
+> 更新于 2026-08-08（第五轮：`product-landing-census` 项目）。仓库位置：`~/code/skills/writing/md2publish-skills/`
 >
 > 本文只说「做到哪一步了」，不写 commit hash——提交本文本身就会移动 HEAD，写死了立刻就是错的。
 > 要确认仓库实际状态，跑 `git log` / `git status`。
@@ -9,28 +9,30 @@
 
 1. 项目：Markdown → 微信公众号可粘贴 HTML 的 skill 链。**唯一转换入口是 `skills/md2publish-article/scripts/md2html.py`，你的工作单元只有 `theme.json`**——别手敲 HTML、别另写脚本。
 2. 27 个主题全部跑完并修过一轮；`theme.json` 27 份已入仓（`references/theme-json/`），HTML 产物在仓库外的 `~/code/skills/writing/wechat_test/litellm-multi-provider-gateway/out/`。
-3. **动手前先跑第三节那四条基线**（审计 0 条 / 变异 14 绿 / md2html 测试 25 绿 / 产物自检 PASS），确认没被上一轮改坏。
-4. **下一件事看第六节第 1 条：产物落点普查脚本**，那是目前唯一没有护栏的一层，也是唯一的大件。
-5. 最要紧的认知：**`audit-themes.py` 报 0 条不等于主题成立**——它查主题文件里有没有*声明*落点，不查产物里这个色出现几次。本仓库已知四次「规范白纸黑字写着、产物里 0 处」全部逃过了现有的每一条检查。
-6. 因此本项目的通用做法是：**改完必须去数产物**，不是看自检 PASS 就算完。
+3. **动手前先跑第三节那六条基线**（审计 0 条 / 审计变异 16 绿 / md2html 测试 25 绿 / 产物自检 PASS / 普查变异 46 绿 / 普查跑通），确认没被上一轮改坏。
+4. **下一件事看 `task-7-adjudication.md`**：产物落点普查脚本（`census-themes.py`）已经落地并对真实库跑过一轮，报出 **43 条待裁决**（详情见第六节第 1 条）。这份裁决书按批次给了处置建议，逐组过一遍、拍板一批、改一批、再跑一遍 `census-themes.py` 确认——**不要因为已有建议就当作已经处理**，本文件截至本轮更新时**没有任何一条被执行**。
+5. 最要紧的认知：**`audit-themes.py` 报 0 条不等于主题成立**——它查主题文件里有没有*声明*落点，不查产物里这个色出现几次。本仓库已知四次「规范白纸黑字写着、产物里 0 处」曾经全部逃过审计/自检/回归三道检查；现在 `census-themes.py`（第三节）补上了这一层，但**它报出发现不等于发现已被处理**——43 条截至目前仍待裁决。
+6. 因此本项目的通用做法是：**改完必须去数产物**，不是看自检 PASS 就算完。现在有 `python3 skills/md2publish-article/scripts/census-themes.py --counts <主题名>` 可以直接跑，不用每次手写 `Counter(re.findall(...))`。
 7. 改任何主题文件之前必读 `docs/theme-design-lessons.md`（规则 11–14 和两条判例是第四轮新立的）。
 8. 红线：**传图、建草稿、git commit/push 一律先经用户确认**；成本敏感，大批量开跑前先报预估。
 
 ## 零、文档地图（先看这张表，别读错文档）
 
-仓库里只有三份长期文档，**按生命周期分工，不按主题分工**。搞混了就会出现「两份文档抢同一个岗位」——第三轮就是这么乱起来的。
+仓库里长期文档只有三份**主线**文档（按生命周期分工，不按主题分工，搞混了就会出现「两份文档抢同一个岗位」——第三轮就是这么乱起来的），外加一类**项目级**存档（specs/plans，只在接手某个具体计划时才翻）。
 
 | 文档 | 什么时候读 | 生命周期 | 装什么 |
 |---|---|---|---|
 | **`docs/handoff/handoff.md`**（本文） | **接手时第一份**；每轮开工前 | **每轮重写** | 现在在哪、下一步做什么、基线怎么跑、红线 |
-| **`docs/theme-design-lessons.md`** | **改任何主题文件之前必读**；改审计脚本前读「机械审计方法」节 | **只增不删** | 判据与规则（规则 1–14 + 案例 + 判例） |
+| **`docs/theme-design-lessons.md`** | **改任何主题文件之前必读**；改审计/普查脚本前读「机械审计方法」节 | **只增不删** | 判据与规则（规则 1–15 + 案例 + 判例） |
 | **`docs/handoff/batch-themes-prompt.md`** | 要**批量重跑**主题时（换文章、或改完脚本字段后） | 按需刷新 | 开新会话用的可粘贴 prompt + 验收命令 |
+| **`docs/superpowers/specs/*-design.md`、`docs/superpowers/plans/*.md`** | 接手一个**进行中的多任务计划**时（`.superpowers/sdd/<项目>/progress.md` 显示还有未完成任务）；平时不用翻 | 项目级，一次性——计划收尾后归档，只在发现记录本身有误时才回来更正（如本轮更正设计文档第八节 editor-slate 的分类） | 判据设计与理由（specs）、逐任务实施步骤（plans）。`census-themes.py` 就是这样一份计划（`2026-08-07-product-landing-census`）落地的产物，脚本 docstring 直接指向它的 design 文档 |
 
-三条使用约定：
+四条使用约定：
 
 1. **`theme-design-lessons.md` 是承重文档**：除本文外还被 5 个文件引用（共 6 处），其中两处在脚本里（`audit-themes.py`、`test-audit-themes.sh`），另外三处在 `_common-tech.md`（2 处）、`INDEX.md`、`editor-slate.md`。**不要把它并进别的文档**——会同时断掉这些引用，并把长期判据埋进一份每轮重写的文件里。
 2. **新学到的主题设计教训回写进 lessons，不要留在会话里，也不要另开文件。** 判断标准：这条结论换一篇文章、换一个主题还成立吗？成立就是 lessons 的规则；只描述「这一轮做到哪了」就是 handoff 的状态。
-3. **允许在一轮进行中开临时的发现记录**（如 `phaseN-findings.md`）当草稿，但**必须在该轮收尾时溶解**——durable 的进 lessons，status 的进本文，测量数据就地写进对应的主题文件。**不许沉淀**，否则每轮攒一个，一年后 `docs/handoff/` 就没法看了。第四轮的 `phase2-findings.md` 已按此溶解删除。
+3. **允许在一轮进行中开临时的发现记录**（如 `phaseN-findings.md`）当草稿，但**必须在该轮收尾时溶解**——durable 的进 lessons，status 的进本文，测量数据就地写进对应的主题文件。**不许沉淀**，否则每轮攒一个，一年后 `docs/handoff/` 就没法看了。第四轮的 `phase2-findings.md` 已按此溶解删除；`product-landing-census` 项目收尾时同样核对过 `docs/superpowers/specs/`、`docs/superpowers/plans/` 下没有残留的 `*-findings.md`/`*-todo.md`。
+4. **`docs/superpowers/specs/`、`docs/superpowers/plans/` 是某一轮 SDD（spec-driven development）计划的存档，不是活文档。** 它们记录一次多任务计划当时的判据设计和实施步骤，计划完成后不再逐轮更新——但如果之后发现里面有**事实错误**（不是决策变更），要回去更正并留痕，不能让错误的存档继续误导下一个读它的人。已发生一次：`2026-08-07-product-landing-census-design.md` 第八节把 editor-slate 两个色误分类为「失步」，2026-08-08 核实 tokenizer 源码后原地更正并加了更正说明。
 
 ## 一、项目是什么
 
@@ -67,7 +69,7 @@ python3 skills/md2publish-article/scripts/md2html.py <article.md> <theme.json> -
 
 **加字段的准入线**（lessons 规则 14）：机械可判 + 无替代表达 + 当前静默丢失，三条同时成立才加。只满足前两条不该加。
 
-## 三、四条基线（动手前先跑）
+## 三、六条基线（动手前先跑）
 
 ```bash
 cd ~/code/skills/writing/md2publish-skills
@@ -75,7 +77,7 @@ cd ~/code/skills/writing/md2publish-skills
 # 1. 主题文件审计，要 0 条
 python3 skills/md2publish-article/scripts/audit-themes.py
 
-# 2. 审计脚本的变异测试，要 14 全绿
+# 2. 审计脚本的变异测试，要 16 全绿
 bash skills/md2publish-article/scripts/test-audit-themes.sh
 
 # 3. md2html.py 的测试，要 25 全绿（含 27 份主题的逐字节回归）
@@ -85,9 +87,17 @@ bash skills/md2publish-article/scripts/test-md2html.sh
 awk '/^python3 - <<.EOF.$/{f=1;next} /^EOF$/{f=0} f' \
     skills/md2publish-article/references/wechat-html.md > /tmp/selfcheck.py
 python3 /tmp/selfcheck.py <out.html>
+
+# 5. 产物落点普查脚本（census-themes.py）的变异测试，要 46 全绿
+bash skills/md2publish-article/scripts/test-census-themes.sh
+
+# 6. 普查脚本对真实库跑一遍——目前预期是 43 条待裁决、exit 1，不是 0 条
+python3 skills/md2publish-article/scripts/census-themes.py
 ```
 
 第 3 条的 PART B 从 `references/theme-json/` 读 theme.json、与实验目录里的定稿 HTML 逐字节比对。**故意改了某份 theme.json 之后要先重新生成它的 HTML 再跑**，否则那里报的红是预期内的改动，不是回归——别反过来改测试迁就它。语料目录缺失时 PART B 会整体 SKIP 并把退出码标红（静默跳过等于没有护栏）。
+
+第 6 条**不是「要 0 条」的基线，是「要和上次一致」的基线**：`census-themes.py` 目前对真实库跑出 43 条，一条都还没处理（见第六节第 1 条、`task-7-adjudication.md`）。这一步的作用是确认这一轮没有意外新增或消失的发现——数字变了要么是有人动了主题文件却没更新裁决书，要么就是真的在按裁决书处理。裁决书处理完一批之后，这里的期望数字要跟着往下调，不要让「43」在这份文档里僵化成永久数字。语料缺失时这一条同样会整体 SKIP 并标红（与第 3 条同一纪律）。
 
 ## 四、当前状态
 
@@ -117,6 +127,26 @@ python3 /tmp/selfcheck.py <out.html>
   各主题文件的说明里。根因不是「文件太多」，是 handoff 过时之后 findings 事实上接管了它的岗位，
   **两份文档抢同一个岗位**才是乱的来源
 
+### 第五轮做完的（`product-landing-census` 项目，Task 1–8）
+
+- **产物落点普查脚本落地**：新增 `scripts/census-themes.py`（三层 L1/L2/L3、九档判定 + `STALE-NOTE`）
+  与 `scripts/theme_lib.py`（`strip_comments`/`spec_lines`/`palette`/`element_of`/`theme_pairs`/
+  `exemptions`/`landings` 七个共享原语）、`test-census-themes.sh`（46 条变异测试）、
+  `test-theme-lib.py`（11 条）。这是第四轮遗留的「唯一没有护栏的一层」，见第零节
+  文档地图新增的一行、`docs/theme-design-lessons.md`「机械审计方法」节
+- **对真实库跑了一轮，报出 43 条**，逐条写了处置建议，产出
+  `.superpowers/sdd/2026-08-07-product-landing-census/task-7-adjudication.md`。
+  **这份文档只出建议，用户裁决「本轮只出建议、不改文件」**——主题 `.md` 与
+  `theme.json` 一律未动，43 条全部悬置，等下一轮用户逐组拍板再执行
+- **两处历史记录更正**：`docs/superpowers/specs/2026-08-07-product-landing-census-design.md`
+  第八节把 editor-slate `#d2a8ff`/`#ffa657` 错分类为「失步」，已核对 `md2html.py` tokenizer
+  源码后更正为「无挂载点」（新增 lessons 规则 15）；bauhaus-pop 的 `strong_alt` 发现此前在
+  两处归档文件里有相反结论，已核实为误报（命中的是调色板角色标注，不是指令句），
+  记入裁决书 §十
+- **lessons 新增规则 15** + 「机械审计方法」节新增 `census-themes.py` 的完整说明、
+  判据下窄比下宽更危险的镜像教训（含 `REF_EXCLUDE` 险些误伤 aurora-flow 立身缺陷的实例）、
+  关键词判据的两个自毁陷阱、变异测试要证死错误实现的纪律、L3 的已知盲区
+
 ## 五、关键契约（教训换来的，别再踩）
 
 ### 发布相关
@@ -139,8 +169,8 @@ python3 /tmp/selfcheck.py <out.html>
 ### 改主题相关
 
 12. **规范行里不夹叙述、不留旧色值**。一句「别只挂在 em 上」会让审计脚本把该行判成 em 落点
-13. **改完跑 `audit-themes.py` 到 0 条**；改检查脚本后做变异测试
-14. **改完主题 `.md` 要同步 `theme.json`**（反之亦然）。两者失步没有任何检查会报——第四轮自己制造过一次
+13. **改完跑 `audit-themes.py` 到 0 条**；改检查脚本后做变异测试。第五轮起还要跑 `census-themes.py`——它不是「要 0 条」，是「按裁决书处理到期望的那个数」（见第六节第 1 条），处理完一批要回写第三节第 6 条的期望数字
+14. **改完主题 `.md` 要同步 `theme.json`**（反之亦然）。两者失步没有任何检查会报——第四轮自己制造过一次；`census-themes.py` 的 L1 层（`UNCARRIED`/`INVENTED`）现在能报这个，但只在跑了普查脚本之后
 15. **批量替换有两个咬人的形态，都只有事后核对才抓得到**。第四轮各踩一次：
     - **替换吃掉了自己的说明文字**：velvet-stage 做全局色值替换时把警告里的旧色值也换了，「不要调回 `#a04252`」变成「不要调回 `#c97a86`」，一句自相矛盾的规范。**全局替换要么先做、后写说明，要么说明里根本不写旧色值**
     - **链式替换：前一条规则的输出成了后一条的输入**。本文重编号时先 `第四节→第三节`、再 `第三节→第二节`，结果原本的第四节被连着换了两次，指到了第二节。**一批替换里若新值可能命中另一条规则的旧值，就不能顺序跑**——要么一次性映射，要么倒序，要么替换完逐条核对指向
@@ -148,38 +178,43 @@ python3 /tmp/selfcheck.py <out.html>
 
 ## 六、剩下的活（按价值排序）
 
-### 1. 产物落点普查脚本（唯一的大件）
+### 1. Task 7 裁决书：43 条待处理（原「产物落点普查脚本」，脚本已完成）
 
-**这是目前唯一没有护栏的一层。**本仓库已知四次「主题文件白纸黑字写着、产物里 0 处」——apple-air 的 eyebrow、cyber-neon 的警示 strong、newsprint 的导语、aurora-flow 的次级灰——全部逃过了现有的每一条检查：审计只看主题文件、自检只看铁律、逐字节回归只看「和上次一样」而上次就是错的。
+**脚本本身已完成，第五轮做的**（见第四节）。`census-themes.py` 现在把「主题文件声明了什么」
+和「产物里实际出现几次」两侧都机械化了，本仓库已知四次「主题文件白纸黑字写着、产物里 0
+处」——apple-air 的 eyebrow、cyber-neon 的警示 strong、newsprint 的导语、aurora-flow 的
+次级灰——曾经全部逃过审计/自检/逐字节回归三道检查，现在这一层有护栏了。
 
-要做的是把「主题文件声明了什么」和「产物里实际出现几次」两侧都机械化，两边对不上就报。开工前：
+**没有完成的是处理结果**：对真实库跑出 43 条，**用户裁定本轮只出建议、不改文件**，
+`.superpowers/sdd/2026-08-07-product-landing-census/task-7-adjudication.md` 是那份建议书。
+下一轮要做的是：挑一批用户已经能拍板的（裁决书按「零渲染风险 → 只加字段 → 判据改动 →
+待定」分了四批，§十一有执行顺序建议），改完对应的 `theme.json`/主题 `.md`/脚本，重跑
+`census-themes.py` 确认条数下降，再回写本文件第三节第 6 条的期望数字。**裁决书里的建议
+文本不是已经生效的规范**，改之前还要按第五节第 12/13/14/16 条的老规矩：规范行不留旧值、
+改完跑 `audit-themes.py`/`census-themes.py` 到期望条数、`.md` 与 `theme.json` 同步、提交前
+把 diff 完整读一遍。
 
-- 先用 `superpowers:brainstorming` 收敛判据，避免重蹈 OVER 档第一版「判据下宽报了大半个库」的覆辙（lessons 规则 7 记了这件事）
-- 照 `test-audit-themes.sh` 的范式配变异测试，且变异形态要覆盖真实文件里出现过的写法
-- 已知的坑：**一行声明两个色时角色标签会串**，取角色要按色值在行内的位置切分
-- 顺带可以覆盖两条机械可判的检查：boxed 元素带 `display: inline-block` 报警；主题 `.md` 与 `theme.json` 失步报警
+其中 ink-wash 的朱砂印（`footer_html`）、cyber-neon 的警示 strong（`strong_alt`）—— 
+第四轮记的「两条收尾」——**现在都在裁决书里有档在管了**（分别是 §3.1、§3.2，判定为
+真缺陷、信心高，建议直接补 `theme.json`），不再是本文件单独追踪的两条零散活，并入这
+一条统一处理。
 
-### 2. 两条收尾（第四轮加的字段让它们变得可做了）
-
-- **ink-wash 定稿产物缺那枚朱砂印**：`04-ink-wash-v5.html` 结尾直接是 `</p></div>`。`footer_html` 字段现在有了，补一版即可。注意别和 `-v5` 的命名撞车
-- **cyber-neon 定稿产物没兑现警示 strong**：`cyber-neon.md` 规定「带『注意/警告/不要/会导致』语义的 strong 改用 `#ff4ba3`」，实测产物里该色 36 处、**落在 strong 上 0 处**。`strong_alt` 字段现在有了，配上即可
-
-### 3. 待真机观感定夺（不要凭代码改）
+### 2. 待真机观感定夺（不要凭代码改）
 
 - **暗色主题在微信浅色模式下可能全篇不可读**。cyber-neon 模拟「浅色模式把背景映射为白」后正文仅 1.52:1，且不存在两边都安全的配色。影响 `13-cyber-neon-v7-edge` / `18-midnight-study` / `26-velvet-stage` / `27-retro-phosphor` 四个产物。**必须真机双模式预览才能定论**，用户表示自己验证，结论未回
 - **candy-pop 主次强调实际是倒过来的**：标为「主强调」的 `#f28ba8` 只有 29 处，「深樱粉」`#d96687` 有 271 处。审计不报。**不一定是缺陷，要看真机观感**
 - **retro-phosphor 的注释色在代码底上只有 4.10:1**：但那是主题明文指定的三级绿之一，改成中亮色就和默认字色没区别、丢掉分层。真机双模式验证时一并看
 
-### 4. 未实测的两个 skill
+### 3. 未实测的两个 skill
 
 - **`wechat-finetune` 未实测**，eval 循环未跑
 - **`md2publish-images` 从未实测**（宿主生图 + 上传封面未走通）
 
-### 5. 教程文档校订
+### 4. 教程文档校订
 
 `~/org/markdown/prompt/@inbox/md-to-wechat-draft-free-path.md` 写于主题统一重构之前，未反映 `md2html.py`。该文档按讲解体写成，改动要守住其风格（用 `tech-writer` skill）。
 
-### 6. 明确不做的（留档，别反复重新发现）
+### 5. 明确不做的（留档，别反复重新发现）
 
 「按内容语义分流」的装饰，`theme.json` 的字段模型管不到，脚本也不该为单个主题加字段：
 
@@ -195,7 +230,7 @@ python3 /tmp/selfcheck.py <out.html>
 ## 七、Suggested skills
 
 - `superpowers:verification-before-completion` — **本项目里这条是第一位的**。历史上宽度问题连续改错两次、cyber-neon 对比度连续改错两次，都是只验证了「我改的属性在不在」而没验证「渲染出来是什么样」，或者量错了对象。第四轮的通用做法是：**改完必须去数产物**，不是看自检 PASS
-- `superpowers:brainstorming` — 做第六节那个普查脚本之前先用它收敛判据
+- `superpowers:brainstorming` — 再要新增机械检查（比如给 `census-themes.py` 加新档、给 `NEAR-ZERO` 收窄判据）之前先用它收敛判据，避免重蹈下宽/下窄两种覆辙（lessons「机械审计方法」节）
 - `superpowers:test-driven-development` — 给 `md2html.py` 加字段时照搬 `test-md2html.sh` 的范式：先造会失败的用例，再实现
 - `tech-writer` — 校订教程文档时
 - `skill-creator` — 改 skill 结构、跑 evals、做 description 优化
