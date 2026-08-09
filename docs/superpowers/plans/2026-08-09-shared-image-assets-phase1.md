@@ -1346,7 +1346,11 @@ Expected: 三项全绿，退出码 0
 
 ```bash
 cd "$(git rev-parse --show-toplevel)"
-git diff --name-only main...HEAD | grep -v '^skills/_shared/' | grep -v '^docs/superpowers/'
+# 基线取本期第一个 commit 的父提交，而不是 main——这个分支上可能有
+# 其他会话的 commit（本次执行时就有四个主题普查 commit 落在这里），
+# 用 main 做基线会把别人的改动误算到本期头上。
+BASE=$(git log --format=%H --grep='^一期 T1' -1)^
+git diff --name-only "$BASE"..HEAD | grep -v '^skills/_shared/' | grep -v '^docs/superpowers/'
 ```
 
 Expected: 无输出（除 `_shared/` 和 `docs/superpowers/` 外没有改动任何文件）
@@ -1370,7 +1374,7 @@ git commit -m "一期 T6：_shared/ README
 - [ ] `test-asset-schema.sh` 全绿（13 项）
 - [ ] `test-compose-prompt.sh` 全绿（11 项），其中「未知占位符硬失败」一项对应 spec §13 第 2 项
 - [ ] `test-platform-matrix.sh` 全绿（8 项），且已手工验证它能抓到 PLATFORM_FRAME 缺失
-- [ ] `git diff --name-only main...HEAD` 除 `skills/_shared/` 和 `docs/superpowers/` 外无改动
+- [ ] 本期 commit 范围内，除 `skills/_shared/` 和 `docs/superpowers/` 外无改动（基线见 T6 Step 2，勿用 main）
 - [ ] `skills/_shared/README.md` 明确列出了推到二期的事项
 
 ## 交接给二期
