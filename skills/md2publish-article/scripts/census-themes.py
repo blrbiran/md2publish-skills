@@ -61,28 +61,40 @@ LEGAL_NOTE_TIERS = set(SEVERITY) - {"STALE-NOTE"}
 TOP_BLOCK = ("p", "p_first", "h2", "h2_first", "h3", "blockquote",
              "pre", "table", "list_item", "hr")
 
-# NEAR-ZERO 的结构键：色值只挂在这些键上时，落点数由 build() 的结构写死，
-# 不随文章长度变化，**≤2 处不构成「几乎没出现」**，不报 NEAR-ZERO。
+# NEAR-ZERO 的 container 锚点判据：色值挂在 `container` 上、且没有挂到任何别的
+# 会随文章内容重复的键上时，落点 ≤2 **不构成「几乎没出现」**，不报 NEAR-ZERO。
 #
-# 集合是照 md2html.py 的源码定的，不是照文档抄的：
-#   container    md2html.py:439  整篇只拼一个最外层 <div>，恒 1 次
-#   footer_html  md2html.py:426-434  整篇只拼一个文末 <p>，最多 1 次
-# 容器底色出现 1 次不是缺陷——它铺满整页。真实库 19 条 NEAR-ZERO 里有 18 条是
-# 这个形态（17 条只挂 container，27-retro-phosphor 是 container + footer_html），
-# 一个检查项报了大半个库就是判据下宽了（lessons 规则 7）。
+#     "container" in mounts and mounts <= NEAR_ZERO_OK_KEYS
 #
-# **`footer` 也只发射一次，却故意不在集合里。**它是文末那个 <p> 的样式键，能承载
-# 「唯一强调色只落在落款上」这种真发现（apple-air 形态，test-census-themes.sh 的
-# l2-nearzero 钉着它）；而真实库里没有任何一条 NEAR-ZERO 挂在 `footer` 上，把它加
-# 进来只买到「能灭掉一个该报的形态」这一个后果。收窄比放宽更危险，能少一个就少一个。
+# **锚点是 `container`，判据不是「build() 只发射一次」。**这个区别是实打实的，
+# 第一版正是栽在这里：`md2html.py:426-434` 里 `footer` 与 `footer_html` 由同一个
+# `if T.get("footer_html")` 守着、同属文末那一个 `<p>`，**次数**跟 `container`
+# 一样固定 ≤1。按「只发一次」推导，三个键平级——那样一个「唯一强调色只落在文末
+# 落款上」的主题会被静默，而那恰恰是 apple-air 立项缺陷的形状。
 #
-# 判定用**子集**而不是「沾一个就算」：挂载键里只要有一个不在这里（哪怕另一个是
-# container），这个色的落点就依赖文章内容，必须按真实计数判。
+# **区分性质是面积/角色，不是次数**：`container`（md2html.py:439，整篇唯一的最外层
+# `<div>`）是铺满整页的底，落 1 次等于全覆盖；文末那个 `<p>` 是个落款，落 1 次就是
+# 真的几乎没有。所以只有 `container` 能提供豁免的正当性，它是**必要条件**。
+#
+# `footer` / `footer_html` 进 NEAR_ZERO_OK_KEYS 不是因为它们自己够格，而是因为
+# 它们是额外的一次性挂载点、不破坏 `container` 已经给出的正当性——27-retro-phosphor
+# 就是把容器底色 `#0d120d` 又用在了文末终端行上。**没有 `container` 在场时，
+# 它们一个都不豁免**（test-census-themes.sh 的 l2-nearzero-footer-html-only
+# 与既有的 l2-nearzero 一起钉着这条）。
+#
+# 判定用**子集**而不是「沾一个就算」：挂载键里只要有一个在集合之外（哪怕
+# `container` 也在），这个色的落点就依赖文章内容，必须按真实计数判。
+# **别往这个集合里加键**——真正危险的是「在某篇文章里可以落 0 次」的那一类
+# （`hr`、`list_prefix_ol_html`、`td_alt`、`blockquote`、`pre`、`table`）：它们看着
+# 也「不随长度变化」，其实是随内容有无而变，加进来就能让总数落进 ≤2 却完全依赖内容。
+# 单键扩大由 l2-nearzero-allowset-hr / -ol（`hr`、`list_prefix_ol_html`）与
+# l2-nearzero-structural-plus（`td_alt`）钉着。
 #
 # 判定依据只能是挂载键，**绝不能是调色板标签**：19-candy-pop 的 `#e8f2f9` 标签正是
 # 「浅蓝底」，任何「标签含底/背景就豁免」的写法（以及 REF_EXCLUDE 那类词表）都会
 # 连带灭掉那条真死色——它只挂在 `em` 上，中文文章里 em 可能整篇为零（规则 1）。
-STRUCTURAL_KEYS = frozenset({"container", "footer_html"})
+NEAR_ZERO_ANCHOR = "container"
+NEAR_ZERO_OK_KEYS = frozenset({"container", "footer", "footer_html"})
 
 
 def json_colors(theme):
@@ -339,17 +351,18 @@ def check_l2(name, md_text, html, already, theme):
                 found.append(("ZERO", name, color, "调色板声明了，产物里 0 处"))
             continue
         if total <= 2:
-            # 结构键上的单点落点不是「几乎没出现」，见 STRUCTURAL_KEYS 的说明。
-            # 这道门只在这个分支里，`total == 0` 的 ZERO/ZERO-DUP 已在上面 continue
-            # 掉了——**顺序是判据的一部分**：门若上移到循环开头，只挂 footer_html
-            # 的零落点色会被一并灭口，那是 ERROR 档（test-census-themes.sh 的
-            # l2-zero-structural-key 钉着这个位置）。
+            # 铺满整页的容器底色，落点 ≤2 不是「几乎没出现」，见 NEAR_ZERO_OK_KEYS
+            # 的说明。锚点 `container` 是必要条件，所以这里不需要再管空集——
+            # 「theme.json 里根本没有这个色」时锚点判定直接为假。
             #
-            # 空集是任何集合的子集，所以「theme.json 里根本没有这个色」也会命中这道
-            # 门——但走不到这里：那种色在产物里必然 0 处（产物里每一个色值都来自某个
-            # theme.json 值，md2html.py 自己拼的样式串不含色值），上面的 ZERO 分支
-            # 先接走了它。故不另加非空守卫——加了就是一条没有用例能证死的死代码。
-            if mounts.get(color, set()) <= STRUCTURAL_KEYS:
+            # 「ZERO 一律不动」这条约束**由锚点本身保证，不是靠这道门放在哪**：
+            # `container` 的样式串必然渲染进最外层 `<div>`，所以带锚点的色落点恒 ≥1，
+            # 永远走不到上面 `total == 0` 那条分支。实测把这道门上移到循环开头，
+            # 62 条用例全绿、真实库输出逐字节不变——**它是行为等价的**。
+            # 门留在这个分支里只是为了读起来清楚，别在注释里把它说成判据的一部分：
+            # 没有任何用例能证死那个改法，声称钉住了就是假覆盖。
+            keys = mounts.get(color, set())
+            if NEAR_ZERO_ANCHOR in keys and keys <= NEAR_ZERO_OK_KEYS:
                 continue
             # continue 在这里：落点≤2 时不再往下判 DECOR，即便这 ≤2 处全是边框/
             # 底色——NEAR-ZERO 已经把这个色标出来了，不需要 DECOR 再报一遍同一个

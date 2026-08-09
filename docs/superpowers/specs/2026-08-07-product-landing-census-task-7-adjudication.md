@@ -71,15 +71,25 @@
 
 ## 二、【18 条】结构性 NEAR-ZERO：背景色只挂在 `container`
 
-> **✅ 已处理（改判据，批次 1b）**：用户拍板走「改脚本」这条，不走备选的 18 条豁免注记。
-> 落地与本节建议一致：`census-themes.py` 新增 `STRUCTURAL_KEYS = {"container",
-> "footer_html"}`，门只加在 `total <= 2` 分支内，判定用**子集**而不是 `any()`。
-> 两点与本节建议不同、以落地为准：(1) 结构键集合是照 `md2html.py` 的 `build()` **源码**
-> 核出来的，`footer` 虽然同样只发射一次却**故意不进集合**（它能承载 apple-air 那种
-> 「唯一强调色只落在落款上」的真发现，且真实库没有一条 NEAR-ZERO 挂在它上面）；
-> (2) 变异用例不止本节提的两条，一共补了 5 条，逐一证死了七种错误实现（无门、按标签判、
-> 套 `REF_EXCLUDE`、`any()`、漏 `footer_html`、多加 `footer`、门上移到 `total == 0` 之前）。
-> 实测 19 条 NEAR-ZERO → 1 条，`ZERO` 未动，candy-pop 那条照报。
+> **✅ 已处理（改判据，批次 1b，复审后修正过一轮）**：用户拍板走「改脚本」这条，
+> 不走备选的 18 条豁免注记。最终落地的判据是
+>
+> ```python
+> "container" in mounts and mounts <= {"container", "footer", "footer_html"}
+> ```
+>
+> 判定用**子集**而不是 `any()`。实测 19 条 NEAR-ZERO → 1 条，`ZERO` 未动，
+> candy-pop 那条照报。
+>
+> **本节建议的 `STRUCTURAL_KEYS = {"container", "footer_html"}` 不要照抄。**
+> 它没有 `container` 锚点，留了一个真洞：主题若把唯一强调色**只**声明在
+> `footer_html` 里，落点恰为 1，会被静默——正是 apple-air 立项缺陷的形状。
+> 更根本的是理由错了：`footer` 与 `footer_html` 同属文末那一个 `<p>`、由同一个
+> `if` 守着，**次数**跟 `container` 一样固定 ≤1，所以「build() 只发一次」推不出
+> 这个集合；真正的区分性质是**面积/角色**——`container` 铺满整页，落 1 次等于
+> 全覆盖。详见 lessons「判据可以下窄」节。
+>
+> 变异用例也不止本节提的两条：一共补了 7 条（54 → 62），逐一证死了十种错误实现。
 
 **发现**（全部 WARN）：
 

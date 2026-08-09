@@ -1449,28 +1449,39 @@ checkl2 l2-uppercase-hex
 # 断言用小写去配，真正钉住的是「查得到落点」这件事，不是大小写透传。
 checkcounts l2-uppercase-hex "#cc3366" "6 6 0 0"
 
-echo "── 判据收窄：挂在结构键上的 NEAR-ZERO 不报 ──────────"
+echo "── 判据收窄：container 锚点上的 NEAR-ZERO 不报 ──────────"
 
 # 背景：NEAR-ZERO 第一版对真实库报了 19 条，其中 18 条是同一个形态——那个色在
 # theme.json 里**只挂在 `container`**（`27-retro-phosphor` 是 `container` +
-# `footer_html`），而 `md2html.py:439` 的 `build()` 只拼一个最外层容器 `<div>`、
-# `:426-434` 只拼一个文末 `<p>`，落点恒为 1 和 2，**不随文章长度变化**。容器底色
-# 出现 1 次不是「几乎没有」，它铺满整页。lessons 规则 7 正面适用：一个检查项报了
-# 大半个库，是判据下宽了。
+# `footer_html`）。容器底色在产物里只出现 1 次，但它**铺满整页**，1 次等于全覆盖，
+# 这不是「几乎没出现」。lessons 规则 7 正面适用：一个检查项报了大半个库，是判据
+# 下宽了。
 #
-# 收窄的五条硬约束（lessons「判据可以下窄」一节）逐条落在下面的用例上：
-#   1. 只作用于 NEAR-ZERO，ZERO 一律不动          → case 45
+# **判据锚在 `container` 上，不是锚在「build() 只发一次」上。**
+# 这个区别是实打实的，第一版就栽在这里：`md2html.py:426-434` 里 `footer` 与
+# `footer_html` 由同一个 `if` 守着、同属文末那一个 `<p>`，**次数**和 `container`
+# 一样固定 ≤1。若按「只发一次」推导，三个键平级，判据就会把「唯一强调色只落在
+# 落款上」也一起灭口——而那恰恰是 apple-air 立项缺陷的形状：落款段落只是页面上
+# 一个小色块，落 1 次就是真的几乎没有。**区分性质是面积/角色，不是次数。**
+# 所以判定必须是：
+#
+#     "container" in mounts and mounts <= {"container", "footer", "footer_html"}
+#
+# `container` 是**必要条件**（这个色是页底，正当性由它提供）；`footer`/`footer_html`
+# 只是允许一起出现的额外一次性挂载点，不单独构成豁免理由（retro-phosphor 就是把
+# 容器底色 `#0d120d` 又用在了文末终端行上）。
+#
+# 五条硬约束（lessons「判据可以下窄」一节）逐条落在下面的用例上：
+#   1. 只作用于 NEAR-ZERO，ZERO 一律不动          → case 45（但见该条注释：
+#      这条约束现在由 container 锚点结构性地保证，不是靠门放在哪）
 #   2. 判定依据是 theme.json 里的**挂载键**       → case 41 / 42
 #   3. 不是调色板标签（candy-pop 标签正是「浅蓝底」）→ case 43
 #   4. 不得用 REF_EXCLUDE 这类词表                → case 43 同时覆盖（标签整个不参与判定）
 #   5. candy-pop 那条挂在 em 上的必须继续报        → case 43
-# 外加：挂载键集合只要有一个不在结构键集合内，就按真实计数判 → case 44。
-#
-# 结构键集合定为 `{container, footer_html}`，是**照 build() 的源码**定的，不是照
-# 文档抄的。注意 `footer` 也只发射一次，却**故意不在集合里**：case 18
-# （l2-nearzero）钉的正是 apple-air 那个形态——唯一强调色只落在文末落款上，落点 1，
-# 那是真发现。把 `footer` 加进结构键会把它一并灭口，而真实库里没有任何一条
-# NEAR-ZERO 挂在 `footer` 上，加进去只买到「能销掉一个该报的形态」这一个后果。
+# 外加三条：
+#   6. 挂载键集合要整体判，不是「沾一个就算」      → case 44
+#   7. 没有 container 锚点就不豁免（含只挂 footer_html 的） → case 46
+#   8. 允许集合不许被随手扩大（单键扩大也要挂）    → case 47 / 48
 
 # 41.（收窄的主用例）色只挂在 container 上 → 落点恒 1 → 不该报 NEAR-ZERO。
 #     钉住「压根没加这道门」：没有门时这条必报 NEAR-ZERO #faf9f5。
@@ -1495,10 +1506,10 @@ mkjson l2-nearzero-structural <<'EOF'
 EOF
 checkl2 l2-nearzero-structural
 
-# 42.（retro-phosphor 形态）色挂在 container + footer_html 两个结构键上 → 落点恒 2
-#     → 仍不该报。钉住「结构键集合只写了 container、漏了 footer_html」这个
-#     mutation：漏写时这条会报 NEAR-ZERO #0d120d，而真实库里 27-retro-phosphor
-#     正是这一条。
+# 42.（retro-phosphor 形态）容器底色又被文末终端行复用 → 挂 container + footer_html
+#     → 落点 2 → 仍不该报（container 锚点在，footer_html 在允许集合内）。
+#     钉住「允许集合只写了 container、漏了 footer_html」这个 mutation：漏写时
+#     这条会报 NEAR-ZERO #0d120d，而真实库里 27-retro-phosphor 正是这一条。
 mkmd l2-nearzero-structural-footer <<'EOF'
 # fixture
 
@@ -1577,15 +1588,19 @@ mkjson l2-nearzero-structural-plus <<'EOF'
 EOF
 checkl2 l2-nearzero-structural-plus "NEAR-ZERO #eeecea"
 
-# 45.（ZERO 一律不动）色只挂在结构键 footer_html 上，产物落点 0 → 必须报 ZERO。
-#     钉住「把这道门放到循环开头、放在 `total == 0` 分支之前」这个错误实现：
-#     那样 {footer_html} ⊆ 结构键，这条 ZERO 会被一并灭口，而 ZERO 是 ERROR 档、
-#     本轮明令不动。
-#     ⚠️ 这条 fixture 的形态是**刻意造的**，不是抄真实库：容器底色一定会渲染进
-#     那个 `<div style=...>`，落点永远 ≥1，所以「挂在结构键上却 0 落点」只能靠
-#     把色值放在 landings() 读不到的位置（这里是 footer_html 里的一条说明注释——
-#     `theme_lib.landings` 只读 `style="..."` 属性）来构造。它唯一的职责是钉住
-#     这道门相对 `total == 0` 分支的**位置**，不承担形态保真。
+# 45.（ZERO 一律不动）色只挂在 `footer_html` 上、产物落点 0 → 必须报 ZERO，
+#     不许被这道门捎带灭口。它钉的是**锚点的 ZERO 侧行为**。
+#
+#     ⚠️ **它不再钉「门放在 `total == 0` 之前还是之后」**——第一版（无锚点）
+#     那个说法在锚点版下已经不成立：`container` 的样式串必然渲染进最外层
+#     `<div>`，带锚点的色落点恒 ≥1、永远到不了 `total == 0` 分支，所以门放哪儿
+#     行为完全一样。实测上移到循环开头：62 条全绿、真实库输出逐字节不变。
+#     **没有用例能证死那个改法，这里就不假装钉住了它。**
+#
+#     ⚠️ 这条 fixture 的形态是**刻意造的**，不是抄真实库：要让一个色 0 落点又只挂
+#     在 `footer_html` 上，只能把色值放在 landings() 读不到的位置（这里是
+#     `footer_html` 里的一条说明注释——`theme_lib.landings` 只读 `style="..."`
+#     属性）。不承担形态保真。
 mkmd l2-zero-structural-key <<'EOF'
 # fixture
 
@@ -1607,6 +1622,95 @@ mkjson l2-zero-structural-key <<'EOF'
  "footer_html": "<!-- 印色 #b5432a --><span style=\"letter-spacing: 0;\">完</span>"}
 EOF
 checkl2 l2-zero-structural-key "ZERO #b5432a"
+
+# 46.（container 锚点是必要条件）唯一强调色只挂在 `footer_html` 上、落点 1
+#     → 必须报 NEAR-ZERO。**这就是 apple-air 立项缺陷的形状**：一个本该显眼的
+#     强调色，整篇只在文末落款那个小色块上出现一次。
+#     钉住「判据锚在『build() 只发一次』而不是锚在 container 上」这个错误实现：
+#     第一版正是这么写的（允许集合 = {container, footer_html}，不要求 container
+#     在场），于是 `{footer_html} ⊆ 允许集合` 成立，这条被静默。
+#     它与 case 18（l2-nearzero，色挂 footer + footer_html）的差别**只是颜色写在
+#     文末那两个键中的哪一个**——那是个任意的区分，两条必须同判。真实库当前没有
+#     主题这么挂（27 个全查过），这一档存在的意义正是替将来的主题守着。
+mkmd l2-nearzero-footer-html-only <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 唯一强调色：`#0071e3`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 落款：`color: #0071e3`
+EOF
+mkjson l2-nearzero-footer-html-only <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222",
+ "footer": "text-align: center",
+ "footer_html": "<span style=\"color: #0071e3; letter-spacing: 0;\">完</span>"}
+EOF
+checkl2 l2-nearzero-footer-html-only "NEAR-ZERO #0071e3"
+
+# 47 / 48.（允许集合不许被随手扩大）容器底色**额外只挂一个**内容相关的键，
+#     而这一轮语料里那个键落点为 0，总数仍是 1 → 挂载键集合越出允许集合 →
+#     必须按真实计数判 → 报 NEAR-ZERO。
+#
+#     ⚠️ **每条 fixture 只能多挂一个键**，这是本节自己踩出来的：第一版把 `hr` 与
+#     `list_prefix_ol_html` 写进同一份 theme.json，结果**只加其中一个**到允许集合
+#     时另一个仍在集合外，子集判定照样为假，用例根本不红——「覆盖到不等于钉住」的
+#     又一个实例（实测：加 `hr` 0 挂、加 `list_prefix_ol_html` 0 挂）。拆成两条后
+#     单键扩大才真的被证死。
+#
+#     真正危险的是**这一类**键：在某篇文章里可以落 0 次的（`hr`、
+#     `list_prefix_ol_html`、`td_alt`、`blockquote`、`pre`、`table`）——它们能让总数
+#     落进 ≤2 却完全依赖内容。case 47 钉 `hr`、case 48 钉 `list_prefix_ol_html`、
+#     case 44 钉 `td_alt`。`h2_prefix_html` 那类随标题数增长的键风险低得多
+#     （有 h2 就至少 1 次），**这里不假装钉住了它**。
+
+# 47. 容器底色额外挂 `hr`（本轮语料没有 `---`，落点 0）。
+mkmd l2-nearzero-allowset-hr <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 雾灰底：`#e9e6e2`（主容器，分隔线复用同一支）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 分隔线：`border-top: 1px solid #e9e6e2`
+EOF
+mkjson l2-nearzero-allowset-hr <<'EOF'
+{"container": "background-color: #e9e6e2", "p": "color: #222222",
+ "strong": "color: #222222",
+ "hr": "border-top: 1px solid #e9e6e2; margin: 0 0 24px"}
+EOF
+checkl2 l2-nearzero-allowset-hr "NEAR-ZERO #e9e6e2"
+
+# 48. 容器底色额外挂 `list_prefix_ol_html`（本轮语料没有有序列表，落点 0）。
+mkmd l2-nearzero-allowset-ol <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 雾灰底：`#e9e6e2`（主容器，有序列表序号底也复用同一支）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 序号：`background-color: #e9e6e2`
+EOF
+mkjson l2-nearzero-allowset-ol <<'EOF'
+{"container": "background-color: #e9e6e2", "p": "color: #222222",
+ "strong": "color: #222222",
+ "list_prefix_ol_html": "<span style=\"background-color: #e9e6e2;\">{n}.</span>&nbsp;&nbsp;"}
+EOF
+checkl2 l2-nearzero-allowset-ol "NEAR-ZERO #e9e6e2"
 
 printf '\n%d 通过，%d 失败\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
