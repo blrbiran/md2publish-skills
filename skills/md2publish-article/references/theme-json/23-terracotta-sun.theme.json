@@ -23,7 +23,7 @@
     "comment": "color: #4f382b; font-style: italic;",
     "string": "#8f3f28",
     "key": "#8f3f28",
-    "keyword": "#c2593b",
+    "keyword": "color: #4f382b; font-weight: 700;",
     "number": "#4f382b"
   }
 }

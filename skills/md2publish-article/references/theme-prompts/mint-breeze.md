@@ -13,6 +13,7 @@
 - 卡片：`#ffffff`
 - 正文墨绿灰：`#2f4a3e`
 - 薄荷绿（主强调）：`#2fa47e`
+<!-- census-ok: INVERT #2fa47e 阈值擦边不是弱色：实测薄荷绿文字落点 93 处（h3 前缀 ✓、无序列表前缀 ✓，本主题自述列表是主场），深叶绿 288 处，288÷3=96 的三分之一线只差 3 处；93 处文字落点本身不弱，两支绿是「大面积停在浅调、小元素才走到深绿」的浓度分工，不是主次倒置 -->
 - 深叶绿：`#1e7a5c`
 - 次级灰绿：`#4a6b5b`（题注、引用文字、次要说明段的文字色——声明即须使用，别让它成死色）
 
@@ -41,7 +42,9 @@
 
 - 引用块：`background-color: #dff0e8; border-radius: 12px; padding: 15px 18px; margin: 0 0 16px; color: #4a6b5b; font-size: 14.5px; line-height: 1.75; text-align: left`
 - 代码块：`<pre>` 底 `#e6f2ec`、文字 `#2f4a3e`、`border: 1px solid #cfe6da; border-radius: 10px; padding: 14px 16px; font-size: 13px`；行内 code：底 `#dff0e8`、文字 `#1e7a5c`
-- 列表：本主题的主场——无序前缀 `<span style="color: #2fa47e;">✓</span>&nbsp;&nbsp;`，步骤类有序列表前缀数字加浅绿圆底：`<span style="display: inline-block; background-color: #dff0e8; color: #1e7a5c; font-weight: 700; border-radius: 50%; width: 20px; text-align: center; font-size: 13px;">1</span>&nbsp;&nbsp;`
+- 列表：本主题的主场——无序前缀 `<span style="color: #2fa47e;">✓</span>&nbsp;&nbsp;`
+- 有序列表序号：**判断层的手工可选项，不是机械规范，`theme.json` 里刻意不配 `list_prefix_ol_html`**。只有当这个有序列表确实在讲「步骤」时，手写路径才给序号加浅绿圆底 `<span style="display: inline-block; background-color: #dff0e8; color: #1e7a5c; font-weight: 700; border-radius: 50%; width: 20px; text-align: center; font-size: 13px;">1</span>&nbsp;&nbsp;`；机械路径一律退回纯文本 `N.`。原因是 `list_prefix_ol_html` 是全局字段，配上去会给每篇文章的每个有序列表都套上圆底徽章，而「是不是步骤类」属于内容语义，机械层判不了（规则 14 的判例）。另注意上面这段示例只演示了单位数序号，圆底是 `width: 20px` 的正圆，手工用到两位数时要改成 `min-width`，否则会被撑破
+<!-- census-ok: UNMOUNTED list_prefix_ol_html 规范限定「步骤类」有序列表，而 list_prefix_ol_html 是全局字段、会给每篇文章的每个有序列表都套上圆底徽章；内容类型机械层判不了，所以这条按上一行写明的方式留在判断层手工执行，不配字段 -->
 - 表格：表头底 `#dff0e8`、单元格 `border: 1px solid #cfe6da; padding: 9px 11px; font-size: 14px`
 
 ## 分寸提醒

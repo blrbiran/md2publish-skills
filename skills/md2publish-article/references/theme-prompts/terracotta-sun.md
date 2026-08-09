@@ -37,6 +37,7 @@
 
 - 引用块：`background-color: #efe0cd; border-radius: 16px 16px 6px 6px; padding: 16px 20px; margin: 0 0 17px; color: #7d6250; font-size: 14.5px; line-height: 1.8; text-align: left`
 - 代码块：`<pre>` 底 `#efe0cd`、文字 `#4f382b`、`border-radius: 10px; padding: 14px 16px; font-size: 13px`；行内 code：底 `#efe0cd`、文字 `#8f3f28`
+- **代码块内语法高亮**：字符串/键名 `#8f3f28`，注释 `#4f382b` 加 `font-style: italic`，关键字 `#4f382b` 加 `font-weight: 700`，数字与其余保持默认字色。**赤陶橙 `#c2593b` 和橄榄绿 `#6f7a4d` 不进代码块**——在代码底 `#efe0cd` 上只有 3.39:1 和 3.55:1，达不到阅读门槛（规则 11）。这个底上整个调色板里只有 `#4f382b`（8.39:1）与 `#8f3f28`（5.57:1）过 4.5，而 `#8f3f28` 已被字符串/键名占住，所以注释与关键字只能同用 `#4f382b`、靠字形和字重而不是靠颜色互相区分——**不要为了让代码块「有颜色」把它们调回陶橙**
 - 列表前缀 `●&nbsp;&nbsp;`（陶橙 span：`<span style="color: #c2593b;">●</span>&nbsp;&nbsp;`）
 - 表格：表头底 `#efe0cd`、文字 `#8f3f28; font-weight: 700`，单元格 `border: 1px solid #e0cdb5; padding: 9px 11px; font-size: 14px`
 

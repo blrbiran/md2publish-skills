@@ -38,7 +38,9 @@
 
 - 引用块（标本标签样式）：`background-color: #fbfcf7; border: 1px solid #d5d9c8; border-left: 4px solid #3f6b3f; padding: 14px 18px; margin: 0 0 18px; color: #77816d; font-size: 14px; line-height: 1.8; text-align: left`，衬线字族——像贴在标本旁的说明卡
 - 代码块：`<pre>` 底 `#e9ecdf`、文字 `#2e3a2a`、`border: 1px solid #d5d9c8; padding: 14px 16px; font-size: 13px`；行内 code：底 `#e9ecdf`、文字 `#3f6b3f`
-- 列表前缀 `·&nbsp;&nbsp;`；物种/条目清单可用褐色序号 `<span style="color: #8a6d4e; font-weight: 700;">No.1</span>&nbsp;&nbsp;`
+- 列表前缀 `·&nbsp;&nbsp;`
+- 有序列表序号：**判断层的手工可选项，不是机械规范，`theme.json` 里刻意不配 `list_prefix_ol_html`**。只有物种清单、标本条目这类内容，手写路径才把序号写成褐色 `<span style="color: #8a6d4e; font-weight: 700;">No.1</span>&nbsp;&nbsp;`；机械路径一律退回纯文本 `N.`。原因是 `list_prefix_ol_html` 是全局字段，配上去会给每篇文章的每个有序列表都套上 `No.`，而「这个列表是不是物种/条目清单」属于内容语义，机械层判不了（规则 14 的判例）
+<!-- census-ok: UNMOUNTED list_prefix_ol_html 规范限定「物种/条目清单」，而 list_prefix_ol_html 是全局字段、会给每篇文章的每个有序列表都套上 No. 前缀；内容类型机械层判不了，所以这条按上一行写明的方式留在判断层手工执行，不配字段 -->
 - 表格：表头底 `#e9ecdf`、文字 `#3f6b3f; font-weight: 700`，单元格 `border: 1px solid #d5d9c8; padding: 9px 11px; font-size: 14px`
 
 ## 分寸提醒
