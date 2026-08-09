@@ -53,5 +53,42 @@ ok("contrast_ratio 对调前后景不变",
    near(CL.contrast_ratio((0xc2,0x59,0x3b), (0xef,0xe0,0xcd)),
         CL.contrast_ratio((0xef,0xe0,0xcd), (0xc2,0x59,0x3b))))
 
+# ── gradient_stops ─────────────────────────────────────────
+ok("gradient_stops 抽出两个 hex 色标",
+   CL.gradient_stops("linear-gradient(135deg, #6a5cff, #38c6d9)")
+   == [(0x6a,0x5c,0xff,1.0), (0x38,0xc6,0xd9,1.0)])
+ok("gradient_stops 抽出 rgba 与 transparent",
+   CL.gradient_stops("linear-gradient(transparent 62%, rgba(176, 142, 138, 0.35) 62%)")
+   == [(0,0,0,0.0), (176,142,138,0.35)])
+ok("gradient_stops 对非渐变返回空",
+   CL.gradient_stops("none") == [])
+
+# ── backdrop_samples ───────────────────────────────────────
+ok("没声明任何底 → 沿用父级候选集",
+   CL.backdrop_samples(None, None, [(255,255,255)]) == [(255,255,255)])
+ok("只有 background-color → 单一候选",
+   CL.backdrop_samples("#efe0cd", None, [(255,255,255)]) == [(239,224,205)])
+# morandi-fog 形态：半透明色带压在白卡上，两个候选（带上 / 带下）
+ok("半透明渐变与下层合成，保留两个候选",
+   set(CL.backdrop_samples("#ffffff",
+        "linear-gradient(transparent 62%, rgba(176, 142, 138, 0.35) 62%)",
+        [(255,255,255)]))
+   == {(255,255,255), (227,215,214)})
+
+# ── worst_contrast：三种情况 ────────────────────────────────
+AURORA = CL.backdrop_samples(None, "linear-gradient(135deg, #6a5cff, #38c6d9)", [(255,255,255)])
+ok("aurora-flow 白字压渐变，最差 2.0492",
+   near(CL.worst_contrast((255,255,255), AURORA), 2.0492))
+
+# 前景比整条渐变都暗：最小亮度在渐变内部（t≈0.70），端点法会漏判
+INTERIOR = CL.backdrop_samples(None, "linear-gradient(#ff0000, #0000ff)", [(255,255,255)])
+ok("前景比整条渐变都暗时最差点在内部：1.9502（端点法会给出 2.4440）",
+   near(CL.worst_contrast((0,0,0), INTERIOR), 1.9502))
+
+# 前景亮度夹在两端之间：介值定理 → 必有一点等亮 → 1.0
+BETWEEN = CL.backdrop_samples(None, "linear-gradient(#000000, #ffffff)", [(255,255,255)])
+ok("前景亮度夹在渐变两端之间时最差 = 1.0（端点法会给出 3.9494）",
+   near(CL.worst_contrast((0x80,0x80,0x80), BETWEEN), 1.0))
+
 print(f"\nok：{fails} 条失败")
 sys.exit(1 if fails else 0)

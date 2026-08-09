@@ -59,3 +59,79 @@ def contrast_ratio(fg, bg):
     a, b = relative_luminance(fg), relative_luminance(bg)
     hi, lo = (a, b) if a >= b else (b, a)
     return (hi + 0.05) / (lo + 0.05)
+
+
+_STOP_TOKEN = re.compile(
+    r"(#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b|rgba?\([^)]*\)|\btransparent\b)"
+    r"(?:\s+(-?\d+(?:\.\d+)?)%)?"
+)
+
+#: 沿渐变采样的步数。101 = 每 1% 一个采样点。
+#: 不许改成只取两端——L(t) 是凸的，最小值可能落在内部（见本文件顶部 spec 链接）。
+GRADIENT_SAMPLES = 101
+
+
+def _parse_gradient_stops(css_value):
+    """按出现顺序抽取 (color, position) 对；position 是显式百分比数字，没写则 None。非渐变返回 []。"""
+    if not css_value or "gradient" not in css_value:
+        return []
+    out = []
+    for tok, pos in _STOP_TOKEN.findall(css_value):
+        c = parse_color(tok)
+        if c is not None:
+            out.append((c, float(pos) if pos else None))
+    return out
+
+
+def gradient_stops(css_value):
+    """从 gradient 声明里按出现顺序抽色标；没有 gradient 关键字返回 []。"""
+    return [c for c, _ in _parse_gradient_stops(css_value)]
+
+
+def backdrop_samples(bg_color, image_value, parent_samples):
+    """该元素的有效底候选集（不透明 RGB 列表）。
+
+    background-color 打底（不透明则盖住父级），再把 background-image 的色标按 alpha
+    依次合成上去。相邻两个色标若显式写了相同的百分比位置——CSS 的硬停（hard stop，
+    比如 morandi-fog 的下划线带 `transparent 62%, rgba(...) 62%`）——中间没有过渡区，
+    只取两端合成值；否则视为连续渐变，沿途按 GRADIENT_SAMPLES 采样，因为 L(t) 对 t
+    是凸的，最小值可能落在内部，端点法会漏判。
+    """
+    base = list(parent_samples)
+    c = parse_color(bg_color) if bg_color else None
+    if c is not None and c[3] > 0:
+        base = [composite(c, b) for b in base] if c[3] < 1 else [c[:3]]
+
+    stops_with_pos = _parse_gradient_stops(image_value)
+    if not stops_with_pos:
+        return base
+
+    stops = [s for s, _ in stops_with_pos]
+    positions = [p for _, p in stops_with_pos]
+
+    # 不再无条件保留 base：background-image 的每个色标经 composite() 合成时，
+    # alpha=0 的色标本就会还原成 base，无需额外拼接——拼接会把已被不透明渐变
+    # 完全盖住的旧底当成候选，污染 worst_contrast。
+    out = []
+    for b in base:
+        solid = [composite(s, b) for s in stops]
+        for i in range(len(solid) - 1):
+            p, q = solid[i], solid[i + 1]
+            hard_stop = (positions[i] is not None and positions[i + 1] is not None
+                         and positions[i] == positions[i + 1])
+            steps = 2 if hard_stop else GRADIENT_SAMPLES
+            for k in range(steps):
+                t = k / (steps - 1)
+                out.append(tuple(int(round(p[j] + (q[j] - p[j]) * t)) for j in range(3)))
+    # 去重但保持可预期的顺序
+    seen, uniq = set(), []
+    for s in out:
+        if s not in seen:
+            seen.add(s)
+            uniq.append(s)
+    return uniq
+
+
+def worst_contrast(fg, samples):
+    """对候选底集合取最差对比度。"""
+    return min(contrast_ratio(fg, s) for s in samples)
