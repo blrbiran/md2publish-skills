@@ -10,7 +10,7 @@
 1. 项目：Markdown → 微信公众号可粘贴 HTML 的 skill 链。**唯一转换入口是 `skills/md2publish-article/scripts/md2html.py`，你的工作单元只有 `theme.json`**——别手敲 HTML、别另写脚本。
 2. 26 个主题全部跑完并修过一轮；`theme.json` 26 份已入仓（`references/theme-json/`）；**原 20-monochrome-mag 已于批次 3 按用户裁定整体删除**（见第六节 1.8），HTML 产物在仓库外的 `~/code/skills/writing/wechat_test/litellm-multi-provider-gateway/out/`。
 3. **动手前先跑第三节那七条基线**（审计 0 条 / 审计变异 16 绿 / md2html 测试 25 绿 / 产物自检 PASS / 普查变异 71 绿 / 普查跑通 / theme_lib 单测 17 绿），确认没被上一轮改坏。
-4. **下一件事看第六节第 1 条**：产物落点普查脚本（`census-themes.py`）首轮对真实库报出 **43 条**，因此 **exit 1**。批次 1a 处理 6 条（5 条豁免注记 + celadon-scroll 补 `h2_suffix_html`）、批次 1b 处理 20 条（收窄 `NEAR-ZERO` 判据 18 条 + gilded-ink 两支现造色转正）、批次 2 处理 7 条（3 条 UNMOUNTED 补字段 + terracotta-sun 注释色退回正文色 + autumn-warm/ocean-calm/spring-fresh 主副强调标签对调）、批次 3 处理 6 条（bauhaus-pop 错值 + terracotta-sun keyword 对比度 + gilded-ink/candy-pop 装饰色改标签 + mint-breeze 阈值擦边豁免 + mint-breeze/botanic-press 两条判断层规范改写并豁免）、批次 4 处理 2 条（`INVERT` 改判据只比散文面，销掉 terracotta-sun 那条 + candy-pop `NEAR-ZERO` 写豁免注记），外加整体删除 monochrome-mag 主题带走的 2 条，现在是 **1 条未销 + 9 条已豁免、仍 exit 1**。**唯一那条未销的是批次 4 新暴露出来的 `INVERT 10-lavender-dusk`**——旧判据被行内 code 的 193 处喂饱，一直没报过它，判据变锐利之后才露头，**等用户裁决**。第六节第 1 条装着分组、执行顺序和最要紧的几条的全部细节，逐组过一遍、拍板一批、改一批、再跑一遍 `census-themes.py` 确认条数下降。
+4. **下一件事看第六节第 1 条**：产物落点普查脚本（`census-themes.py`）首轮对真实库报出 **43 条**，因此 **exit 1**。批次 1a 处理 6 条（5 条豁免注记 + celadon-scroll 补 `h2_suffix_html`）、批次 1b 处理 20 条（收窄 `NEAR-ZERO` 判据 18 条 + gilded-ink 两支现造色转正）、批次 2 处理 7 条（3 条 UNMOUNTED 补字段 + terracotta-sun 注释色退回正文色 + autumn-warm/ocean-calm/spring-fresh 主副强调标签对调）、批次 3 处理 6 条（bauhaus-pop 错值 + terracotta-sun keyword 对比度 + gilded-ink/candy-pop 装饰色改标签 + mint-breeze 阈值擦边豁免〔批次 5 已撤回〕 + mint-breeze/botanic-press 两条判断层规范改写并豁免）、批次 4 处理 2 条（`INVERT` 改判据只比散文面，销掉 terracotta-sun 那条 + candy-pop `NEAR-ZERO` 写豁免注记），外加整体删除 monochrome-mag 主题带走的 2 条，批次 5 撤回批次 3 给 mint-breeze 写的那条 `INVERT` 豁免注记（理由不实，见下），现在是 **2 条未销 + 8 条已豁免、仍 exit 1**。**两条未销的都是 `INVERT`，同一形状：`10-lavender-dusk`（散文面 9 vs 73）与 `15-mint-breeze`（散文面 16 vs 78），主强调只挂装饰位、参照色挂正文，等用户裁决。**前者是批次 4 判据变锐利后才露头的——旧判据被行内 code 的 193 处喂饱，一直没报过它；后者是撤回假豁免后重新报出来的。第六节第 1 条装着分组、执行顺序和最要紧的几条的全部细节，逐组过一遍、拍板一批、改一批、再跑一遍 `census-themes.py` 确认条数下降。
 5. 最要紧的认知：**`audit-themes.py` 报 0 条不等于主题成立**——它查主题文件里有没有*声明*落点，不查产物里这个色出现几次。本仓库已知四次「规范白纸黑字写着、产物里 0 处」曾经全部逃过审计/自检/回归三道检查；现在 `census-themes.py`（第三节）补上了这一层，但**它报出发现不等于发现已被处理**——43 条里 1 条截至目前仍待裁决，另有 1 条是批次 4 改锐 `INVERT` 判据后新暴露的。
 6. 因此本项目的通用做法是：**改完必须去数产物**，不是看自检 PASS 就算完。现在有 `python3 skills/md2publish-article/scripts/census-themes.py --counts <主题名>` 可以直接跑，不用每次手写 `Counter(re.findall(...))`。
 7. 改任何主题文件之前必读 `docs/theme-design-lessons.md`（规则 11–14 和两条判例是第四轮新立的）。
@@ -91,7 +91,7 @@ python3 /tmp/selfcheck.py <out.html>
 # 5. 产物落点普查脚本（census-themes.py）的变异测试，要 71 全绿
 bash skills/md2publish-article/scripts/test-census-themes.sh
 
-# 6. 普查脚本对真实库跑一遍——目前预期是 1 条待裁决 + 9 条已豁免、exit 1，不是 0 条
+# 6. 普查脚本对真实库跑一遍——目前预期是 2 条待裁决 + 8 条已豁免、exit 1，不是 0 条
 python3 skills/md2publish-article/scripts/census-themes.py
 
 # 7. theme_lib.py 共享原语的单元测试，要 17 全绿（`ok：0 条失败`，exit 0）
@@ -100,7 +100,7 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py
 
 第 3 条的 PART B 从 `references/theme-json/` 读 theme.json、与实验目录里的定稿 HTML 逐字节比对。**故意改了某份 theme.json 之后要先重新生成它的 HTML 再跑**，否则那里报的红是预期内的改动，不是回归——别反过来改测试迁就它。语料目录缺失时 PART B 会整体 SKIP 并把退出码标红（静默跳过等于没有护栏）。
 
-第 6 条**不是「要 0 条」的基线，是「要和上次一致」的基线**：`census-themes.py` 目前对真实库跑出 **1 条未销 + 9 条已由注记豁免**、exit 1。首轮报的是 43 条，第六轮（批次 1a）处理掉 6 条——5 条写豁免注记、1 条真改（celadon-scroll 补 `h2_suffix_html`）；第七轮（批次 1b）再处理掉 20 条——18 条靠收窄 `NEAR-ZERO` 判据、2 条靠 gilded-ink 把现造色转正；第八轮（批次 2）再处理掉 7 条——3 条 UNMOUNTED 补 `theme.json` 字段、1 条 INVENTED 退回正文色、3 条 INVERT 靠对调调色板角色标签（产物逐字节不变）；第九轮（批次 3）再处理掉 6 条——1 条 UNCARRIED 改错值、2 条 INVERT 改角色标签、3 条写豁免注记（其中 2 条连规范一起改写），另加 1 条普查报不出来的对比度失败（terracotta-sun 的 `highlight.keyword`）；同批还整体删除了 monochrome-mag 主题，带走它名下那 2 条；第十轮（批次 4）再处理掉 2 条——1 条 `INVERT` 靠改判据（只比散文面，代码面不计）、1 条 `NEAR-ZERO` 写豁免注记，**同时新暴露出 1 条 `INVERT 10-lavender-dusk`**。五批的细节见第六节第 1 条开头的进度块。这一步的作用是确认这一轮没有意外新增或消失的发现——数字变了要么是有人动了主题文件却没更新第六节的清单，要么就是真的在按那份清单处理。处理完一批之后，这里的期望数字要跟着往下调，不要让某个旧数字在这份文档里僵化成永久数字。语料缺失时这一条同样会整体 SKIP 并标红（与第 3 条同一纪律）。
+第 6 条**不是「要 0 条」的基线，是「要和上次一致」的基线**：`census-themes.py` 目前对真实库跑出 **2 条未销 + 8 条已由注记豁免**、exit 1。首轮报的是 43 条，第六轮（批次 1a）处理掉 6 条——5 条写豁免注记、1 条真改（celadon-scroll 补 `h2_suffix_html`）；第七轮（批次 1b）再处理掉 20 条——18 条靠收窄 `NEAR-ZERO` 判据、2 条靠 gilded-ink 把现造色转正；第八轮（批次 2）再处理掉 7 条——3 条 UNMOUNTED 补 `theme.json` 字段、1 条 INVENTED 退回正文色、3 条 INVERT 靠对调调色板角色标签（产物逐字节不变）；第九轮（批次 3）再处理掉 6 条——1 条 UNCARRIED 改错值、2 条 INVERT 改角色标签、3 条写豁免注记（其中 2 条连规范一起改写），另加 1 条普查报不出来的对比度失败（terracotta-sun 的 `highlight.keyword`）；同批还整体删除了 monochrome-mag 主题，带走它名下那 2 条；第十轮（批次 4）再处理掉 2 条——1 条 `INVERT` 靠改判据（只比散文面，代码面不计）、1 条 `NEAR-ZERO` 写豁免注记，**同时新暴露出 1 条 `INVERT 10-lavender-dusk`**；第十一轮（批次 5）撤回批次 3 给 mint-breeze 写的那条 `INVERT` 豁免注记——它的理由是拿含代码面的脏数字算的（自称「93 处落点、只差 3 处擦边」，实际 93 里有 77 处是 `highlight.string`/`key`，按散文面口径是 16 vs 78、阈值 26，会报不会擦边），**用假理由灭真发现，属于本项目立项要防的那个形状**，故删注记让它重新报出，与 lavender-dusk 同批裁决。六批的细节见第六节第 1 条开头的进度块。这一步的作用是确认这一轮没有意外新增或消失的发现——数字变了要么是有人动了主题文件却没更新第六节的清单，要么就是真的在按那份清单处理。处理完一批之后，这里的期望数字要跟着往下调，不要让某个旧数字在这份文档里僵化成永久数字。语料缺失时这一条同样会整体 SKIP 并标红（与第 3 条同一纪律）。
 
 ⚠️ **「只许减少、不许新增」这条只管改主题文件，不管改判据。**批次 4 改了 `INVERT` 的判据，
 条数一减一增：terracotta-sun 那条消失、lavender-dusk 那条冒出来。**判据变锐利本来就该开始报
