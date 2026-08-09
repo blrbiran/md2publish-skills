@@ -100,10 +100,33 @@ def theme_pairs(ref_dir):
 def exemptions(md_text, prefix):
     """解析豁免注记。prefix 是 'census-ok' 或 'audit-ok'，**不能省**。
 
-    两套注记共存于同一批主题文件，各认各的前缀，互不干扰。
+    两套注记共存于同一批主题文件，各认各的前缀，互不干扰。这一步只挑**能解析成功**的
+    注记；解析不出来的（缺键、理由留空）不在这里报错——那是 malformed_exemptions 的活，
+    调用方（现在只有 census-themes.py）拿它去大声 FAIL，不能让残缺注记悄悄自称已生效。
     """
     pat = re.compile(r"<!--\s*" + re.escape(prefix) + r":\s*(\S+)\s+(\S+)\s+(.*?)\s*-->", re.S)
     return [(m.group(1), m.group(2), m.group(3)) for m in pat.finditer(md_text)]
+
+
+_COMMENT = re.compile(r"<!--(.*?)-->", re.S)
+
+
+def malformed_exemptions(md_text, prefix):
+    """凡以字面前缀 `<prefix>:` 开头的 HTML 注释，只要解析不出「档名 键 非空理由」
+    三元组，原样返回该注释全文，供调用方大声 FAIL——不许悄悄丢掉或悄悄接受零理由。
+
+    只认字面前缀，不做「像不像」的模糊匹配：`audit-ok:` 不是 `census-ok:` 的近似写法，
+    是另一套注记自己完整合法的语法（`audit-themes.py:86-89` 有它自己的硬编码正则），
+    这里按 prefix 参数只挑以这个字面串开头的注释，两套前缀不会互相牵连——写错前缀不算
+    「census-ok 写残了」，是完全没在跟这个检查器说话。
+    """
+    strict = re.compile(r"^\s*" + re.escape(prefix) + r":\s*(\S+)\s+(\S+)\s+(\S.*?)\s*$", re.S)
+    out = []
+    for m in _COMMENT.finditer(md_text):
+        body = m.group(1)
+        if body.strip().startswith(prefix + ":") and not strict.match(body):
+            out.append(m.group(0))
+    return out
 
 
 _TAG_STYLE = re.compile(r'<([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?style="([^"]*)"')

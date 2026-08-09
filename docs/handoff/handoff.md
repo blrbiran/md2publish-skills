@@ -9,7 +9,7 @@
 
 1. 项目：Markdown → 微信公众号可粘贴 HTML 的 skill 链。**唯一转换入口是 `skills/md2publish-article/scripts/md2html.py`，你的工作单元只有 `theme.json`**——别手敲 HTML、别另写脚本。
 2. 27 个主题全部跑完并修过一轮；`theme.json` 27 份已入仓（`references/theme-json/`），HTML 产物在仓库外的 `~/code/skills/writing/wechat_test/litellm-multi-provider-gateway/out/`。
-3. **动手前先跑第三节那六条基线**（审计 0 条 / 审计变异 16 绿 / md2html 测试 25 绿 / 产物自检 PASS / 普查变异 46 绿 / 普查跑通），确认没被上一轮改坏。
+3. **动手前先跑第三节那七条基线**（审计 0 条 / 审计变异 16 绿 / md2html 测试 25 绿 / 产物自检 PASS / 普查变异 46 绿 / 普查跑通 / theme_lib 单测 11 绿），确认没被上一轮改坏。
 4. **下一件事看 `task-7-adjudication.md`**：产物落点普查脚本（`census-themes.py`）已经落地并对真实库跑过一轮，报出 **43 条待裁决**（详情见第六节第 1 条）。这份裁决书按批次给了处置建议，逐组过一遍、拍板一批、改一批、再跑一遍 `census-themes.py` 确认——**不要因为已有建议就当作已经处理**，本文件截至本轮更新时**没有任何一条被执行**。
 5. 最要紧的认知：**`audit-themes.py` 报 0 条不等于主题成立**——它查主题文件里有没有*声明*落点，不查产物里这个色出现几次。本仓库已知四次「规范白纸黑字写着、产物里 0 处」曾经全部逃过审计/自检/回归三道检查；现在 `census-themes.py`（第三节）补上了这一层，但**它报出发现不等于发现已被处理**——43 条截至目前仍待裁决。
 6. 因此本项目的通用做法是：**改完必须去数产物**，不是看自检 PASS 就算完。现在有 `python3 skills/md2publish-article/scripts/census-themes.py --counts <主题名>` 可以直接跑，不用每次手写 `Counter(re.findall(...))`。
@@ -69,7 +69,7 @@ python3 skills/md2publish-article/scripts/md2html.py <article.md> <theme.json> -
 
 **加字段的准入线**（lessons 规则 14）：机械可判 + 无替代表达 + 当前静默丢失，三条同时成立才加。只满足前两条不该加。
 
-## 三、六条基线（动手前先跑）
+## 三、七条基线（动手前先跑）
 
 ```bash
 cd ~/code/skills/writing/md2publish-skills
@@ -93,11 +93,20 @@ bash skills/md2publish-article/scripts/test-census-themes.sh
 
 # 6. 普查脚本对真实库跑一遍——目前预期是 43 条待裁决、exit 1，不是 0 条
 python3 skills/md2publish-article/scripts/census-themes.py
+
+# 7. theme_lib.py 共享原语的单元测试，要 11 全绿（`ok：0 条失败`，exit 0）
+python3 skills/md2publish-article/scripts/test-theme-lib.py
 ```
 
 第 3 条的 PART B 从 `references/theme-json/` 读 theme.json、与实验目录里的定稿 HTML 逐字节比对。**故意改了某份 theme.json 之后要先重新生成它的 HTML 再跑**，否则那里报的红是预期内的改动，不是回归——别反过来改测试迁就它。语料目录缺失时 PART B 会整体 SKIP 并把退出码标红（静默跳过等于没有护栏）。
 
-第 6 条**不是「要 0 条」的基线，是「要和上次一致」的基线**：`census-themes.py` 目前对真实库跑出 43 条，一条都还没处理（见第六节第 1 条、`task-7-adjudication.md`）。这一步的作用是确认这一轮没有意外新增或消失的发现——数字变了要么是有人动了主题文件却没更新裁决书，要么就是真的在按裁决书处理。裁决书处理完一批之后，这里的期望数字要跟着往下调，不要让「43」在这份文档里僵化成永久数字。语料缺失时这一条同样会整体 SKIP 并标红（与第 3 条同一纪律）。
+第 6 条**不是「要 0 条」的基线，是「要和上次一致」的基线**：`census-themes.py` 目前对真实库跑出 43 条，一条都还没处理（见第六节第 1 条、`task-7-adjudication.md`）。这一步的作用是确认这一轮没有意外新增或消失的发现——数字变了要么是有人动了主题文件却没更新裁决书，要么就是真的在按裁决书处理。裁决书处理完一批之后，这里的期望数字要跟着往下调，不要让「43」在这份文档里僵化成永久数字。语料缺失时这一条同样会整体 SKIP 并标红（与第 3 条同一纪律）。这 43 条**不是 43 个错误**：按设计文档自己的严重度分级，20 条 NEAR-ZERO + 7 条 INVERT + 1 条 ZERO-DUP 共 28 条是 WARN/INFO，只有 15 条（UNCARRIED 4 + INVENTED 3 + UNMOUNTED 7 + ZERO 1）是 ERROR——脚本输出本身不打严重度标签（`report()` 只报总数），读这份数字前先记住这个比例，别把「43 条待裁决」直接当成「43 个 bug」。
+
+第 7 条不是可选项：`test-census-themes.sh`/`test-audit-themes.sh` 两套变异测试合计 62 条全绿，也测不出 `theme_lib.py` 两处纪律被破坏——它是这两处的**唯一**护栏：
+- 去掉 `theme_lib.py:110`（`landings` 里 `_COLOR_PROP` 的 `(?<![-\w])` 守卫）会让 `background-color:` 被当成 `color:` 落地，污染 `DECOR`/`INVERT` 判定和 `--counts` 的「文字」列，`census-themes.py` 真实库输出照样不变（真实库当前没有踩中这个差异的样本）
+- 去掉 `theme_lib.py:105`（`exemptions` 的前缀参数化，若被写死或写宽）会让 `audit-ok:` 注记也能销掉 `census-themes.py` 的发现，两套注记本该各认各的前缀、互不干扰
+
+改 `theme_lib.py` 之后，三套测试（46 + 16 + 11）都要跑，缺一套都不能证明改动安全。
 
 ## 四、当前状态
 
@@ -193,6 +202,20 @@ python3 skills/md2publish-article/scripts/census-themes.py
 文本不是已经生效的规范**，改之前还要按第五节第 12/13/14/16 条的老规矩：规范行不留旧值、
 改完跑 `audit-themes.py`/`census-themes.py` 到期望条数、`.md` 与 `theme.json` 同步、提交前
 把 diff 完整读一遍。
+
+裁决书里凡是「判定为可接受、不必改文件」的发现，处置方式不是删掉那一行，是在对应主题
+`.md` 里写一条豁免注记，让 `census-themes.py` 不再报它、同时把「为什么可接受」留档：
+
+    <!-- census-ok: <档名> <键> <一句话理由> -->
+
+档名是九档里的一个（`UNCARRIED`/`INVENTED`/`INLINE-BLOCK`/`UNMOUNTED`/`ZERO`/`ZERO-DUP`/
+`NEAR-ZERO`/`DECOR`/`INVERT`，**不含** `STALE-NOTE`——它自己不能被豁免掉）；键是发现那一行
+的第三列（色值或字段名）。这套前缀与 `audit-themes.py` 的 `audit-ok:` 故意不同、各认各的，
+两批注记共存于同一批主题文件互不干扰。三处易错、脚本现在会大声 FAIL 而不是静默吃掉：漏了
+键（只写档名）、理由留空、把 `census-ok` 写成 `audit-ok`（那是另一套注记的合法语法，不会
+触发 census 的 FAIL，但也**不会**销掉 census 的发现——census 完全不认它）。写完一条注记，
+跑一遍 `census-themes.py` 确认它真的销掉了目标发现、条数按预期下降，而不是新增一条
+`STALE-NOTE`（说明档名或键没对上）。
 
 其中 ink-wash 的朱砂印（`footer_html`）、cyber-neon 的警示 strong（`strong_alt`）—— 
 第四轮记的「两条收尾」——**现在都在裁决书里有档在管了**（分别是 §3.1、§3.2，判定为

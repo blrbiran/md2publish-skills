@@ -1261,5 +1261,187 @@ EOF
 checkl2 counts-decor "NEAR-ZERO #ffffff" "DECOR #cc3366"
 checkcounts counts-decor "#cc3366" "6 0 0 6"
 
+echo "── 终审补漏：豁免注记写残了要大声 FAIL，不许静默 ──────────"
+
+# 34. 缺键——`<!-- census-ok: INVENTED -->` 连键都没写。exemptions() 的严格正则
+#     解析不出三元组，第一版会把它当成「压根没写注记」悄悄丢掉：真实 INVENTED
+#     照报，但不 FAIL、也不报 STALE-NOTE——用户会以为自己写了一条有效注记。
+#     钉住「malformed_exemptions 整个没接上」这个 mutation。
+mkmd ex-keyless <<'EOF'
+# fixture
+
+<!-- census-ok: INVENTED -->
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson ex-keyless <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222", "highlight": {"comment": "#6a4f1a"}}
+EOF
+out="$(python3 "$CENSUS" --fixture-dir "$WORK/ex-keyless" --article "$ART" 2>&1)"
+if [[ "$out" == *"写残了"* ]]; then
+  printf 'ok   ex-keyless\n'; pass=$((pass + 1))
+else
+  printf 'FAIL ex-keyless\n     期望: 报「写残了」\n     实得: %s\n' "$out"; fail=$((fail + 1))
+fi
+
+# 35. 理由留空——`<!-- census-ok: INVENTED #6a4f1a -->` 有档名有键，唯独没理由。
+#     旧正则的 (.*?) 允许空匹配，这条会被当成合法注记，成功把一条 ERROR 销掉、
+#     不留任何解释。钉住「strict 正则退回旧的 (.*?)（允许空理由）」这个 mutation：
+#     退回后这条注记又能解析成功，INVENTED #6a4f1a 被悄悄销掉，不再 FAIL。
+mkmd ex-emptyreason <<'EOF'
+# fixture
+
+<!-- census-ok: INVENTED #6a4f1a -->
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson ex-emptyreason <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222", "highlight": {"comment": "#6a4f1a"}}
+EOF
+out="$(python3 "$CENSUS" --fixture-dir "$WORK/ex-emptyreason" --article "$ART" 2>&1)"
+if [[ "$out" == *"写残了"* ]]; then
+  printf 'ok   ex-emptyreason\n'; pass=$((pass + 1))
+else
+  printf 'FAIL ex-emptyreason\n     期望: 报「写残了」\n     实得: %s\n' "$out"; fail=$((fail + 1))
+fi
+
+# 36. 前缀写错——`<!-- audit-ok: INVENTED #6a4f1a 理由 -->` 是另一套注记完整合法
+#     的语法（audit-themes.py:86-89 自己的正则），不是「census-ok 写残了」。
+#     census 这边该做的是**完全不理它**：不 FAIL（它没在跟这个检查器说话），
+#     也不能被它销掉 INVENTED #6a4f1a（两套前缀不能互穿——Task 6 的设计前提）。
+#     钉住「malformed 检测不按字面前缀过滤、把所有 `-ok:` 注释都当 census 的事」
+#     这个 mutation：那样这条合法的 audit-ok 注记会被错判成「census-ok 写残了」
+#     而 FAIL，这条断言用 checkl2 的精确匹配堵死这个方向。
+mkmd ex-wrongprefix <<'EOF'
+# fixture
+
+<!-- audit-ok: INVENTED #6a4f1a 这条是 audit-themes.py 的注记，不关 census 的事 -->
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson ex-wrongprefix <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222", "highlight": {"comment": "#6a4f1a"}}
+EOF
+checkl2 ex-wrongprefix "INVENTED #6a4f1a" "NEAR-ZERO #ffffff"
+
+# 37. STALE-NOTE 本身不是合法的注记档名——它是 apply_exemptions 算出来的产物，
+#     从不出现在 rows 里，一条 `census-ok: STALE-NOTE ...` 注记永远销不到任何
+#     发现，只可能是打错档名。钉住「LEGAL_NOTE_TIERS 退回 SEVERITY（含
+#     STALE-NOTE）」这个 mutation：退回后这条注记会被当成合法档名接受，不 FAIL，
+#     而是安安静静变成它自己的一条 STALE-NOTE 输出行，跟「档名打错了该大声拒绝」
+#     的设计意图对不上。
+mkmd ex-stalenote-tier <<'EOF'
+# fixture
+
+<!-- census-ok: STALE-NOTE #aabbcc 档名打错了，STALE-NOTE 不该是合法档名 -->
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson ex-stalenote-tier <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222"}
+EOF
+out="$(python3 "$CENSUS" --fixture-dir "$WORK/ex-stalenote-tier" --article "$ART" 2>&1)"
+if [[ "$out" == *"档名不认识"* ]]; then
+  printf 'ok   ex-stalenote-tier\n'; pass=$((pass + 1))
+else
+  printf 'FAIL ex-stalenote-tier\n     期望: 报「档名不认识」\n     实得: %s\n' "$out"; fail=$((fail + 1))
+fi
+
+echo "── 终审补漏：silenced 计数 + report() 退出码的灭口面 ──────────"
+
+# 38. report() 打印「N 条已由注记豁免」——ex-silenced（用例 25）只销掉了 1 条
+#     INVENTED，NEAR-ZERO #ffffff 不在注记射程内、照报。断言这个数字真的算对了，
+#     不是写死的常量。钉住「silenced 永远打印 0」或「silenced 算成总发现数」
+#     这类 mutation。
+out="$(python3 "$CENSUS" --fixture-dir "$WORK/ex-silenced" --article "$ART" 2>&1)"
+if [[ "$out" == *$'\n''1 条已由注记豁免'* ]]; then
+  printf 'ok   ex-silenced-count\n'; pass=$((pass + 1))
+else
+  printf 'FAIL ex-silenced-count\n     期望: 含「1 条已由注记豁免」\n     实得: %s\n' "$out"; fail=$((fail + 1))
+fi
+
+# 39. report() 的退出码路径此前完全没被观测过：有语料时其它用例全部只看 stdout
+#     （awk 挑行比对），从没人检查过进程退出码；唯一检查退出码的 l2-nocorpus-
+#     fails-loud（用例 24）走的是无语料分支，`report(found=[]) → 0` 和
+#     `report(found=[]) → 1` 在那条路径上因为 `or (0 if has_corpus else 1)` 的
+#     兜底，结果都一样是非 0，分不出 report() 自己是不是错的。这条换成**有语料
+#     + 真的有发现**（l2-zero，产出 ZERO/NEAR-ZERO），此时退出码完全由
+#     `report()` 的 `return 1 if found else 0` 决定，才真正钉住「report() 恒
+#     return 0」这个 mutation。
+echo -n "ok   census-exit-nonzero-when-found ... "
+if python3 "$CENSUS" --fixture-dir "$WORK/l2-zero" --article "$ART" >/dev/null 2>&1; then
+  printf 'FAIL census-exit-nonzero-when-found\n     期望: 有发现且有语料时退出码非 0\n     实得: 0\n'
+  fail=$((fail + 1))
+else
+  printf '\rok   census-exit-nonzero-when-found                              \n'
+  pass=$((pass + 1))
+fi
+
+echo "── 终审补漏：调色板大写 hex 不该凭空报 ZERO ──────────"
+
+# 40. 主题 .md 把强调色写成大写 `#CC3366`，theme.json 落地用小写 `#cc3366`——
+#     产物里这个色真实落了 6 次（strong，ART 固定 6 处），但 check_l2 若不把
+#     pal 的键小写化，`land.get("#CC3366")` 永远查不到 landings() 里那个恒为
+#     小写的键，会凭空报一条 ZERO。钉住「lowercase 只做在 palette() 内部（或
+#     干脆不做）」这类 mutation：真正要求的是在 check_l2/print_counts 这两个
+#     调用点做，不是在 palette() 共享原语里做（会改到 audit-themes.py 的输入）。
+mkmd l2-uppercase-hex <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 强调：`#CC3366`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #cc3366`
+EOF
+mkjson l2-uppercase-hex <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #cc3366"}
+EOF
+checkl2 l2-uppercase-hex "NEAR-ZERO #ffffff"
+# print_counts 也在调用点小写化，输出行本身就是 #cc3366，不是 .md 里写的 #CC3366——
+# 断言用小写去配，真正钉住的是「查得到落点」这件事，不是大小写透传。
+checkcounts l2-uppercase-hex "#cc3366" "6 6 0 0"
+
 printf '\n%d 通过，%d 失败\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
