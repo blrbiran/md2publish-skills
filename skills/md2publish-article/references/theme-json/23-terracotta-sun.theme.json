@@ -20,7 +20,7 @@
   "td": "border: 1px solid #e0cdb5; padding: 9px 11px; font-size: 14px; color: #4f382b",
   "td_alt": "background-color: #f8f0e7",
   "highlight": {
-    "comment": "#9c8a72",
+    "comment": "color: #4f382b; font-style: italic;",
     "string": "#8f3f28",
     "key": "#8f3f28",
     "keyword": "#c2593b",

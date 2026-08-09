@@ -7,6 +7,7 @@
   "h2_prefix_html": "<span style=\"font-family: Menlo, Consolas, monospace; color: #ff4ba3;\">&gt;_&nbsp;</span>",
   "h3": "font-size: 16px; font-weight: 600; color: #c9d2e3; margin: 26px 0 12px; padding-left: 10px; border-left: 3px solid #ff4ba3",
   "strong": "color: #39d0d8; font-weight: 600",
+  "strong_alt": {"keywords": ["注意", "警告", "不要", "会导致"], "style": "color: #ff4ba3; font-weight: 600"},
   "em": "color: #ff4ba3",
   "blockquote": "background-color: #10182a; border-left: 2px solid #39d0d8; padding: 14px 18px; margin: 0 0 16px; color: #7a869e; font-size: 14.5px",
   "pre": "background-color: #0a0e18; border: 1px solid #39456b; border-radius: 8px; padding: 16px; font-size: 13px; margin: 0 0 18px; line-height: 1.6",

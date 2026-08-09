@@ -18,6 +18,8 @@
   "th": "background-color: #efede7; color: #2b2b28; border: 1px solid #d9d5cc; padding: 10px 12px; font-size: 14px; font-weight: 600",
   "td": "border: 1px solid #d9d5cc; padding: 10px 12px; font-size: 14px; color: #2b2b28",
   "hr": "height: 1px; width: 36px; border: none; background-color: #d9d5cc; margin: 48px auto",
+  "footer": "text-align: center; color: #b5432a; font-size: 18px; margin: 40px 0 0",
+  "footer_html": "□",
   "highlight": {
     "comment": "color: #8c887e; font-style: italic;",
     "string": "#5a564d",
