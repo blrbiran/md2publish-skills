@@ -293,3 +293,49 @@ def is_decor(node, sigs):
         return True
     t = node.text.strip()
     return any(_text_matches(t, x) for x in texts)
+
+
+Finding = namedtuple("Finding", "theme tag fg bg size weight kind ratio sample count")
+
+#: WCAG 2.1「大文本」：>=24px，或 >=18.66px 且 >=700。边界含等号。
+LARGE_PX = 24.0
+LARGE_BOLD_PX = 18.66
+LARGE_BOLD_WEIGHT = 700
+
+
+def is_large_text(size, weight):
+    return size >= LARGE_PX or (size >= LARGE_BOLD_PX and weight >= LARGE_BOLD_WEIGHT)
+
+
+def threshold(is_decor_flag, size, weight):
+    """装饰按图形 3:1；文字按 WCAG AA 4.5，大文本 3.0。"""
+    if is_decor_flag or is_large_text(size, weight):
+        return 3.0
+    return 4.5
+
+
+def _hx(rgb):
+    return "#%02x%02x%02x" % rgb
+
+
+def findings_for(theme_name, html, theme):
+    """一份产物的全部不达标发现，同键合并计数。"""
+    sigs = decor_signatures(theme)
+    acc = {}
+    for n in walk(html):
+        decor = is_decor(n, sigs)
+        # 同色块：只对注入装饰生效
+        if decor and n.own_bg is not None and n.fg == n.own_bg:
+            continue
+        ratio = worst_contrast(n.fg, n.samples)
+        thr = threshold(decor, n.size, n.weight)
+        if ratio >= thr:
+            continue
+        worst_bg = min(n.samples, key=lambda s: contrast_ratio(n.fg, s))
+        key = (theme_name, n.tag, _hx(n.fg), _hx(worst_bg),
+               round(n.size, 2), n.weight, "装饰" if decor else "文字")
+        if key in acc:
+            acc[key] = acc[key]._replace(count=acc[key].count + 1)
+        else:
+            acc[key] = Finding(*key, round(ratio, 2), n.text[:24], 1)
+    return sorted(acc.values(), key=lambda f: (f.ratio, f.theme, f.tag))

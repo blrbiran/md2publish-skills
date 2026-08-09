@@ -152,5 +152,43 @@ ok("没有 style 的注入字段按字面文本认",
 ok("样式串比对忽略首尾空白与末尾分号",
    CL.is_decor(node("  color: #6f7a4d  ", "☘"), SIGS))
 
+# ── 阈值 ───────────────────────────────────────────────────
+ok("18.66px/700 是大文本",       CL.is_large_text(18.66, 700))
+ok("18.2px/700 不是大文本",      not CL.is_large_text(18.2, 700))
+ok("24px/400 是大文本",          CL.is_large_text(24.0, 400))
+ok("23.9px/400 不是大文本",      not CL.is_large_text(23.9, 400))
+ok("18.66px/400 不是大文本（字重不够）", not CL.is_large_text(18.66, 400))
+ok("普通文字阈值 4.5",           CL.threshold(False, 15.5, 400) == 4.5)
+ok("大文本阈值 3.0",             CL.threshold(False, 24.0, 400) == 3.0)
+ok("装饰阈值 3.0",               CL.threshold(True, 13.0, 400) == 3.0)
+
+# ── findings_for ───────────────────────────────────────────
+T5 = {"container": "background-color: #ffffff",
+      "h2_prefix_html": '<span style="background-color: #f0a500; color: #f0a500;">■</span>'}
+
+# 同色块：注入装饰且前景=自己的底 → 跳过
+BLOCK = ('<div style="background-color: #ffffff">'
+         '<h2 style="font-size: 18px">'
+         '<span style="background-color: #f0a500; color: #f0a500;">■</span>标题</h2></div>')
+ok("注入装饰的同色块被跳过（bauhaus-pop 的 ■）",
+   not [f for f in CL.findings_for("t", BLOCK, T5) if f.sample == "■"])
+
+# 同色块规则不许放宽到非装饰节点：正文色等于卡片底是真缺陷，必须仍报
+SAMECOLOR = ('<div style="background-color: #ffffff">'
+             '<p style="background-color: #eeeeee; color: #eeeeee; font-size: 15px">正文</p></div>')
+ok("非装饰节点的同色不许跳过（真缺陷）",
+   [f for f in CL.findings_for("t", SAMECOLOR, T5) if f.sample == "正文"])
+
+# 计数合并：同键的多处只出一条，count 累加
+DUP = ('<div style="background-color: #ffffff">'
+       '<p style="color: #bbbbbb; font-size: 15px">一</p>'
+       '<p style="color: #bbbbbb; font-size: 15px">二</p></div>')
+DUPF = CL.findings_for("t", DUP, T5)
+ok("同键合并成一条", len(DUPF) == 1)
+ok("合并后 count 累加", DUPF[0].count == 2)
+ok("达标的不出现在发现里",
+   CL.findings_for("t", '<div style="background-color: #ffffff">'
+                        '<p style="color: #000000; font-size: 15px">黑字</p></div>', T5) == [])
+
 print(f"\nok：{fails} 条失败")
 sys.exit(1 if fails else 0)
