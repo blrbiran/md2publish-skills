@@ -89,6 +89,17 @@ def read_baseline():
     return out
 
 
+def prune_survivors(findings, base):
+    """--prune 用来算「留下哪些行」的纯函数：只留基线里已有键在本轮仍出现的行，
+
+    绝不把 base 之外的新组合写进去——新组合只能靠显式的 --write-baseline 收录。
+    以前的实现是 `key_of(f) in base or key_of(f) in seen`；`seen` 就是本轮
+    findings 自己算出来的，`key_of(f) in seen` 对 findings 里的每个 f 恒真，
+    整个 or 是同义反复，等于把 --prune 悄悄做成了 --write-baseline。
+    """
+    return [f for f in findings if key_of(f) in base]
+
+
 def write_baseline(findings):
     lines = [
         "# 对比度审计基线：已知、未处置的存量。含义不是「可接受」，只是「还没排到」。",
@@ -130,8 +141,11 @@ def main():
     stale = [k for k in base if k not in seen]
 
     if args.prune:
-        write_baseline([f for f in findings if key_of(f) in base or key_of(f) in seen])
+        write_baseline(prune_survivors(findings, base))
         print(f"已清理 {len(stale)} 条产物里已不存在的基线行")
+        if new:
+            print(f"另有 {len(new)} 条基线里没有的新组合，--prune 不收录它们——"
+                  f"仍要跑一次不带参数的普查确认，收录只能用 --write-baseline。")
         return 0
 
     print(f"\n对比度普查：{len(findings)} 条不达标，基线 {len(base)} 条")
