@@ -135,3 +135,99 @@ def backdrop_samples(bg_color, image_value, parent_samples):
 def worst_contrast(fg, samples):
     """对候选底集合取最差对比度。"""
     return min(contrast_ratio(fg, s) for s in samples)
+
+
+from collections import namedtuple
+from html.parser import HTMLParser
+
+Node = namedtuple("Node", "tag fg samples size weight text style own_bg")
+
+#: 自闭合标签，不进栈
+VOID_TAGS = {"br", "hr", "img", "meta", "link", "input", "area", "base", "col", "wbr"}
+
+
+class ContrastWalkError(Exception):
+    """产物结构不符合假设——不许继续算，静默兜底会让全部测量变成编造的数字。"""
+
+
+def parse_style(s):
+    """'a: b; c: d' → {'a': 'b', 'c': 'd'}，键小写。"""
+    d = {}
+    for part in (s or "").split(";"):
+        if ":" not in part:
+            continue
+        k, _, v = part.partition(":")
+        d[k.strip().lower()] = v.strip()
+    return d
+
+
+def _px(v, default):
+    m = re.match(r"([\d.]+)\s*px", (v or "").strip())
+    return float(m.group(1)) if m else default
+
+
+def _weight(v, default):
+    v = (v or "").strip().lower()
+    if v in ("bold", "bolder"):
+        return 700
+    if v == "normal":
+        return 400
+    return int(v) if v.isdigit() else default
+
+
+class _Walker(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        # (tag, fg, samples, size, weight, style, own_bg)
+        self.stack = [("\x00root", (0, 0, 0), [], 16.0, 400, "", None)]
+        self.nodes = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in VOID_TAGS:
+            return
+        raw = dict(attrs).get("style", "")
+        st = parse_style(raw)
+        _, fg, samples, size, weight, _, _ = self.stack[-1]
+        c = parse_color(st.get("color"))
+        own = parse_color(st.get("background-color")) or parse_color(st.get("background"))
+        self.stack.append((
+            tag,
+            c[:3] if c else fg,
+            backdrop_samples(st.get("background-color") or st.get("background"),
+                             st.get("background-image"), samples),
+            _px(st.get("font-size"), size),
+            _weight(st.get("font-weight"), weight),
+            raw,
+            own[:3] if own and own[3] == 1.0 else None,
+        ))
+
+    def handle_endtag(self, tag):
+        for i in range(len(self.stack) - 1, 0, -1):
+            if self.stack[i][0] == tag:
+                del self.stack[i:]
+                return
+
+    def handle_data(self, data):
+        text = data.replace("\xa0", " ").strip()
+        if not text:
+            return
+        tag, fg, samples, size, weight, style, own_bg = self.stack[-1]
+        if not samples:
+            raise ContrastWalkError(
+                f"文本节点 {text[:20]!r}（<{tag}>）的祖先链上没有任何底色声明。"
+                f"产物最外层按结构必然带 container 的底，出现这种节点说明结构假设已不成立——"
+                f"停下来看，不许假设白底继续算。")
+        self.nodes.append(Node(tag, fg, samples, size, weight, text, style, own_bg))
+
+
+def walk(html):
+    """遍历产物 HTML，返回所有非空文本节点。结构不符合假设时抛 ContrastWalkError。"""
+    w = _Walker()
+    w.feed(html)
+    w.close()
+    if len(w.stack) != 1:
+        residue = [t[0] for t in w.stack[1:]]
+        raise ContrastWalkError(
+            f"走完后标签栈没回到根，残留 {len(residue)} 层：{residue[:8]}。"
+            f"栈错位会静默污染全部测量，是这套脚本最危险的失效模式。")
+    return w.nodes

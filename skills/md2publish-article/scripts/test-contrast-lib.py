@@ -90,5 +90,39 @@ BETWEEN = CL.backdrop_samples(None, "linear-gradient(#000000, #ffffff)", [(255,2
 ok("前景亮度夹在渐变两端之间时最差 = 1.0（端点法会给出 3.9494）",
    near(CL.worst_contrast((0x80,0x80,0x80), BETWEEN), 1.0))
 
+# ── walk ───────────────────────────────────────────────────
+DOC = ('<div style="background-color: #f8f0e7">'
+       '<section style="background-color: #fdf8f1">'
+       '<p style="font-size: 15.5px; color: #4f382b">正文'
+       '<strong style="color: #c2593b; font-weight: 700">强调</strong></p>'
+       '<h2 style="background-color: #c2593b; color: #fdf8f1; font-size: 17px; font-weight: 700">'
+       '标题</h2></section></div>')
+NODES = {n.text: n for n in CL.walk(DOC)}
+
+ok("walk 只收非空文本节点", set(NODES) == {"正文", "强调", "标题"})
+ok("正文落在卡片底上，不是容器底", NODES["正文"].samples == [(0xfd,0xf8,0xf1)])
+ok("strong 继承父级字号", NODES["强调"].size == 15.5)
+ok("strong 自己的字重覆盖继承值", NODES["强调"].weight == 700)
+ok("strong 的底仍是卡片底（它自己没声明底）", NODES["强调"].samples == [(0xfd,0xf8,0xf1)])
+ok("h2 文字落在 h2 自己的底上", NODES["标题"].samples == [(0xc2,0x59,0x3b)])
+ok("h2 的 own_bg 记录了自己声明的底", NODES["标题"].own_bg == (0xc2,0x59,0x3b))
+ok("p 没声明自己的底，own_bg 是 None", NODES["正文"].own_bg is None)
+ok("没声明字号时用默认 16px",
+   [n for n in CL.walk('<div style="background-color:#fff">裸</div>')][0].size == 16.0)
+
+# 栈不闭合必须抛，不许继续算
+try:
+    CL.walk('<div style="background-color:#fff"><p style="color:#000">未闭合')
+    ok("栈不闭合时抛 ContrastWalkError", False)
+except CL.ContrastWalkError:
+    ok("栈不闭合时抛 ContrastWalkError", True)
+
+# 无底色祖先必须抛，不许默默按白算
+try:
+    CL.walk('<div><p style="color: #000000">没有任何底色声明</p></div>')
+    ok("无底色祖先时抛 ContrastWalkError（不许兜白）", False)
+except CL.ContrastWalkError:
+    ok("无底色祖先时抛 ContrastWalkError（不许兜白）", True)
+
 print(f"\nok：{fails} 条失败")
 sys.exit(1 if fails else 0)
