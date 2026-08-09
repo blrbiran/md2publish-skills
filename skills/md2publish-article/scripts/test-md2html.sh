@@ -8,7 +8,7 @@
 #   HTML 含什么、不含什么。**加渲染字段前先在这里写一条会红的用例**——脚本改完再补的
 #   用例一上来就是绿的，证明不了它抓得住任何东西。
 #
-# PART B 逐字节回归：27 份真实主题的 theme.json 重新生成，必须与已定稿的 HTML 一模一样。
+# PART B 逐字节回归：26 份真实主题的 theme.json 重新生成，必须与已定稿的 HTML 一模一样。
 #   这一部分守的是「改 A 字段别碰坏 B 主题」。第三轮全库跑完时这个核对是手工做的
 #   （20 份逐份 diff），固化下来才有护栏意义。
 #
@@ -183,7 +183,7 @@ if render ol-prefix; then
   lacks ol-prefix "不再输出写死的纯文本序号" '1.&nbsp;&nbsp;第一条'
 fi
 
-# 没配这个字段时保持原样：纯文本 `N.` + 两个 &nbsp;（27 份定稿产物依赖这个默认值）
+# 没配这个字段时保持原样：纯文本 `N.` + 两个 &nbsp;（26 份定稿产物依赖这个默认值）
 fixture ol-prefix-absent <<'EOF'
 # 标题
 
@@ -230,7 +230,7 @@ if render strong-alt; then
     '<strong style="color: #ff4ba3; font-weight: 600">警告：'
 fi
 
-# 没配 strong_alt 的主题：所有 strong 一律常规样式（27 份定稿产物依赖这个）
+# 没配 strong_alt 的主题：所有 strong 一律常规样式（26 份定稿产物依赖这个）
 fixture strong-alt-absent <<'EOF'
 # 标题
 
@@ -392,7 +392,7 @@ fi
 
 # ---------------------------------------------------------------- PART B 逐字节回归
 
-printf '\n── PART B 逐字节回归（27 份真实主题）──────────\n'
+printf '\n── PART B 逐字节回归（26 份真实主题）──────────\n'
 
 ARTICLE="$CORPUS/litellm-multi-provider-gateway.md"
 OUTDIR="$CORPUS/out"
@@ -423,7 +423,6 @@ PAIRS="
 17-scarlet-tech:17-scarlet-tech
 18-midnight-study:18-midnight-study
 19-candy-pop:19-candy-pop
-20-monochrome-mag:20-monochrome-mag-v5
 21-aurora-flow:21-aurora-flow
 22-blueprint-grid:22-blueprint-grid
 23-terracotta-sun:23-terracotta-sun

@@ -162,8 +162,9 @@ def render_code(code, lang, highlight):
         parts = []
         for text, cls in tokenize(line, lang):
             piece = spaces_to_nbsp(esc(text))
-            # 值可以是裸色值，也可以是完整样式串——无彩色主题靠字重和字形区分 token，
-            # 只能上色的话它就没有区分手段了（monochrome-mag、ink-wash）。
+            # 值可以是裸色值，也可以是完整样式串——低彩主题靠字重和字形区分 token，
+            # 只能上色的话它就没有区分手段了（ink-wash；terracotta-sun 的注释与关键字
+            # 在自己的代码底上只有一支达标色可用，只能同色不同字重/字形）。
             v = (highlight or {}).get(cls) if cls else None
             css = (v if v and ":" in v else f"color: {v};") if v else None
             parts.append(f'<span style="{css}">{piece}</span>' if css else piece)

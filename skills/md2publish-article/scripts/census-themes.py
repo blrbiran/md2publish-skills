@@ -140,7 +140,7 @@ def check_l1(name, md_text, theme):
     # 在当前实现下取值恒等（见下）。theme_lib.py:59 的 _ENTITY 第一个分支就是
     # `#[0-9a-fA-F]{6}` 本身：任何带色值的行天然满足「含可机械化实体」，落进
     # spec_lines。因此 declared（spec_lines 各行色值的并集）与 all_md（全文色值
-    # 集合）在当前 _ENTITY 下恒等——已对全库 27 对主题验证，0 处不同，
+    # 集合）在当前 _ENTITY 下恒等——已对全库 26 对主题验证，0 处不同，
     # spec_lines 这一步在 L1 里眼下是零过滤。这不是本档的 bug，是 _ENTITY 定义
     # 的必然结果，记在这里防止以后有人「优化」成直接对 clean 取色值当作 declared。
     # 但这条恒等关系是**脆的**：_ENTITY 的色值分支若被收窄（比如为了堵 URL 假阳性

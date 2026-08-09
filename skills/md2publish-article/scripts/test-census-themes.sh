@@ -161,7 +161,9 @@ EOF
 check l1-uncarried-ok
 
 # 3. 同一行把色值当反例引用——UNCARRIED 取「规范行里的任意色值」，这行是它天然的
-#    误报面。形态照 monochrome-mag.md:15 抄。该色在别处有落点，所以不该报。
+#    误报面。形态是「同一行把另一个色值当反例引用」，真实库里 bauhaus-pop.md 的语法
+#    高亮行（「红 X 和蓝 Y 不进代码块——只有 2.94:1 和 2.65:1」）就是这个形状。
+#    该色在别处有落点，所以不该报。
 mkmd l1-uncarried-counterexample <<'EOF'
 # fixture
 
@@ -1631,7 +1633,7 @@ checkl2 l2-zero-structural-key "ZERO #b5432a"
 #     在场），于是 `{footer_html} ⊆ 允许集合` 成立，这条被静默。
 #     它与 case 18（l2-nearzero，色挂 footer + footer_html）的差别**只是颜色写在
 #     文末那两个键中的哪一个**——那是个任意的区分，两条必须同判。真实库当前没有
-#     主题这么挂（27 个全查过），这一档存在的意义正是替将来的主题守着。
+#     主题这么挂（26 个全查过），这一档存在的意义正是替将来的主题守着。
 mkmd l2-nearzero-footer-html-only <<'EOF'
 # fixture
 
