@@ -124,5 +124,33 @@ try:
 except CL.ContrastWalkError:
     ok("无底色祖先时抛 ContrastWalkError（不许兜白）", True)
 
+# ── decor_signatures / is_decor ────────────────────────────
+THEME = {
+    "container": "background-color: #ffffff",
+    "h3_prefix_html": '<span style="color: #6f7a4d;">☘&nbsp;</span>',
+    "list_prefix_html": '<span style="color: #c2593b;">●</span>&nbsp;&nbsp;',
+    "list_prefix_ol_html": "{n}.",            # 没有 style，走字面文本那条路
+    "strong": "color: #c2593b; font-weight: 700",   # 不是注入字段，不该进签名
+}
+SIGS = CL.decor_signatures(THEME)
+
+def node(style, text, tag="span"):
+    return CL.Node(tag, (0,0,0), [(255,255,255)], 13.0, 400, text, style, None)
+
+ok("注入前缀的样式串算装饰",       CL.is_decor(node("color: #6f7a4d;", "☘"), SIGS))
+ok("注入列表符的样式串算装饰",     CL.is_decor(node("color: #c2593b;", "●"), SIGS))
+ok("strong 的样式串不算装饰（不是注入字段）",
+   not CL.is_decor(node("color: #c2593b; font-weight: 700", "强调"), SIGS))
+ok("代码块里的纯符号不算装饰——这正是字符类判据会判错的地方",
+   not CL.is_decor(node("color: #4f382b", "|---|"), SIGS))
+ok("代码块里的花括号不算装饰",
+   not CL.is_decor(node("color: #4f382b", "{"), SIGS))
+ok("内容里的引号不算装饰（探针曾把它误判成装饰）",
+   not CL.is_decor(node("color: #d97758", '"', tag="em"), SIGS))
+ok("没有 style 的注入字段按字面文本认",
+   CL.is_decor(node("", "1."), SIGS))
+ok("样式串比对忽略首尾空白与末尾分号",
+   CL.is_decor(node("  color: #6f7a4d  ", "☘"), SIGS))
+
 print(f"\nok：{fails} 条失败")
 sys.exit(1 if fails else 0)

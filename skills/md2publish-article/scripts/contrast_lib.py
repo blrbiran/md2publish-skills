@@ -231,3 +231,65 @@ def walk(html):
             f"走完后标签栈没回到根，残留 {len(residue)} 层：{residue[:8]}。"
             f"栈错位会静默污染全部测量，是这套脚本最危险的失效模式。")
     return w.nodes
+
+
+#: 会把「装饰」注入产物的 theme.json 字段。装饰按图形 3:1 判，其余按文字 4.5 判。
+#: 这份名单是判据本身——加字段时必须同步这里，否则新装饰会被当成正文误报。
+DECOR_FIELDS = (
+    "h2_prefix_html", "h2_suffix_html", "h3_prefix_html",
+    "list_prefix_html", "list_prefix_cycle", "list_prefix_ol_html",
+    "blockquote_prefix_html", "footer_html",
+)
+
+_STYLE_ATTR = re.compile(r'style\s*=\s*"([^"]*)"')
+_TAGS = re.compile(r"<[^>]+>")
+
+
+def _norm_style(s):
+    """比对用的样式串规范形：去首尾空白、去末尾分号、压缩内部空白。"""
+    return re.sub(r"\s+", " ", (s or "").strip()).rstrip(";").strip()
+
+
+def decor_signatures(theme):
+    """从 theme.json 抽出装饰节点的识别签名 → (样式串集合, 字面文本集合)。"""
+    styles, texts = set(), set()
+    for field in DECOR_FIELDS:
+        val = theme.get(field)
+        if not val:
+            continue
+        for item in (val if isinstance(val, list) else [val]):
+            if not isinstance(item, str):
+                continue
+            found = _STYLE_ATTR.findall(item)
+            for s in found:
+                styles.add(_norm_style(s))
+            if not found:
+                # 没有 style 的字段（如纯文本 list_prefix_ol_html）走字面文本；
+                # `{n}` 序号占位原样保留在签名里，匹配时按整体模板判断（见 _text_matches），
+                # 不拆成两半再比对——拆开后固定半边（比如单独的 "."）会跟任何以句号收尾的
+                # 正文句子撞上，那就是又一次「按字符类判」的翻版，回到了本任务要避免的错误。
+                plain = _TAGS.sub("", item).replace("&nbsp;", " ").strip()
+                if plain:
+                    texts.add(plain)
+    return frozenset(styles), frozenset(texts)
+
+
+_NUM_PLACEHOLDER = "{n}"
+
+
+def _text_matches(t, template):
+    """t 是不是由 template 生成的字面文本；template 可能含 `{n}` 数字占位（如 "{n}."）。"""
+    if _NUM_PLACEHOLDER not in template:
+        return t == template
+    pattern = r"\d+".join(re.escape(p) for p in template.split(_NUM_PLACEHOLDER))
+    return re.fullmatch(pattern, t) is not None
+
+
+def is_decor(node, sigs):
+    """该文本节点是不是由 theme.json 的注入字段产生的装饰。"""
+    styles, texts = sigs
+    style = _norm_style(node.style)
+    if style and style in styles:
+        return True
+    t = node.text.strip()
+    return any(_text_matches(t, x) for x in texts)
