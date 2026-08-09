@@ -44,15 +44,21 @@ check() {
   fi
 }
 
-# 受控 fixture 文章：段落 6 段、strong 6 处、h3 2 处、列表 4 项。
+# 受控 fixture 文章：段落 6 段、strong 6 处、h3 2 处、列表 4 项、**em 1 处**。
 # 计数写死，INVERT 的倍数关系才可断言。
+#
+# em 那一处是给 NEAR-ZERO 结构键收窄那一节用的（本文件末尾 case 43）：真实库里
+# candy-pop 的 `#e8f2f9` 只挂在 `em` 上，落点恒 1，是规则 1 说的那种死色，收窄判据
+# 时**必须继续报**。不在 ART 里放一个 em，就只能拿别的键去近似那个形态，钉不住真靶子。
+# 对既有用例无影响：没有任何一条 fixture 的 theme.json 配了 `em` 键，
+# `md2html.py:210-211` 于是渲染成 `<em style="">`，不含色值，landings() 数不到它。
 ART="$WORK/fixture-article.md"
 cat > "$ART" <<'EOF'
 # 标题
 
 ## 第一章
 
-一段正文，里面有 **强调甲** 和 **强调乙**。
+一段正文，里面有 **强调甲** 和 **强调乙**，还有一处 *轻强调*。
 
 又一段正文，**强调丙**。
 
@@ -763,7 +769,7 @@ mkjson l2-zero <<'EOF'
  "strong": "color: #222222",
  "td_alt": "background-color: #999999"}
 EOF
-checkl2 l2-zero "ZERO #999999" "NEAR-ZERO #ffffff"
+checkl2 l2-zero "ZERO #999999"
 
 # 18. 主强调只出现 1 处 → NEAR-ZERO（apple-air 出事时的形态）
 #     h3_prefix_html 在 fixture 文章里只命中 2 次，用 footer_html 造 1 次。
@@ -787,7 +793,7 @@ mkjson l2-nearzero <<'EOF'
  "footer": "color: #0071e3",
  "footer_html": "完"}
 EOF
-checkl2 l2-nearzero "NEAR-ZERO #0071e3" "NEAR-ZERO #ffffff"
+checkl2 l2-nearzero "NEAR-ZERO #0071e3"
 
 # 19. 强调色落点全是边框细线，文字落点 0 → DECOR（规则 6）
 mkmd l2-decor <<'EOF'
@@ -810,7 +816,7 @@ mkjson l2-decor <<'EOF'
  "h3": "color: #222222; border-left: 3px solid #cc3366",
  "list_item": "color: #222222; border-left: 2px solid #cc3366"}
 EOF
-checkl2 l2-decor "DECOR #cc3366" "NEAR-ZERO #ffffff"
+checkl2 l2-decor "DECOR #cc3366"
 
 # 20. 标签写「线色，不作文字色」= 没标强调 → 不该报 DECOR。
 #     判定只看冒号前的标签，不看破折号后的解释（washi-spring 的形态，
@@ -837,7 +843,7 @@ mkjson l2-decor-labeled-line <<'EOF'
  "h3": "color: #222222; border-bottom: 2px solid #d98e9f",
  "list_item": "color: #222222; border-left: 2px solid #d98e9f"}
 EOF
-checkl2 l2-decor-labeled-line "NEAR-ZERO #ffffff"
+checkl2 l2-decor-labeled-line
 
 # 21. 主强调文字落点少于副强调 → INVERT（candy-pop 的形态）
 mkmd l2-invert <<'EOF'
@@ -861,7 +867,7 @@ mkjson l2-invert <<'EOF'
  "h3": "color: #f28ba8",
  "strong": "color: #7fb5d5"}
 EOF
-checkl2 l2-invert "INVERT #f28ba8" "NEAR-ZERO #ffffff" "NEAR-ZERO #f28ba8"
+checkl2 l2-invert "INVERT #f28ba8" "NEAR-ZERO #f28ba8"
 
 # 22. 主强调文字落点多于副强调 → 不该报
 mkmd l2-invert-ok <<'EOF'
@@ -885,7 +891,7 @@ mkjson l2-invert-ok <<'EOF'
  "h3": "color: #7fb5d5",
  "strong": "color: #f28ba8"}
 EOF
-checkl2 l2-invert-ok "NEAR-ZERO #ffffff" "NEAR-ZERO #7fb5d5"
+checkl2 l2-invert-ok "NEAR-ZERO #7fb5d5"
 
 # 23. UNCARRIED 已报过的色，ZERO 降级为 INFO 不重复计入 ERROR，
 #     但事实不许从报告里消失。
@@ -907,7 +913,7 @@ mkjson l2-dedup <<'EOF'
 {"container": "background-color: #ffffff", "p": "color: #222222",
  "strong": "color: #222222"}
 EOF
-checkl2 l2-dedup "UNCARRIED #767676" "NEAR-ZERO #ffffff"
+checkl2 l2-dedup "UNCARRIED #767676"
 
 # ── fix round 1（code review 补漏）──────────────────────────────────────
 # check_l2 里 INVERT 判据有两条分支：主强调 vs 副/辅强调（用例 21/22 已覆盖），
@@ -940,7 +946,7 @@ mkjson l2-invert-ref <<'EOF'
 {"container": "background-color: #ffffff", "p": "color: #b08a3e",
  "h3": "color: #a34a1f"}
 EOF
-checkl2 l2-invert-ref "INVERT #a34a1f" "NEAR-ZERO #ffffff" "NEAR-ZERO #a34a1f"
+checkl2 l2-invert-ref "INVERT #a34a1f" "NEAR-ZERO #a34a1f"
 
 # 26. 对照（近失手）：参照色文字落点 5（只落在真正的段落上，列表项另配了第三个
 #     颜色、不再落回 p 的兜底），是主强调 2 的 2.5 倍，没有过三分之一阈值
@@ -967,7 +973,7 @@ mkjson l2-invert-ref-nearmiss <<'EOF'
  "list_item": "color: #556677",
  "h3": "color: #a34a1f"}
 EOF
-checkl2 l2-invert-ref-nearmiss "NEAR-ZERO #ffffff" "NEAR-ZERO #a34a1f"
+checkl2 l2-invert-ref-nearmiss "NEAR-ZERO #a34a1f"
 
 # 24. 无语料时 L2 整体 SKIP，退出码要标红（静默跳过等于没有护栏），
 #     且 L1/L3 照常出结论。
@@ -1019,7 +1025,7 @@ mkjson ex-silenced <<'EOF'
 {"container": "background-color: #ffffff", "p": "color: #222222",
  "strong": "color: #222222", "highlight": {"comment": "#6a4f1a"}}
 EOF
-checkl2 ex-silenced "NEAR-ZERO #ffffff"
+checkl2 ex-silenced
 
 # 26. 档名打错 → FAIL，不许静默地什么都不销
 mkmd ex-badtier <<'EOF'
@@ -1074,7 +1080,7 @@ mkjson ex-stale <<'EOF'
 {"container": "background-color: #ffffff", "p": "color: #222222",
  "strong": "color: #222222"}
 EOF
-checkl2 ex-stale "STALE-NOTE #aabbcc" "NEAR-ZERO #ffffff"
+checkl2 ex-stale "STALE-NOTE #aabbcc"
 
 # 28. 无语料时 L2 的注记不判 stale（否则一跑就是一片凭空 ERROR）
 #     显式把 MD2HTML_CORPUS 指到不存在的路径——本机真实语料库确实存在
@@ -1203,7 +1209,7 @@ mkjson ex-stale-l2-corpus <<'EOF'
 {"container": "background-color: #ffffff", "p": "color: #222222",
  "strong": "color: #222222"}
 EOF
-checkl2 ex-stale-l2-corpus "NEAR-ZERO #ffffff" "STALE-NOTE #aabbcc"
+checkl2 ex-stale-l2-corpus "STALE-NOTE #aabbcc"
 
 # 32.（Important 2，第一问）--counts 从来没有自动化断言过——之前只有 Step 5
 #     的人工跑一遍核对。钉住「文字列写死成 0」这类 mutation：随便改
@@ -1258,7 +1264,7 @@ mkjson counts-decor <<'EOF'
  "h3": "color: #222222; border-left: 3px solid #cc3366",
  "list_item": "color: #222222; border-left: 2px solid #cc3366"}
 EOF
-checkl2 counts-decor "NEAR-ZERO #ffffff" "DECOR #cc3366"
+checkl2 counts-decor "DECOR #cc3366"
 checkcounts counts-decor "#cc3366" "6 0 0 6"
 
 echo "── 终审补漏：豁免注记写残了要大声 FAIL，不许静默 ──────────"
@@ -1349,7 +1355,7 @@ mkjson ex-wrongprefix <<'EOF'
 {"container": "background-color: #ffffff", "p": "color: #222222",
  "strong": "color: #222222", "highlight": {"comment": "#6a4f1a"}}
 EOF
-checkl2 ex-wrongprefix "INVENTED #6a4f1a" "NEAR-ZERO #ffffff"
+checkl2 ex-wrongprefix "INVENTED #6a4f1a"
 
 # 37. STALE-NOTE 本身不是合法的注记档名——它是 apply_exemptions 算出来的产物，
 #     从不出现在 rows 里，一条 `census-ok: STALE-NOTE ...` 注记永远销不到任何
@@ -1438,10 +1444,169 @@ mkjson l2-uppercase-hex <<'EOF'
 {"container": "background-color: #ffffff", "p": "color: #222222",
  "strong": "color: #cc3366"}
 EOF
-checkl2 l2-uppercase-hex "NEAR-ZERO #ffffff"
+checkl2 l2-uppercase-hex
 # print_counts 也在调用点小写化，输出行本身就是 #cc3366，不是 .md 里写的 #CC3366——
 # 断言用小写去配，真正钉住的是「查得到落点」这件事，不是大小写透传。
 checkcounts l2-uppercase-hex "#cc3366" "6 6 0 0"
+
+echo "── 判据收窄：挂在结构键上的 NEAR-ZERO 不报 ──────────"
+
+# 背景：NEAR-ZERO 第一版对真实库报了 19 条，其中 18 条是同一个形态——那个色在
+# theme.json 里**只挂在 `container`**（`27-retro-phosphor` 是 `container` +
+# `footer_html`），而 `md2html.py:439` 的 `build()` 只拼一个最外层容器 `<div>`、
+# `:426-434` 只拼一个文末 `<p>`，落点恒为 1 和 2，**不随文章长度变化**。容器底色
+# 出现 1 次不是「几乎没有」，它铺满整页。lessons 规则 7 正面适用：一个检查项报了
+# 大半个库，是判据下宽了。
+#
+# 收窄的五条硬约束（lessons「判据可以下窄」一节）逐条落在下面的用例上：
+#   1. 只作用于 NEAR-ZERO，ZERO 一律不动          → case 45
+#   2. 判定依据是 theme.json 里的**挂载键**       → case 41 / 42
+#   3. 不是调色板标签（candy-pop 标签正是「浅蓝底」）→ case 43
+#   4. 不得用 REF_EXCLUDE 这类词表                → case 43 同时覆盖（标签整个不参与判定）
+#   5. candy-pop 那条挂在 em 上的必须继续报        → case 43
+# 外加：挂载键集合只要有一个不在结构键集合内，就按真实计数判 → case 44。
+#
+# 结构键集合定为 `{container, footer_html}`，是**照 build() 的源码**定的，不是照
+# 文档抄的。注意 `footer` 也只发射一次，却**故意不在集合里**：case 18
+# （l2-nearzero）钉的正是 apple-air 那个形态——唯一强调色只落在文末落款上，落点 1，
+# 那是真发现。把 `footer` 加进结构键会把它一并灭口，而真实库里没有任何一条
+# NEAR-ZERO 挂在 `footer` 上，加进去只买到「能销掉一个该报的形态」这一个后果。
+
+# 41.（收窄的主用例）色只挂在 container 上 → 落点恒 1 → 不该报 NEAR-ZERO。
+#     钉住「压根没加这道门」：没有门时这条必报 NEAR-ZERO #faf9f5。
+#     形态照 01-autumn-warm / 25-washi-spring 那 17 个主题抄——调色板一行纸白底，
+#     theme.json 里除 container 外没有第二个键复用它。
+mkmd l2-nearzero-structural <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 纸白底：`#faf9f5`（主容器，铺满整页）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #222222`
+EOF
+mkjson l2-nearzero-structural <<'EOF'
+{"container": "background-color: #faf9f5", "p": "color: #222222",
+ "strong": "color: #222222"}
+EOF
+checkl2 l2-nearzero-structural
+
+# 42.（retro-phosphor 形态）色挂在 container + footer_html 两个结构键上 → 落点恒 2
+#     → 仍不该报。钉住「结构键集合只写了 container、漏了 footer_html」这个
+#     mutation：漏写时这条会报 NEAR-ZERO #0d120d，而真实库里 27-retro-phosphor
+#     正是这一条。
+mkmd l2-nearzero-structural-footer <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 终端底：`#0d120d`（主容器 / 文末终端行）
+- 荧光绿：`#33ff66`
+
+## 正文与强调
+
+- 段落：`color: #33ff66`
+- strong：`color: #33ff66`
+EOF
+mkjson l2-nearzero-structural-footer <<'EOF'
+{"container": "background-color: #0d120d", "p": "color: #33ff66",
+ "strong": "color: #33ff66",
+ "footer": "text-align: center",
+ "footer_html": "<span style=\"background-color: #0d120d; color: #33ff66; letter-spacing: 0;\">$ EOF</span>"}
+EOF
+checkl2 l2-nearzero-structural-footer
+
+# 43.（必须继续报，钉死「按标签判」这条歧路）candy-pop 的真实形态：调色板标签
+#     写着「浅蓝底」——含「底」——但这个色在 theme.json 里**只挂在 `em`** 上，
+#     ART 里 em 恰好 1 处，落点 1。规则 1：中文公众号文章里 em 可能整篇为零，
+#     这是死色，必须继续报。
+#     钉住两个错误实现：
+#       - 「标签里有『底 / 背景』就豁免」→ 「浅蓝底」命中，这条被灭口；
+#       - 「用 REF_EXCLUDE 词表豁免」→ 该表含「底」「背景」，同样灭口
+#         （lessons 记的那次险些灭掉 aurora-flow 立身缺陷的方案）。
+#     正确实现完全不看标签，只看挂载键 {em} ⊄ {container, footer_html}。
+mkmd l2-nearzero-em-labeled-bg <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 奶油底：`#fdf6f0`（主容器）
+- 深樱粉：`#d96687`
+- 浅蓝底：`#e8f2f9`（em 的底）
+
+## 正文与强调
+
+- 段落：`color: #d96687`
+- em：`background-color: #e8f2f9`
+EOF
+mkjson l2-nearzero-em-labeled-bg <<'EOF'
+{"container": "background-color: #fdf6f0", "p": "color: #d96687",
+ "strong": "color: #d96687",
+ "em": "background-color: #e8f2f9"}
+EOF
+checkl2 l2-nearzero-em-labeled-bg "NEAR-ZERO #e8f2f9"
+
+# 44.（挂载键集合要整体判，不是「沾一个就算」）色挂在 container + td_alt 上：
+#     td_alt 是会随文章重复的键（斑马纹每隔一行一次），只是 ART 里没有表格，
+#     这一轮落点为 0，总数因此是 1。挂载键集合 {container, td_alt} 不是结构键
+#     集合的子集 → 仍按真实计数判 → 报 NEAR-ZERO。
+#     钉住「只要挂载键里**有一个**是结构键就豁免」（`any(...)` 而不是 `<=`）
+#     这个错误实现：那样这条会被灭口，而它恰恰是「换一篇带表格的文章结论就变」
+#     的那种色，不该沉默。
+mkmd l2-nearzero-structural-plus <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 雾灰底：`#eeecea`（主容器，表格斑马纹复用同一支底）
+- 主文字：`#222222`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 斑马纹：`background-color: #eeecea`
+EOF
+mkjson l2-nearzero-structural-plus <<'EOF'
+{"container": "background-color: #eeecea", "p": "color: #222222",
+ "strong": "color: #222222",
+ "td_alt": "background-color: #eeecea"}
+EOF
+checkl2 l2-nearzero-structural-plus "NEAR-ZERO #eeecea"
+
+# 45.（ZERO 一律不动）色只挂在结构键 footer_html 上，产物落点 0 → 必须报 ZERO。
+#     钉住「把这道门放到循环开头、放在 `total == 0` 分支之前」这个错误实现：
+#     那样 {footer_html} ⊆ 结构键，这条 ZERO 会被一并灭口，而 ZERO 是 ERROR 档、
+#     本轮明令不动。
+#     ⚠️ 这条 fixture 的形态是**刻意造的**，不是抄真实库：容器底色一定会渲染进
+#     那个 `<div style=...>`，落点永远 ≥1，所以「挂在结构键上却 0 落点」只能靠
+#     把色值放在 landings() 读不到的位置（这里是 footer_html 里的一条说明注释——
+#     `theme_lib.landings` 只读 `style="..."` 属性）来构造。它唯一的职责是钉住
+#     这道门相对 `total == 0` 分支的**位置**，不承担形态保真。
+mkmd l2-zero-structural-key <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 朱砂印：`#b5432a`（文末印章）
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 落款：`color: #b5432a`
+EOF
+mkjson l2-zero-structural-key <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222",
+ "footer": "text-align: center",
+ "footer_html": "<!-- 印色 #b5432a --><span style=\"letter-spacing: 0;\">完</span>"}
+EOF
+checkl2 l2-zero-structural-key "ZERO #b5432a"
 
 printf '\n%d 通过，%d 失败\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

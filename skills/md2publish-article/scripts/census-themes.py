@@ -61,6 +61,29 @@ LEGAL_NOTE_TIERS = set(SEVERITY) - {"STALE-NOTE"}
 TOP_BLOCK = ("p", "p_first", "h2", "h2_first", "h3", "blockquote",
              "pre", "table", "list_item", "hr")
 
+# NEAR-ZERO 的结构键：色值只挂在这些键上时，落点数由 build() 的结构写死，
+# 不随文章长度变化，**≤2 处不构成「几乎没出现」**，不报 NEAR-ZERO。
+#
+# 集合是照 md2html.py 的源码定的，不是照文档抄的：
+#   container    md2html.py:439  整篇只拼一个最外层 <div>，恒 1 次
+#   footer_html  md2html.py:426-434  整篇只拼一个文末 <p>，最多 1 次
+# 容器底色出现 1 次不是缺陷——它铺满整页。真实库 19 条 NEAR-ZERO 里有 18 条是
+# 这个形态（17 条只挂 container，27-retro-phosphor 是 container + footer_html），
+# 一个检查项报了大半个库就是判据下宽了（lessons 规则 7）。
+#
+# **`footer` 也只发射一次，却故意不在集合里。**它是文末那个 <p> 的样式键，能承载
+# 「唯一强调色只落在落款上」这种真发现（apple-air 形态，test-census-themes.sh 的
+# l2-nearzero 钉着它）；而真实库里没有任何一条 NEAR-ZERO 挂在 `footer` 上，把它加
+# 进来只买到「能灭掉一个该报的形态」这一个后果。收窄比放宽更危险，能少一个就少一个。
+#
+# 判定用**子集**而不是「沾一个就算」：挂载键里只要有一个不在这里（哪怕另一个是
+# container），这个色的落点就依赖文章内容，必须按真实计数判。
+#
+# 判定依据只能是挂载键，**绝不能是调色板标签**：19-candy-pop 的 `#e8f2f9` 标签正是
+# 「浅蓝底」，任何「标签含底/背景就豁免」的写法（以及 REF_EXCLUDE 那类词表）都会
+# 连带灭掉那条真死色——它只挂在 `em` 上，中文文章里 em 可能整篇为零（规则 1）。
+STRUCTURAL_KEYS = frozenset({"container", "footer_html"})
+
 
 def json_colors(theme):
     """theme.json 里出现的全部色值 → 出现在哪些键上。"""
@@ -287,10 +310,11 @@ def bucket_sum(landing, bucket):
     return sum(v for (_, b), v in landing.items() if b == bucket)
 
 
-def check_l2(name, md_text, html, already):
+def check_l2(name, md_text, html, already, theme):
     """L2：theme.json ↔ 产物。already 是 L1 已报过 UNCARRIED 的色值集合。"""
     found = []
     land = landings(html)
+    mounts = json_colors(theme)
     # 小写化只做在这个调用点，不做进 palette() 本身——palette() 也喂给
     # audit-themes.py，在那边小写化会改动它的输入（复审测过对本库是 no-op，
     # 43→43，但「测过是 no-op」不等于「安全去改共享原语」）。landings() 的键
@@ -315,6 +339,18 @@ def check_l2(name, md_text, html, already):
                 found.append(("ZERO", name, color, "调色板声明了，产物里 0 处"))
             continue
         if total <= 2:
+            # 结构键上的单点落点不是「几乎没出现」，见 STRUCTURAL_KEYS 的说明。
+            # 这道门只在这个分支里，`total == 0` 的 ZERO/ZERO-DUP 已在上面 continue
+            # 掉了——**顺序是判据的一部分**：门若上移到循环开头，只挂 footer_html
+            # 的零落点色会被一并灭口，那是 ERROR 档（test-census-themes.sh 的
+            # l2-zero-structural-key 钉着这个位置）。
+            #
+            # 空集是任何集合的子集，所以「theme.json 里根本没有这个色」也会命中这道
+            # 门——但走不到这里：那种色在产物里必然 0 处（产物里每一个色值都来自某个
+            # theme.json 值，md2html.py 自己拼的样式串不含色值），上面的 ZERO 分支
+            # 先接走了它。故不另加非空守卫——加了就是一条没有用例能证死的死代码。
+            if mounts.get(color, set()) <= STRUCTURAL_KEYS:
+                continue
             # continue 在这里：落点≤2 时不再往下判 DECOR，即便这 ≤2 处全是边框/
             # 底色——NEAR-ZERO 已经把这个色标出来了，不需要 DECOR 再报一遍同一个
             # 「几乎没有」的事实。属于故意，不是漏判（review 2026-08-08 确认）。
@@ -503,7 +539,7 @@ def main():
                         rows.append(("RENDER-FAIL", name, "-", err))
                     else:
                         already = {c for t, _, c, _ in l1 if t == "UNCARRIED"}
-                        rows += check_l2(name, md_text, html, already)
+                        rows += check_l2(name, md_text, html, already, theme)
                 pre_exempt = len(rows)
                 rows, stale = apply_exemptions(name, md_text, rows, has_corpus)
                 silenced += pre_exempt - len(rows)
@@ -523,7 +559,7 @@ def main():
                         rows.append(("RENDER-FAIL", base, "-", err))
                     else:
                         already = {c for t, _, c, _ in l1 if t == "UNCARRIED"}
-                        rows += check_l2(base, md_text, html, already)
+                        rows += check_l2(base, md_text, html, already, theme)
                 pre_exempt = len(rows)
                 rows, stale = apply_exemptions(base, md_text, rows, has_corpus)
                 silenced += pre_exempt - len(rows)
