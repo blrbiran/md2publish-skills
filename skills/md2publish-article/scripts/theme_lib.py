@@ -131,18 +131,27 @@ def malformed_exemptions(md_text, prefix):
 
 _TAG_STYLE = re.compile(r'<([a-zA-Z][a-zA-Z0-9]*)\b[^>]*?style="([^"]*)"')
 _COLOR_PROP = re.compile(r"(?<![-\w])color\s*$")
+_PRE_BLOCK = re.compile(r"<pre\b.*?</pre>", re.S)
 
 
-def landings(html):
-    """色值 → Counter[(标签, 桶)]，桶 ∈ text / fill / line。
+def _scan(html, skip_ranges=(), skip_style=None):
+    """landings / prose_landings 共用的唯一一遍扫描。
 
     桶按 **CSS 属性名**分，不按视觉直觉分：
       text = color；fill = background 开头的任何属性；line = 其余
     取属性名必须带 (?<![-\\w]) 守卫——background-color: 含子串 color:，
     不挡就永远取到底色（audit-themes.py:103 踩过一次，配了变异用例）。
+
+    skip_ranges / skip_style 只由 prose_landings 传，landings 一律不传——
+    两者必须走同一份桶定义，不能各写一遍（Trap 3：不许有第二个真相源）。
     """
     res = collections.defaultdict(collections.Counter)
-    for tag, style in _TAG_STYLE.findall(html):
+    for m in _TAG_STYLE.finditer(html):
+        tag, style = m.group(1), m.group(2)
+        if any(a <= m.start() < b for a, b in skip_ranges):
+            continue
+        if skip_style and style.strip() == skip_style:
+            continue
         for decl in style.split(";"):
             if ":" not in decl:
                 continue
@@ -157,3 +166,27 @@ def landings(html):
             for c in re.findall(r"#[0-9a-fA-F]{6}", val):
                 res[c.lower()][(tag.lower(), bucket)] += 1
     return res
+
+
+def landings(html):
+    """色值 → Counter[(标签, 桶)]，桶 ∈ text / fill / line。全量口径。"""
+    return _scan(html)
+
+
+def prose_landings(html, inline_code_style):
+    """散文面落点 = landings() 减去**代码面**：`<pre>` 块内的一切 + 行内 code。
+
+    只有 census_themes.check_l2 的 `INVERT` 用它。别的档（ZERO / NEAR-ZERO /
+    DECOR）一律仍用 landings()——「这个色在产物里出现了几次」和「它在阅读面上
+    占多大分量」是两个问题，只有 INVERT 问的是后者。
+
+    **行内 code 认不出来的话，这个函数就是假的。**`md2html.py:193` 发的行内
+    code 是 `<span style="{inline_code}">`，**不是 `<code>`**——按 `<pre>`/
+    `<code>` 标签切区域会把它整个漏掉（实测语料里 193 处，占某些主题参照色
+    落点的七成）。产物里没有任何别的标记能区分它，唯一可靠的把手是「样式串
+    与 theme.json 的 `inline_code` 逐字相同」：那个键在 md2html.py 里是原样
+    拼进去的、不加定宽后缀，且全库 26 份 theme.json 已核过没有第二个键与它
+    重样式串。inline_code_style 为空（主题没配这个键）时只剥 `<pre>`。
+    """
+    ranges = [(m.start(), m.end()) for m in _PRE_BLOCK.finditer(html)]
+    return _scan(html, ranges, (inline_code_style or "").strip() or None)

@@ -40,7 +40,7 @@ import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from theme_lib import (strip_comments, spec_lines, theme_pairs, palette, landings,
-                        exemptions, malformed_exemptions)
+                        prose_landings, exemptions, malformed_exemptions)
 
 SEVERITY = {
     "UNCARRIED": "ERROR", "INVENTED": "ERROR", "INLINE-BLOCK": "ERROR",
@@ -287,6 +287,37 @@ ACCENT_ROLE = ("强调", "点睛", "accent", "主色")
 REF_EXCLUDE = ("底", "背景", "线", "边", "卡片", "面板", "纸面", "块",
                "正文", "主文字", "默认文字", "次级")
 
+# INVERT 只比**散文面**落点，代码面（`<pre>` 块 + 行内 code）不计。
+#
+# **原则：INVERT 问的是「哪支色统治了阅读面」，而代码面的大小是语料的属性，
+# 不是主题的属性。**代码面有它自己一套密度极高、且完全由文章体裁决定的色彩预算
+# （lessons 规则 7：行内 code 密度极高，实测样本 193 处）。拿包含代码面的总数去
+# 判倒置，量到的是「这篇文章有多少代码」，不是「这个主题的主强调够不够显眼」。
+#
+# 这不是从「某条用例变红了」或「真实库里没有主题这样」反推出来的判据——那两种
+# 理由在本项目里各被判过一次调参。它是先量后定：2026-08-09 对语料
+# litellm-multi-provider-gateway.md 逐色拆代码面 / 散文面，三个互不相干的主题
+# 各自挂在 `inline_code` 上的那支色，**行内 code 都恰好贡献 193 处**——
+#
+#     23-terracotta-sun  #8f3f28  文字 284 = 代码面 270 + 散文 14
+#     09-gilded-ink      #8f6f2f  文字 253 = 代码面 193 + 散文  60
+#     19-candy-pop       #d96687  文字 271 = 代码面 193 + 散文  78
+#
+# 193 是语料的常数。一支色只要挂上 `inline_code`，就凭空得到这 193 处，
+# 换一篇没有代码的文章则一处也没有。这个量不描述主题。
+#
+# **备选方案 (b)「把挂载键含代码面的参照色整支排除」已被否决**：`#8f6f2f` 同时
+# 挂在 `strong` 和 `inline_code` 上，整支排除会连它那 60 处货真价实的散文落点
+# 一起丢掉，等于把判据窄到刚好盖住自己要抓的靶子（lessons「判据可以下窄」）。
+# l2-invert-prose-still-fires 用例专门钉死这个改法。
+#
+# **只作用于 INVERT。**ZERO / NEAR-ZERO / DECOR 以及 L1/L3 全部仍用全量落点：
+# 「这个色在产物里出现了几次」和「它在阅读面上占多大分量」是两个问题，
+# 只有 INVERT 问的是后者。l2-codeonly-color-not-zeroed 钉死「全局套用散文口径」。
+#
+# **两侧同口径。**主强调、副/辅强调、参照色三边都按散文面数——只改一边会放过
+# 「主强调只活在代码面上」这一类真倒置（l2-invert-main-prose 钉这条）。
+
 
 def _label(line):
     """只取冒号前的角色标签，不看破折号后的解释文字。
@@ -326,6 +357,8 @@ def check_l2(name, md_text, html, already, theme):
     """L2：theme.json ↔ 产物。already 是 L1 已报过 UNCARRIED 的色值集合。"""
     found = []
     land = landings(html)
+    # 散文面口径只喂给 INVERT，见 REF_EXCLUDE 下方那段原则说明。
+    prose = prose_landings(html, theme.get("inline_code"))
     mounts = json_colors(theme)
     # 小写化只做在这个调用点，不做进 palette() 本身——palette() 也喂给
     # audit-themes.py，在那边小写化会改动它的输入（复审测过对本库是 no-op，
@@ -336,6 +369,9 @@ def check_l2(name, md_text, html, already, theme):
 
     def text_count(c):
         return bucket_sum(land.get(c, {}), "text")
+
+    def prose_count(c):
+        return bucket_sum(prose.get(c, {}), "text")
 
     for color, line in pal.items():
         total = sum(land.get(color, {}).values())
@@ -373,7 +409,7 @@ def check_l2(name, md_text, html, already, theme):
             found.append(("DECOR", name, color,
                           f"标为强调却没有文字色落点（{total} 处全是边框/底色）"))
 
-    # INVERT：主强调的文字落点少于副/辅强调，或不足参照色的三分之一
+    # INVERT：主强调的**散文面**文字落点少于副/辅强调，或不足参照色的三分之一
     mains = [(c, l) for c, l in pal.items()
              if "主强调" in _label(l) or "唯一强调" in _label(l)]
     subs = [(c, l) for c, l in pal.items()
@@ -382,16 +418,18 @@ def check_l2(name, md_text, html, already, theme):
             if not any(k in _label(l) for k in ACCENT_ROLE)
             and not any(k in _label(l) for k in REF_EXCLUDE)]
     for c, _ in mains:
-        n = text_count(c)
+        n = prose_count(c)
         why = None
         for sc, sl in subs:
-            if text_count(sc) > n:
-                why = f"主强调文字落点 {n}，少于副/辅强调 {_label(sl)} 的 {text_count(sc)}"
+            if prose_count(sc) > n:
+                why = (f"主强调散文面文字落点 {n}，"
+                       f"少于副/辅强调 {_label(sl)} 的 {prose_count(sc)}")
                 break
         if not why:
             for rc, rl in refs:
-                if text_count(rc) > 3 * max(n, 1):
-                    why = f"主强调文字落点 {n}，不足参照色 {_label(rl)}（{text_count(rc)}）的三分之一"
+                if prose_count(rc) > 3 * max(n, 1):
+                    why = (f"主强调散文面文字落点 {n}，不足参照色 "
+                           f"{_label(rl)}（{prose_count(rc)}）的三分之一")
                     break
         if why:
             found.append(("INVERT", name, c, why))
@@ -447,25 +485,32 @@ def apply_exemptions(name, md_text, rows, l2_active):
     return kept, stale
 
 
-def print_counts(name, md_text, html):
+def print_counts(name, md_text, html, theme):
     """--counts：每个调色板色的落点分解。把「改完必须去数产物」变成一条命令。
 
-    数的口径与三档判据同源：都是先 landings(html) 拿 Counter[(标签, 桶)]，
-    再调 bucket_sum ——跟 check_l2.text_count 完全同一个函数、同一处定义，
-    不是「凑巧写得一样」的两份 sum(...)。谁改了 DECOR/INVERT 用的桶定义，
-    这里必然跟着变（Trap 3：不许有第二个真相源）。
+    数的口径与各档判据同源：都是先 landings(html) / prose_landings(html, ...)
+    拿 Counter[(标签, 桶)]，再调 bucket_sum ——跟 check_l2 的 text_count /
+    prose_count 完全同一批函数、同一处定义，不是「凑巧写得一样」的几份
+    sum(...)。谁改了 DECOR/INVERT 用的桶定义，这里必然跟着变
+    （Trap 3：不许有第二个真相源）。
+
+    末列「散文」= 剥掉代码面（`<pre>` 块 + 行内 code）之后的文字落点，
+    **它就是 INVERT 拿去比的那个数**。少了这一列，人拿「文字」列去核一条
+    INVERT 会永远对不上——两个真相源就是这么分叉的。
     """
     land = landings(html)
+    prose = prose_landings(html, theme.get("inline_code"))
     # 同 check_l2：小写化只做在这个调用点，理由见那边的注释。
     pal = {c.lower(): line for c, line in palette(strip_comments(md_text)).items()}
-    print(f"{'色值':<10}{'角色':<24}{'总':>5}{'文字':>6}{'面':>5}{'线':>5}")
+    print(f"{'色值':<10}{'角色':<24}{'总':>5}{'文字':>6}{'面':>5}{'线':>5}{'散文':>6}")
     for color, line in pal.items():
         c = land.get(color, {})
         tot = sum(c.values())
         tx = bucket_sum(c, "text")
         fl = bucket_sum(c, "fill")
         ln = bucket_sum(c, "line")
-        print(f"{color:<10}{_label(line)[:22]:<24}{tot:>5}{tx:>6}{fl:>5}{ln:>5}")
+        pr = bucket_sum(prose.get(color, {}), "text")
+        print(f"{color:<10}{_label(line)[:22]:<24}{tot:>5}{tx:>6}{fl:>5}{ln:>5}{pr:>6}")
 
 
 def report(found, silenced):
@@ -522,7 +567,7 @@ def main():
         if err:
             print(f"FAIL --counts：渲染失败 —— {err}")
             return 1
-        print_counts(base, open(md).read(), html)
+        print_counts(base, open(md).read(), html, json.load(open(js)))
         return 0
 
     if not has_corpus:

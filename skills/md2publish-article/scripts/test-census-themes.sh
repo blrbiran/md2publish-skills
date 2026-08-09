@@ -1714,5 +1714,320 @@ mkjson l2-nearzero-allowset-ol <<'EOF'
 EOF
 checkl2 l2-nearzero-allowset-ol "NEAR-ZERO #e9e6e2"
 
+echo "── INVERT 的代码面隔离（散文面比较）──────────"
+
+# 本节钉住 INVERT 的一处判据缺陷：它原先拿**全部**文字落点作比较，于是比较的是
+# 语料的体裁而不是主题。实测（2026-08-09，全库语料 litellm-multi-provider-gateway.md）：
+#
+#   主题            挂 inline_code 的色    文字落点   其中代码面   散文面
+#   23-terracotta-sun  #8f3f28              284        270        14
+#   09-gilded-ink      #8f6f2f              253        193        60
+#   19-candy-pop       #d96687              271        193        78
+#
+# **三个互不相干的主题，行内 code 各贡献恰好 193 处**——它是语料的常数，不是主题
+# 的属性。代码密集的文章会把任何挂在代码面上的色抬高几百处，代码为零的文章则
+# 一处不给。拿这个数去判「哪支色统治了阅读面」，量到的是文章体裁。
+#
+# 判据因此改成：INVERT 只比**散文面**落点，代码面（`<pre>` 块 + 行内 code）不计。
+# 其余各档（ZERO / NEAR-ZERO / DECOR，以及 L1/L3 全部）一律仍用全量落点——
+# 「这个色在产物里到底出现了几次」和「它在阅读面上占多大分量」是两个问题。
+#
+# ⚠️ 代码面的两半必须分开钉：**md2html.py:193 发的行内 code 是 `<span>`，不是
+# `<code>`**，只按 `<pre>`/`<code>` 标签切区域会把 193 处行内 code 整个漏掉、
+# 当成散文（本轮第一版测量就是这么错的，数字差了一个数量级）。所以行内 code
+# 只能靠「样式串等于 theme.json 的 `inline_code`」来认——全库 26 份 theme.json
+# 已核过，没有第二个键与 `inline_code` 的样式串相同。
+
+# 带代码的受控 fixture 文章：p 5 段、strong 5 处、h3 2 处、**行内 code 13 处**、
+# 一个 yaml 代码块（key 5 + number 5 = 语法高亮 token 10 处）。
+# 计数写死，下面每条的倍数关系才可断言。ART 一个代码字符都没有，接不住这一节。
+ARTC="$WORK/fixture-article-code.md"
+cat > "$ARTC" <<'EOF'
+# 标题
+
+## 第一章
+
+一段正文，**强调甲**，配置 `alpha`、`beta`、`gamma`。
+
+又一段正文，**强调乙**，`delta`、`epsilon`。
+
+### 小标题一
+
+第三段正文，**强调丙**，`zeta`、`eta`、`theta`。
+
+```yaml
+port: 8080
+retry: 3
+limit: 20
+delay: 15
+depth: 7
+```
+
+## 第二章
+
+第四段正文，**强调丁**，`iota`、`kappa`。
+
+### 小标题二
+
+第五段正文，**强调戊**，`lambda`、`mu`、`nu`。
+EOF
+
+# checkl2c：同 checkl2，但用带代码的 ARTC 当语料。
+checkl2c() {
+  local name="$1"; shift
+  local expected actual
+  expected="$(printf '%s\n' "$@" | sed '/^$/d' | sort)"
+  actual="$(python3 "$CENSUS" --fixture-dir "$WORK/$name" --article "$ARTC" 2>&1 |
+    awk '$1 ~ /^(UNCARRIED|INVENTED|INLINE-BLOCK|UNMOUNTED|ZERO|NEAR-ZERO|DECOR|INVERT|STALE-NOTE)$/ {print $1, $3}' | sort)"
+  if [ "$actual" = "$expected" ]; then
+    printf 'ok   %s\n' "$name"; pass=$((pass + 1))
+  else
+    printf 'FAIL %s\n     期望: %s\n     实得: %s\n' "$name" "${expected:-<空>}" "${actual:-<空>}"
+    fail=$((fail + 1))
+  fi
+}
+
+# checkcountsc <用例名> <色值> <期望"总 文字 面 线 散文">：五列全断言，用 ARTC。
+# 「散文」是本节新增的第五列——INVERT 的判据数字必须能从 --counts 直接读出来，
+# 否则人拿着「文字」列去核一条 INVERT，永远对不上（bucket_sum 的 docstring 记的
+# Trap 3：不许有第二个真相源）。
+checkcountsc() {
+  local name="$1" color="$2" expected="$3"
+  local actual
+  actual="$(python3 "$CENSUS" --fixture-dir "$WORK/$name" --article "$ARTC" --counts "$name" 2>&1 |
+    awk -v c="$color" '$1==c {print $3, $4, $5, $6, $7}')"
+  if [ "$actual" = "$expected" ]; then
+    printf 'ok   %s --counts %s\n' "$name" "$color"; pass=$((pass + 1))
+  else
+    printf 'FAIL %s --counts %s\n     期望: %s\n     实得: %s\n' \
+      "$name" "$color" "$expected" "${actual:-<空>}"
+    fail=$((fail + 1))
+  fi
+}
+
+# 49.（本节的正靶，terracotta-sun 的形态）参照色的落点**全部**在代码面上：
+#     行内 code 13 + 语法高亮 10 = 23，散文面 0；主强调 strong 5 处、全在散文面。
+#     全量口径下 23 > 3×5=15 → 报 INVERT；散文口径下 0 > 15 不成立 → 不该报。
+#     钉住「压根没有这道门」这个错误实现。
+mkmd l2-invert-code-surface <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 浅灰底：`#eeeeee`
+- 玫红（主强调）：`#cc3366`
+- 深陶红（行内code与代码高亮用）：`#8f3f28`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #cc3366`
+- 行内 code：`color: #8f3f28`
+EOF
+# ⚠️ 上面那条调色板标签刻意不带 ASCII 空格（写成「行内code」而不是「行内 code」）：
+# checkcountsc 用 awk 默认空白分列，标签里夹一个空格就会把后面五列整体挤位。
+# 这是 checkcounts 那条既有注释记过的约束，本节两条 --counts 断言依赖它。
+mkjson l2-invert-code-surface <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #cc3366", "h3": "color: #222222",
+ "inline_code": "background-color: #eeeeee; color: #8f3f28; padding: 2px 6px",
+ "pre": "background-color: #eeeeee", "code": "color: #222222",
+ "highlight": {"key": "#8f3f28", "number": "#8f3f28"}}
+EOF
+checkl2c l2-invert-code-surface
+
+# 50.（代码面的前一半：行内 code）参照色**只**挂在 `inline_code` 上（13 处），
+#     代码块里一个 token 都不用它；主强调只在 h3 上（2 处）。
+#     全量口径 13 > 3×2=6 → 报；散文口径 0 → 不该报。
+#     钉住「只剥 `<pre>` 区域、忘了行内 code」这个错误实现——它正是本轮第一版
+#     测量踩的那个坑：md2html.py:193 发的是 `<span>`，按标签切区域看不见它。
+mkmd l2-invert-inline-code <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 浅灰底：`#eeeeee`
+- 玫红（主强调）：`#cc3366`
+- 深陶红（行内 code 用）：`#8f3f28`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- h3：`color: #cc3366`
+- 行内 code：`color: #8f3f28`
+EOF
+mkjson l2-invert-inline-code <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "h3": "color: #cc3366", "strong": "color: #222222",
+ "inline_code": "background-color: #eeeeee; color: #8f3f28; padding: 2px 6px",
+ "pre": "background-color: #eeeeee", "code": "color: #222222"}
+EOF
+checkl2c l2-invert-inline-code "NEAR-ZERO #cc3366"
+
+# 51.（代码面的后一半：`<pre>` 块）参照色**只**出现在语法高亮里（10 处），
+#     行内 code 另用正文色；主强调只在 h3 上（2 处）。
+#     全量口径 10 > 6 → 报；散文口径 0 → 不该报。
+#     钉住「只认行内 code、忘了 `<pre>` 块」这个错误实现（与 case 50 互为镜像，
+#     两条缺一，代码面就只剥掉了一半）。
+mkmd l2-invert-highlight <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 浅灰底：`#eeeeee`
+- 玫红（主强调）：`#cc3366`
+- 深陶红（代码高亮用）：`#8f3f28`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- h3：`color: #cc3366`
+- 语法高亮：`color: #8f3f28`
+EOF
+mkjson l2-invert-highlight <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "h3": "color: #cc3366", "strong": "color: #222222",
+ "inline_code": "background-color: #eeeeee; color: #222222; padding: 2px 6px",
+ "pre": "background-color: #eeeeee", "code": "color: #222222",
+ "highlight": {"key": "#8f3f28", "number": "#8f3f28"}}
+EOF
+checkl2c l2-invert-highlight "NEAR-ZERO #cc3366"
+
+# 52.（副/辅强调那条分支也要用散文口径）辅强调只挂在行内 code 上（13 处），
+#     主强调 strong 5 处。全量口径 13 > 5 → 报；散文口径 0 > 5 不成立 → 不该报。
+#     钉住「只把门加到参照色分支、漏了副/辅强调分支」这个错误实现——INVERT 有
+#     两条判断分支，改一条另一条照样按体裁判（`for sc, sl in subs:` 那条）。
+mkmd l2-invert-sub-code-surface <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 浅灰底：`#eeeeee`
+- 玫红（主强调）：`#cc3366`
+- 雾蓝（辅强调）：`#7fb5d5`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- strong：`color: #cc3366`
+- 行内 code：`color: #7fb5d5`
+EOF
+mkjson l2-invert-sub-code-surface <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #cc3366", "h3": "color: #222222",
+ "inline_code": "background-color: #eeeeee; color: #7fb5d5; padding: 2px 6px",
+ "pre": "background-color: #eeeeee", "code": "color: #222222"}
+EOF
+checkl2c l2-invert-sub-code-surface
+
+# 53.（主强调自己也要按散文口径数）主强调**只**挂在行内 code 上：全量 13 处
+#     看着很健康，散文面却是 0；参照色在 p + h3 上共 7 处散文落点。
+#     散文口径：7 > 3×max(0,1)=3 → **必须报**；
+#     全量口径：7 > 3×13=39 不成立 → 不报（**改判据之前这条就是红的**）。
+#     钉住「参照色/副强调用散文口径、主强调却仍用全量」这个不对称实现——它会
+#     放过「主强调只活在代码面上」这一类真倒置，而那正是这一档要抓的东西。
+mkmd l2-invert-main-prose <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 浅灰底：`#eeeeee`
+- 玫红（主强调）：`#cc3366`
+- 深金（strong 用，更沉）：`#8f6f2f`
+
+## 正文与强调
+
+- 段落：`color: #8f6f2f`
+- h3：`color: #8f6f2f`
+- 行内 code：`color: #cc3366`
+EOF
+mkjson l2-invert-main-prose <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #8f6f2f",
+ "h3": "color: #8f6f2f", "strong": "color: #222222",
+ "inline_code": "background-color: #eeeeee; color: #cc3366; padding: 2px 6px",
+ "pre": "background-color: #eeeeee", "code": "color: #222222"}
+EOF
+checkl2c l2-invert-main-prose "INVERT #cc3366"
+
+# 54.（孔径：散文面上的真倒置必须照报）参照色**同时**挂在行内 code（13）和散文面
+#     （p 5 + strong 5 = 10）上，主强调只有 h3 那 2 处。散文口径 10 > 3×2=6 →
+#     **必须报**。
+#     钉住备选方案 (b)「把挂载键含代码面的参照色整支排除」——那样这条会被灭口，
+#     而 `#8f6f2f` 恰恰是这个主题真正扛正文的色，排除它等于把判据窄到刚好盖住
+#     自己要抓的靶子（lessons「判据可以下窄」那一节记的镜像失败）。
+#     任何「把整个 `<pre>` 连同它前后的散文一起剥掉」的过宽实现也会在这条上变红。
+mkmd l2-invert-prose-still-fires <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 浅灰底：`#eeeeee`
+- 玫红（主强调）：`#cc3366`
+- 深金（strong 用，更沉）：`#8f6f2f`
+
+## 正文与强调
+
+- 段落：`color: #8f6f2f`
+- strong：`color: #8f6f2f`
+- h3：`color: #cc3366`
+EOF
+mkjson l2-invert-prose-still-fires <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #8f6f2f",
+ "strong": "color: #8f6f2f", "h3": "color: #cc3366",
+ "inline_code": "background-color: #eeeeee; color: #8f6f2f; padding: 2px 6px",
+ "pre": "background-color: #eeeeee", "code": "color: #8f6f2f"}
+EOF
+checkl2c l2-invert-prose-still-fires "INVERT #cc3366" "NEAR-ZERO #cc3366"
+
+# 55.（孔径：别的档一律不动）一支只活在代码面上的强调色——行内 code 13 +
+#     语法高亮 10 = 23 处，散文面 0 处。
+#     `ZERO`（总数 23，不是 0）、`NEAR-ZERO`（远大于 2）、`DECOR`（全量文字落点
+#     23，不是 0）**都不该报**。
+#     钉住「把散文口径全局套到 check_l2 上」这个错误实现：那样这个色的总数变成
+#     0 → 凭空报一条 ZERO，同时 DECOR 也会误触发。**「这个色在产物里出现了几次」
+#     和「它在阅读面上占多大分量」是两个问题**，只有 INVERT 问的是后者。
+mkmd l2-codeonly-color-not-zeroed <<'EOF'
+# fixture
+
+## 色彩系统
+
+- 背景：`#ffffff`（主容器）
+- 主文字：`#222222`
+- 浅灰底：`#eeeeee`
+- 陶红（主强调）：`#8f3f28`
+
+## 正文与强调
+
+- 段落：`color: #222222`
+- 行内 code：`color: #8f3f28`
+- 语法高亮：`color: #8f3f28`
+EOF
+mkjson l2-codeonly-color-not-zeroed <<'EOF'
+{"container": "background-color: #ffffff", "p": "color: #222222",
+ "strong": "color: #222222", "h3": "color: #222222",
+ "inline_code": "background-color: #eeeeee; color: #8f3f28; padding: 2px 6px",
+ "pre": "background-color: #eeeeee", "code": "color: #222222",
+ "highlight": {"key": "#8f3f28", "number": "#8f3f28"}}
+EOF
+checkl2c l2-codeonly-color-not-zeroed
+
+# 56 / 57.（--counts 必须能复现 INVERT 的数字）同一份 fixture 的两支色：
+#     参照色 23 处全在代码面（散文 0），主强调 5 处全在散文面。
+#     钉住「--counts 只印全量四列」这个实现——那样人拿着「文字」列去核一条
+#     INVERT 永远对不上，两个真相源就此分叉（bucket_sum docstring 的 Trap 3）。
+checkcountsc l2-invert-code-surface "#8f3f28" "23 23 0 0 0"
+checkcountsc l2-invert-code-surface "#cc3366" "5 5 0 0 5"
+
 printf '\n%d 通过，%d 失败\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

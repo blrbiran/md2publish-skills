@@ -67,5 +67,33 @@ eq("landings 不把 background-color 记成 text",
 eq("landings line 桶", land["#cc3366"][("h3", "line")], 1)
 eq("landings 同色跨桶分开记", land["#cc3366"][("span", "text")], 1)
 
+# ---- prose_landings：剥掉代码面（<pre> 块 + 行内 code），别的一律不动
+#
+# 行内 code 在产物里是 `<span style="{inline_code}">`（md2html.py:193），
+# 与任何别的 span 在标签层面无法区分——只能靠样式串逐字相等来认。
+# 这一条是整个函数的承重点：认不出来它，代码面就只剥掉了一半。
+
+ICS = "background-color: #eeeeee; color: #8f3f28"
+HTML2 = ('<p style="color: #111111">散文</p>'
+         f'<span style="{ICS}">inline</span>'
+         '<pre style="background-color: #eeeeee">'
+         '<span style="color: #8f3f28">tok</span></pre>'
+         '<strong style="color: #8f3f28">散文里的强调</strong>')
+full = T.landings(HTML2)
+pro = T.prose_landings(HTML2, ICS)
+eq("landings 全量口径把三处 #8f3f28 都算上",
+   sum(v for (_, b), v in full["#8f3f28"].items() if b == "text"), 3)
+eq("prose_landings 只留散文面那一处",
+   sum(v for (_, b), v in pro["#8f3f28"].items() if b == "text"), 1)
+eq("prose_landings 剥掉行内 code（靠样式串认，不靠标签）",
+   pro["#8f3f28"].get(("span", "text"), 0), 0)
+eq("prose_landings 剥掉 <pre> 块内的语法高亮",
+   pro["#eeeeee"].get(("pre", "fill"), 0), 0)
+eq("prose_landings 不动散文面的普通落点",
+   pro["#111111"][("p", "text")], 1)
+eq("prose_landings 传空样式串时只剥 <pre>，不误剥全部 span",
+   sum(v for (_, b), v in T.prose_landings(HTML2, "")["#8f3f28"].items()
+       if b == "text"), 2)
+
 print(f"\n{len(got) and ''}{'FAIL' if fails else 'ok'}：{len(fails)} 条失败")
 sys.exit(1 if fails else 0)

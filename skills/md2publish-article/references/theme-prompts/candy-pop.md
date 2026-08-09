@@ -34,6 +34,7 @@
 - 段落：`font-size: 15.5px; line-height: 1.85; color: #5a4a42; margin: 0 0 16px; text-align: left`
 - strong：`color: #d96687; font-weight: 700`
 - em / 高亮：`background-color: #e8f2f9; padding: 1px 5px; border-radius: 4px; color: #4a7a9b`（用蓝，和 strong 的粉错开）
+<!-- census-ok: NEAR-ZERO #e8f2f9 这条样式串里**没有 font-style: italic**，所以 `*文字*` 渲染出来是一枚圆角浅蓝高亮块、不是斜体——它服务的是「高亮」这个用法，不是斜体；用户确认高亮是常用写法，所以这支蓝不是规则 1 说的死色。产物里只有 1 处，是因为本篇语料通篇只有 1 个 `*em*`（实测 `<em` 1 次、`#e8f2f9` 1 次），是语料的性质，不是落点失效 -->
 
 ## 引用 / 代码 / 列表 / 表格
 
