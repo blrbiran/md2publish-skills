@@ -149,5 +149,31 @@ else:
 [[ "$out" == "OK" ]] && ok "缺失的 dimension 抛 AssetError" || bad "dimension 缺失处理" "$out"
 
 echo
+echo "== INDEX.md 一致性 =="
+
+out=$(run_py '
+import asset_lib as a
+idx = (a.shared_root() / "presets" / "INDEX.md").read_text(encoding="utf-8")
+missing = [n for n in a.list_presets() if "`" + n + "`" not in idx]
+assert not missing, "INDEX.md 未收录 preset: " + str(missing)
+print("OK")
+')
+[[ "$out" == "OK" ]] && ok "INDEX.md 收录了全部 preset" || bad "INDEX preset 覆盖" "$out"
+
+out=$(run_py '
+import asset_lib as a
+idx = (a.shared_root() / "presets" / "INDEX.md").read_text(encoding="utf-8")
+root = a.shared_root() / "presets" / "dimensions"
+missing = []
+for kind in sorted(a.DIMENSION_KINDS):
+    for f in sorted((root / kind).glob("*.md")):
+        if "`" + f.stem + "`" not in idx:
+            missing.append(kind + "/" + f.stem)
+assert not missing, "INDEX.md 未收录 dimension: " + str(missing)
+print("OK")
+')
+[[ "$out" == "OK" ]] && ok "INDEX.md 收录了全部 dimension 值" || bad "INDEX dimension 覆盖" "$out"
+
+echo
 echo "通过 $PASS 项，失败 $FAIL 项"
 [[ $FAIL -eq 0 ]]
