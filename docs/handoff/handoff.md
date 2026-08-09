@@ -122,7 +122,13 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py
 - **26 个主题全部实测跑完**，清单见 `references/theme-prompts/INDEX.md`
 - **`theme.json` 26 份已入仓**：`skills/md2publish-article/references/theme-json/<编号>-<主题名>.theme.json`。它不含任何与文章相关的内容，对任何文章可复用，**不必每次重新生成**
 - **HTML 产物在仓库外**：`~/code/skills/writing/wechat_test/litellm-multi-provider-gateway/out/`。命名不统一——第一轮 6 个主题的定稿带 `-v1`/`-v5` 后缀，同名无后缀的那份是旧宽度结构、**已作废**。`test-md2html.sh` 里的 `PAIRS` 表是权威配对关系（每组都实跑验证过），**别按文件名循环**
-- cyber-neon 的 v2/v3/v4/v5/v6/v7-grid 是中间产物，可清理（**删文件前问用户**）
+- cyber-neon 的 v2–v6 中间产物**早已不在**（2026-08-09 核对 `out/` 时确认，不知何时清掉的）。
+  现存的中间产物只剩三份：`13-cyber-neon-v7-grid.html` + 同名 `.theme.json`（v7 的另一个版式，
+  `PAIRS` 不引用）、`13-cyber-neon.theme.json`（无版本号的旧份）。**没删**——cyber-neon 还挂着
+  第六节第 2 条的真机双模式待验，v7-grid 是那次比对可能要用的另一个候选。删文件前问用户
+- `out/` 里每个主题还各有一份 `*.theme.json` 副本，**测试不读它们**（PART B 的 `THEMEJSON`
+  指向仓库内的 `references/theme-json/`，见 `test-md2html.sh:401`）。它们是历次生成时的留档，
+  与仓库内那份可能已经不一致，**别拿它们当权威**
 
 ### 第四轮做完的
 
@@ -502,10 +508,11 @@ lessons「判据可以下窄」一节记了完整经过与五条硬约束。）
 > 与 botanic-press `list_prefix_ol_html` 两条待定项的逐条候选修法。**这些细节要用时得重新
 > 量一遍**——用 `census-themes.py --counts <主题名>` 加手算对比度，不要凭印象。
 >
-> 那份建议书本来在项目工作区里、被 gitignore；**2026-08-09 已改口**——因为它还装着
-> 未销的 37 条的执行细节，用户决定把它挪进 `docs/superpowers/specs/2026-08-07-product-landing-census-task-7-adjudication.md`
-> 并入仓，作为 1.1–1.7 的**可选**背景细节。**它是临时文件、迟早删**：等它记的条目全部
-> 被处理完，就该删掉，不要长期维护它；**1.1–1.7 才是权威摘要，两者不一致时以这里为准**。
+> 那份建议书本来在项目工作区里、被 gitignore；2026-08-09 一度挪进
+> `docs/superpowers/specs/2026-08-07-product-landing-census-task-7-adjudication.md` 并入仓，
+> 作为 1.1–1.7 的可选背景细节，说明白了它是临时文件、条目处理完就删。
+> **2026-08-09（第七轮）已按此删除**（移进废纸篓，内容仍在 git 历史里）：43 条已全部处置，
+> 它记的东西没有一条还在等人执行。**1.1–1.7 就是权威摘要，别再去找那份文件。**
 
 #### 1.7 两条被内容类型限定的有序列表序号：机械字段接不住，退回用户
 
@@ -560,9 +567,9 @@ mint-breeze 那条还写明了示例里 `width: 20px` 的正圆只演示单位�
 | `docs/theme-design-lessons.md` 规则 5 / 规则 15 | **保留**：那是历史案例与类比，删掉会砍掉规则本身的证据。只在规则 5 加了一句「该主题已删除」，免得下一个人去翻文件 |
 | `docs/superpowers/specs/*`、`docs/superpowers/plans/*` | **保留不改**：按第零节第 4 条，那是某一轮计划的存档，记录的是当时普查确实报过这两条。它们不是活引用 |
 
-**仓库外还留着两份孤儿产物**：`out/20-monochrome-mag-v5.html` 与
-`out/20-monochrome-mag.theme.json`。`PAIRS` 已不再引用它们，测试不会碰。
-按第八节「删文件前问用户」的老规矩**没有删**，要清理时和 cyber-neon 那批中间产物一起问。
+**仓库外那两份孤儿产物已于 2026-08-09（第七轮）经用户确认删除**（移进废纸篓）：
+`out/20-monochrome-mag-v5.html` 与 `out/20-monochrome-mag.theme.json`。
+`PAIRS` 本来就不引用它们，删完 `test-md2html.sh` 仍是 26/26 绿。
 
 ### 2. 待真机观感定夺（不要凭代码改）
 
