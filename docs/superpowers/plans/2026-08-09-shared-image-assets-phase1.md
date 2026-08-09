@@ -266,6 +266,10 @@ archetypes:
 ```python
 """共享图片资产的加载与校验。被 compose_prompt.py 和各测试脚本共用。"""
 
+# 必需：本文件用了 `dict | None` 这类 PEP 604 注解，而目标环境是 Python 3.9，
+# 3.9 会在 import 时对它求值并抛 TypeError。这行把注解变成惰性字符串。
+from __future__ import annotations
+
 from pathlib import Path
 
 import yaml
@@ -1281,11 +1285,14 @@ git commit -m "一期 T5：INDEX.md 发现入口
 ## 前置
 
 ```bash
-python3 --version     # 3.9+
+python3 --version          # 3.9+
 python3 -c 'import yaml'   # 缺就 pip3 install pyyaml
 ```
 
 PyYAML 是本层唯一的第三方依赖。
+
+脚本用了 `dict | None` 这类 PEP 604 注解，靠 `from __future__ import annotations`
+在 3.9 上工作——新增脚本时别漏掉那一行。
 
 ## 跑测试
 
