@@ -11,6 +11,16 @@ import yaml
 ARCHETYPES = ["cover", "illustration", "infographic", "series", "diagram"]
 PLACEHOLDERS = {"PLATFORM_FRAME", "PALETTE", "RENDERING", "LAYOUT", "CONTENT"}
 UNSUPPORTED = "unsupported"
+PRESET_REQUIRED_FIELDS = [
+    "name",
+    "archetype",
+    "description",
+    "primary_use_case",
+    "version",
+    "metadata",
+    "template",
+]
+DIMENSION_KINDS = {"palettes", "renderings", "layouts"}
 
 
 class AssetError(Exception):
@@ -76,3 +86,61 @@ def archetype_slot(platform: dict, archetype: str) -> dict | None:
         raise AssetError(f"{platform['name']} 未定义 archetype 槽: {archetype}")
     slot = slots[archetype]
     return None if slot == UNSUPPORTED else slot
+
+
+def list_presets(archetype: str | None = None) -> list[str]:
+    root = shared_root() / "presets"
+    subdirs = [root / archetype] if archetype else [root / a for a in ARCHETYPES]
+    names = []
+    for d in subdirs:
+        if d.is_dir():
+            names.extend(p.stem for p in d.glob("*.yaml"))
+    return sorted(names)
+
+
+def load_preset(name: str) -> dict:
+    root = shared_root() / "presets"
+    for arch in ARCHETYPES:
+        path = root / arch / f"{name}.yaml"
+        if path.exists():
+            data = yaml.safe_load(path.read_text(encoding="utf-8"))
+            _validate_preset(name, data)
+            return data
+    raise AssetError(f"preset 不存在: {name}")
+
+
+def _validate_preset(name: str, data: dict) -> None:
+    if not isinstance(data, dict):
+        raise AssetError(f"{name}.yaml 不是 mapping")
+    missing = [f for f in PRESET_REQUIRED_FIELDS if f not in data]
+    if missing:
+        raise AssetError(f"{name}.yaml 缺必填字段: {missing}")
+    if data["archetype"] not in ARCHETYPES:
+        raise AssetError(f"{name}.yaml archetype 非法: {data['archetype']}")
+    if "compatible_platforms" in data:
+        raise AssetError(
+            f"{name}.yaml 用了白名单 compatible_platforms；"
+            "应改用排除制 incompatible_platforms，否则每加一个平台都要回头改所有 preset"
+        )
+    incompat = data.get("incompatible_platforms", [])
+    if not isinstance(incompat, list):
+        raise AssetError(f"{name}.yaml incompatible_platforms 必须是列表")
+    meta = data.get("metadata")
+    if not isinstance(meta, dict):
+        raise AssetError(f"{name}.yaml metadata 必须是 mapping")
+    for key in ("author", "provenance"):
+        if not meta.get(key):
+            raise AssetError(f"{name}.yaml 缺 metadata.{key}")
+
+
+def load_dimension(kind: str, value: str) -> str:
+    if kind not in DIMENSION_KINDS:
+        raise AssetError(f"未知 dimension 类别: {kind}")
+    path = shared_root() / "presets" / "dimensions" / kind / f"{value}.md"
+    if not path.exists():
+        raise AssetError(f"dimension 不存在: {kind}/{value}.md")
+    return path.read_text(encoding="utf-8").strip()
+
+
+def preset_supports(preset: dict, platform_name: str) -> bool:
+    return platform_name not in preset.get("incompatible_platforms", [])

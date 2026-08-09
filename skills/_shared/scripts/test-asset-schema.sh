@@ -83,5 +83,71 @@ print("OK")
 [[ "$out" == "OK" ]] && ok "text_on_image 是含 title/subtitle 布尔的结构" || bad "text_on_image 结构" "$out"
 
 echo
+echo "== preset schema 校验 =="
+
+out=$(run_py '
+import asset_lib as a
+names = a.list_presets()
+assert len(names) >= 4, names
+for n in names:
+    p = a.load_preset(n)
+    for f in a.PRESET_REQUIRED_FIELDS:
+        assert f in p, n + " 缺字段 " + f
+    assert p["metadata"].get("author"), n + " 缺 metadata.author"
+    assert p["metadata"].get("provenance"), n + " 缺 metadata.provenance"
+print("OK")
+')
+[[ "$out" == "OK" ]] && ok "所有 preset 必填字段齐全（含 primary_use_case）" || bad "preset 必填字段" "$out"
+
+out=$(run_py '
+import asset_lib as a
+for n in a.list_presets():
+    p = a.load_preset(n)
+    arch = p["archetype"]
+    assert arch in a.ARCHETYPES, n + " archetype 非法: " + str(arch)
+    assert "compatible_platforms" not in p, n + " 用了白名单 compatible_platforms，应改用 incompatible_platforms"
+    assert isinstance(p.get("incompatible_platforms", []), list)
+print("OK")
+')
+[[ "$out" == "OK" ]] && ok "archetype 合法且用排除制而非白名单" || bad "preset archetype/平台字段" "$out"
+
+out=$(run_py '
+import asset_lib as a
+KINDS = {"palette": "palettes", "rendering": "renderings", "layout": "layouts"}
+for n in a.list_presets():
+    p = a.load_preset(n)
+    for field, kind in KINDS.items():
+        val = p.get(field)
+        if val is None:
+            continue
+        body = a.load_dimension(kind, val)
+        assert body, n + "." + field + " -> " + kind + "/" + val + ".md 是空文件"
+print("OK")
+')
+[[ "$out" == "OK" ]] && ok "preset 引用的 dimensions 文件都存在且非空" || bad "dimensions 引用" "$out"
+
+out=$(run_py '
+import asset_lib as a
+known = set(a.list_platforms())
+for n in a.list_presets():
+    p = a.load_preset(n)
+    for plat in p.get("incompatible_platforms", []):
+        assert plat in known, n + ".incompatible_platforms 含未知平台: " + plat
+print("OK")
+')
+[[ "$out" == "OK" ]] && ok "incompatible_platforms 里的平台都存在" || bad "incompatible_platforms" "$out"
+
+out=$(run_py '
+import asset_lib as a
+try:
+    a.load_dimension("palettes", "no-such-palette")
+except a.AssetError:
+    print("OK")
+else:
+    print("未抛 AssetError")
+')
+[[ "$out" == "OK" ]] && ok "缺失的 dimension 抛 AssetError" || bad "dimension 缺失处理" "$out"
+
+echo
 echo "通过 $PASS 项，失败 $FAIL 项"
 [[ $FAIL -eq 0 ]]
