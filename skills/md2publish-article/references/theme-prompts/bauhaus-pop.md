@@ -12,6 +12,7 @@
 - 米白底：`#f4f1ea`（主容器）
 - 墨黑：`#171614`（正文 + 全部边框）
 - 红（strong / 警示）：`#be1e2d`
+<!-- census-ok: UNMOUNTED strong_alt 上一行是调色板角色标注、不是指令句：这支红本身就是 strong 色（theme.json 的 strong 已挂 #be1e2d），「strong / 警示」说的是同一支色的两个语义，本主题不存在需要另配一套样式的警示型 strong -->
 - 蓝（h3 / 链接感）：`#005baa`
 - 黄（高亮底 / 装饰块）：`#f0a500`，浅黄底：`#f8e8c4`
 - 卡片：`#ffffff`

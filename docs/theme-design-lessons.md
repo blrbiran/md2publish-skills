@@ -147,7 +147,8 @@ python3 skills/md2publish-article/scripts/census-themes.py
 bash skills/md2publish-article/scripts/test-census-themes.sh
 ```
 
-**首次对真实库跑出 43 条、exit 1，截至本文更新时全部待裁决、一条都没处理**——分组、
+**首次对真实库跑出 43 条、exit 1**（批次 1a 后为 37 条未销 + 5 条已豁免，仍 exit 1；
+**当前数字以 handoff 第三节第 6 条为准，别信本文这个快照**）——分组、
 执行顺序与逐条要点在 `docs/handoff/handoff.md` 第六节第 1 条。本文只记录判据本身与由此
 得出的通用教训，**不代替那份清单**；谁改了主题文件都要重新跑一遍普查，确认发现只有
 减少、没有意外新增。

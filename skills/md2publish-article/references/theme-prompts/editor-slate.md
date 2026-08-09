@@ -39,6 +39,9 @@ README 的阅读体验：正文克制到近乎素净，**颜色几乎全部集�
 | 变量 / 属性 / 参数 | `#ffa657` | 命令行参数（`--flag`）、对象属性 |
 | 标点 / 操作符 | `#e6edf3` | 保持默认色，不要上色 |
 
+<!-- census-ok: UNCARRIED #d2a8ff md2html.py:104-126 的 tokenizer 只发 comment/string/key/keyword/number 五类，没有「函数名/类名」类，theme.json 的 highlight 无处可挂这支紫；本行留给判断层手写路径用（生成模型认得出函数名）。要兑现得先给 tokenizer 加 func 类 -->
+<!-- census-ok: UNCARRIED #ffa657 同上：tokenizer 没有「变量/属性/参数」类，--flag 在机械路径上落不了色；本行留给判断层手写路径用。要兑现得先给 tokenizer 加 param 类 -->
+
 按语言的落点建议：
 
 - **YAML**：键名 `#79c0ff`，值里的字符串 `#a5d6ff`，`#` 注释 `#8b949e`，`-` 列表符号保持默认
@@ -54,6 +57,7 @@ README 的阅读体验：正文克制到近乎素净，**颜色几乎全部集�
 
 - 主容器：`background-color: #f6f8fa; padding: 32px 12px; letter-spacing: 0.3px`
 - 正文区包一层白卡：`background-color: #ffffff; border: 1px solid #d0d7de; border-radius: 8px; padding: 28px 20px`（全文一张大卡，不逐节切卡）
+<!-- census-ok: NEAR-ZERO #ffffff 这个白只挂在 card 上，而本主题 card_mode 是 single（上一行的「全文一张大卡」就是它），md2html.py 只发一张卡，落点恒为 1、与文章长度无关 -->
 - **`<pre>`、块级和行内 `<code>` 上显式写 `letter-spacing: 0`** 复位全局字距，否则等宽字符被撑开、代码列对不齐
 
 ## 标题体系
@@ -83,4 +87,5 @@ README 的阅读体验：正文克制到近乎素净，**颜色几乎全部集�
 
 - 提示（NOTE）：`border-left: 4px solid #0969da; background-color: #ddf4ff; padding: 12px 16px; border-radius: 0 6px 6px 0; color: #24292f`，首行加粗蓝字标签 `<span style="color: #0969da; font-weight: 700;">注意</span>`
 - 警告（WARNING）：`border-left: 4px solid #bc4c00; background-color: #fff1e5;`，标签色 `#bc4c00`，文案如"小心"
+<!-- census-ok: ZERO #bc4c00 theme.json 的 alert.warning 已把这个色挂在边框与标签上、机械通路完整；产物 0 处只因当前测试语料一个 WARNING 块都没有，而本主题下一条明写「够不上标准就一张都不做」——0 张是规范预期内的结果 -->
 - 全文提示卡**不超过 4 个**，多了就失去强调意义。判断标准是"读者跳过这段会踩坑"，只是补充说明的仍走普通引用块——**够不上这个标准就一张都不做，别为了凑数把旁注升格**。这是上限不是配额：正文彩色由 strong 保底，不靠提示卡撑
