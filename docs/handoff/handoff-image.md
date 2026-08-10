@@ -8,16 +8,20 @@
 
 1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。
 2. **二期 A 已完成并合进本地 `main`**：vendor 进 `imagegen/` 生图引擎（11 个 provider，D1 剔除了 codex-cli）、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover` skill、`scripts/check.sh` 一条命令串起九项检查。纯新增，`md2publish-images` 原地未动。**手动付费 smoke 未做**——见第六节。
-3. 下一步是**二期 B**（删除 `md2publish-images`，改 spec §12 列出的引用，唯一有破坏性的一期）。
+3. 下一步是**二期 B**（删除 `md2publish-images`，改 spec §12 列出的引用，唯一有破坏性的一期）。它的实施计划**尚未编写**。
 4. 动手前先跑第二节的 `./scripts/check.sh`，全绿才继续。
-5. 设计与计划不在本文里，见第二节的文档地图——**不要**在本文重复它们的内容。
+5. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。
+6. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
+7. 设计与计划不在本文里，见**第零节**的文档地图——**不要**在本文重复它们的内容。
 
 ## 零、文档地图
 
 | 文档 | 管什么 |
 |---|---|
 | `docs/superpowers/specs/2026-08-09-md2publish-image-skills-design.md` | **设计的唯一真相源**（第二版）。skill 边界、资产 schema、执行链路、副作用边界、分期 |
-| `docs/superpowers/plans/2026-08-09-shared-image-assets-phase1.md` | 一期的逐步实施计划（已执行完）。二期的计划**尚未编写** |
+| `docs/superpowers/plans/2026-08-09-shared-image-assets-phase1.md` | 一期的逐步实施计划（已执行完） |
+| `docs/superpowers/plans/2026-08-10-image-phase2a.md` | 二期 A 的逐步实施计划（已执行完）。开头有 D1–D4 偏离表与 Global Constraints，写二期 B 的计划时照抄那套约束 |
+| `skills/_shared/scripts/imagegen/VENDOR.md` | vendor 来源、排除清单、与上游只差的两行、重新同步步骤 |
 | `skills/_shared/README.md` | `_shared/` 怎么用、怎么跑测试、哪些是故意推到二期的 |
 | `skills/_shared/presets/INDEX.md` | preset 与 dimensions 的**唯一发现入口**。选 preset 一律读它，别背名单 |
 | 本文 | 跨会话的状态、教训、环境事实 |
@@ -27,14 +31,33 @@
 
 产物全在 `skills/_shared/`：2 个平台 profile、4 个 preset、5 个维度词表、`INDEX.md`、`asset_lib.py`、`compose_prompt.py`、3 个测试脚本、1 份 fixture brief、README。
 
-git 状态请**自行重新推导**，不要信任写死的 SHA（本文提交本身就会改变 HEAD）：
+分支 `design/md2publish-image-skills` 已删除（完全合并，可从任一一期 commit 重建）。
+
+## 一之二、git 状态怎么查（别信任何写死的 SHA）
+
+**本文每次提交都会改变 HEAD，所以这里不写 SHA，只写怎么自己查。**
 
 ```bash
-git log --oneline --grep='^一期 T' -6     # 一期的六个任务 commit
-git status -sb                            # 本地 main 与 origin/main 的差距
+git log --oneline --grep='^一期 T' -6              # 一期的六个任务 commit（中文，规则生效前的遗留）
+git log --oneline --grep='^feat(shared)' --grep='^feat(cover)' --grep='^feat(scripts)' --grep='^fix(image)'
+                                                   # 二期 A 的任务 commit（英文）
+git log --oneline --grep='image-phase2a'           # 二期 A 的计划 commit
+git status -sb                                     # 本地 main 与 origin/main 的差距
+git log --oneline origin/main..main                # 还没推上去的
 ```
 
-写作当时：一期六个 commit 已 fast-forward 进本地 `main`，**尚未 push**，`origin/main` 落后十余个 commit。分支 `design/md2publish-image-skills` 已删除（完全合并，可从任一一期 commit 重建）。
+两条会误导人的事实，查之前先知道：
+
+- **`main` 上是两条线交织的。** 另一个 agent（主题库 / contrast 审计那条线，产物在
+  `skills/md2publish-article/`、`docs/handoff.md`、`docs/theme-design-lessons.md`）在同一个
+  checkout 里并发提交，它的 commit 夹在我们的 commit 之间。算"图片线本次改了什么"时
+  **不能**用连续区间，要按路径过滤：
+  ```bash
+  git log --oneline -- skills/_shared skills/md2publish-cover scripts docs/handoff/handoff-image.md
+  ```
+- **那个 agent 会 push，且会顺带把我们的 commit 一起带上远程。** 二期 A 的绝大部分
+  在没人主动推的情况下就已经到 `origin/main` 了。所以"本地领先远程"这件事随时在变，
+  每次都重新查，别照抄任何一份文档里的结论（包括本文）。
 
 ## 二、基线（动手前先跑，全绿才继续）
 
@@ -48,7 +71,7 @@ git status -sb                            # 本地 main 与 origin/main 的差�
 2. 渲染器 + 占位符白名单（11 项）
 3. 平台 × archetype × preset 矩阵（8 组合）
 4. 压缩不超限（8 项）
-5. preflight + config 自检（20 项）
+5. preflight + config 自检（21 项）
 6. 产物落盘规则：重跑保护 + sidecar（10 项）
 7. imagegen 引擎（`bun test`，97 pass / 0 fail / 12 files）
 8. shared 漂移检查（`md2publish-cover/shared/` 与 `_shared/` 是否一致）
@@ -113,11 +136,39 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # 期望：ok：0 
 
 **二期 A（已完成，纯新增，无破坏性）**
 - 从 `baoyu-skills/skills/baoyu-image-gen/` 搬入 `imagegen/`（11 个 provider，`codex-cli` 按 D1 剔除；零第三方依赖，纯 `node:` + fetch）。`bun test` 实测 **97 pass / 0 fail，12 个文件**。
-- 写好 `compress.py`（sips → magick，见 D3）、`preflight.py`、`config.py`、`artifacts.py`、`costs.yaml`。实测（**含最终评审七项修复后的数字**）：资产 schema + costs **18 项**、压缩不超限 **8 项**、preflight + config **20 项**、产物落盘规则 **10 项**，全绿。
+- 写好 `compress.py`（sips → magick，见 D3）、`preflight.py`、`config.py`、`artifacts.py`、`costs.yaml`。实测（**含最终评审七项修复后的数字**）：资产 schema + costs **18 项**、压缩不超限 **8 项**、preflight + config **21 项**、产物落盘规则 **10 项**，全绿。
 - 建成 `md2publish-cover`；`shared-manifest.sh` / `sync-shared.sh` / `check-shared-drift.sh` / `scripts/check.sh` 全部写好并跑通，vendor 同步与漂移实测 **9 项**全绿。
 - **`md2publish-images` 原地保留**，两者并存，本期未改它一个字。
 - 完成判据两条分开看：spec §13 五项全绿——**已验证**（`./scripts/check.sh` 九项全 ✓，见第二节）；端到端产出一张微信封面并压到 2MB 内的**手动付费 smoke——未做**。本机 `preflight.py` 实测「一个 provider 凭证都没配置」，无法真调用付费 API，这一步只能留给配好凭证的会话去跑，步骤见 spec §7 / `md2publish-cover/SKILL.md`。**九项检查全绿不等于端到端验证过——没跑就是没跑，别混着说。**
 - 已引入 TypeScript 运行时依赖（bun），README 前置已写明。
+
+**收尾时补修的一处（已修，记在这里是因为它是个容易再犯的类型错误）**
+
+`preflight.py` 读 `.env` 的那段原本只 `except OSError`，而 `UnicodeDecodeError` 是
+`ValueError` 的子类、**不是** `OSError`。于是一个存成 UTF-16 / GBK、或只是混进一个
+坏字节的 `.baoyu-skills/.env`，会让 `preflight.py` 抛栈退出 1——同时违反它自己的三条
+承诺：函数 docstring 说"读不到就当空文件，不报错"；模块契约是**只报告、不阻塞**
+（`md2publish-cover/SKILL.md` 步骤 1 依赖它永远退出 0）；而它要镜像的 JS 引擎用
+`readFile(p,"utf8")`，坏字节会被替换成 U+FFFD 后照常读下去——同一个文件，引擎读得动，
+我们的 preflight 却崩。
+
+已改成 `read_text(encoding="utf-8", errors="replace")`（贴引擎行为，坏字节不至于让整份
+文件作废），并补了一条**用真的非 UTF-8 字节写文件**（不是 mock）的断言，`test-preflight.py`
+因此从 20 项变 **21 项**。改完重跑了 `sync-shared.sh` 同步 vendor 副本。回归复现：
+
+```bash
+T=$(mktemp -d); mkdir -p "$T/.baoyu-skills"
+printf 'OPENAI_API_KEY=sk-\xff\xfe-bad\n' > "$T/.baoyu-skills/.env"
+(cd "$T" && python3 <仓库>/skills/_shared/scripts/preflight.py; echo "exit=$?")
+rm -rf "$T"
+```
+
+修之前 `exit=1` + `UnicodeDecodeError`；修之后 `exit=0`，且 `openai` 正常出现在已配置清单里。
+
+**可复用的教训**：`except OSError` 挡不住解码错误。凡是"读文件失败就当空"的兜底，
+都要问一句——编码错误算不算失败的一种？在这个仓库里还要多问一句：**我们的 Python
+层要镜像的那个 JS 引擎，遇到同样的输入是怎么做的？** 两边行为不一致，用户会遇到
+"引擎能跑、preflight 说没配置"这种最难查的矛盾。
 
 **二期 B（下一步，唯一有破坏性的一期，单 commit 便于 revert）**
 
@@ -148,17 +199,44 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # 期望：ok：0 
 
 | 场景 | skill |
 |---|---|
-| 开始二期前 | `superpowers:writing-plans`（二期的实施计划尚未编写，spec 已就绪可直接喂给它） |
-| 执行计划 | `superpowers:executing-plans`（内联，适合本仓库有其他 agent 在场的情况）或 `superpowers:subagent-driven-development`（无并发时更快） |
+| 开始二期 B 前 | `superpowers:writing-plans`（二期 B 的计划尚未编写。spec §12 + 本文第六节的硬约束就是输入；照抄 `2026-08-10-image-phase2a.md` 开头的 Global Constraints） |
+| 执行计划 | `superpowers:subagent-driven-development`（二期 A 就是这么跑完 8 个任务的，在有并发 agent 的情况下也没出事——关键是每个任务只用显式路径 `git add`）或 `superpowers:executing-plans`（内联） |
 | 动任何设计决策前 | `superpowers:brainstorming`（本设计的两版都是这么产出的） |
-| 二期 A 完成后、二期 B 之前 | `superpowers:requesting-code-review`（尤其做一次事实核查——一期的 spec 复审抓出 6 处事实错误，其中"悬空引用四处"实为九处） |
+| 每一期收尾 | `superpowers:requesting-code-review`。**必须做一次整支评审，逐任务评审替代不了它**——理由见第八节末尾。也顺带做事实核查：一期的 spec 复审抓出 6 处事实错误，其中"悬空引用四处"实为九处 |
 | 排查测试失败 | `superpowers:systematic-debugging` |
 | 收尾分支 | `superpowers:finishing-a-development-branch` |
 
-## 八、一期执行中修掉的计划缺陷（供二期写计划时参考）
+## 八、执行中修掉的计划缺陷（写二期 B 的计划前先读这节）
 
-三处，都属于"计划看着对、跑起来错"：
+全都属于同一族：**计划看着对、跑起来错**。一期三条、二期 A 四条，四条里有三条是
+单个任务的评审看不出来、只有跨任务视角才暴露的。
+
+**一期（三条）**
 
 1. `asset_lib.py` 漏了 `from __future__ import annotations` —— 目标环境 Python 3.9 下 import 即崩。**写计划时要先确认运行时版本**。
 2. 测试断言 grep 的字符串与实现输出不一致（「不放」vs「不要」），且同一契约在两个测试里写法不同。**同一契约串只该有一个定义处**。
 3. 收尾检查用 `git diff main...HEAD` 判断"本次改了什么"，在有其他 agent 提交的分支上会误报。**基线取本次第一个 commit 的父提交**。
+
+**二期 A（四条）**
+
+4. **检查项的顺序本身可以让检查失效。** 计划里 `check.sh` 把「vendor 同步与漂移」排在
+   「shared 漂移检查」**之前**，而前者开头就跑一遍 `sync-shared.sh`——等于每次先把漂移
+   抹掉再去检查漂移，后者从此永远不可能失败，spec §13 第 5 项在入口脚本里成了摆设。
+   八个任务各自的评审全绿，是最终的整支评审才抓到的。
+   **教训：一组检查放进同一个入口脚本时，要问"前一项会不会改变后一项要观察的状态"。**
+5. **写 bash 断言消息时，变量后面紧跟中文标点会炸。** `$var）` 在本机 bash 3.2.57 下
+   变量名被解析坏，`set -u` 直接报假的 unbound variable。计划里三个测试脚本都中招。
+   **一律写 `${var}`**，见第四节。
+6. **"清理临时文件"很容易顺手删掉别人的东西。** 计划里 `compress.py` 失败时 unlink
+   整个 ladder 的输出，没区分哪些是它自己写的、哪些是上一轮花钱生成后本就存在的，
+   于是一次压缩失败会连带毁掉上一次的好产物。**写清理逻辑时，只删自己创建的路径，
+   并且写一条"既有文件必须存活"的断言**——原来的测试跑过这条路径却看不见问题，
+   因为它紧接着就重建了 fixture。
+7. **测试脚本不要改真实工作区。** 计划里的漂移测试直接往被 git 跟踪的 vendor 副本里
+   追加探针行，没有 `trap` 恢复；在有并发 agent 的仓库里，中途崩掉就留下污染。
+   改成 `mktemp -d` 沙箱 + `trap ... EXIT INT TERM` 之后才安全。
+
+**给二期 B 的一条方法论**：二期 A 的八个任务全部通过了各自的评审，最终整支评审仍然
+抓出 1 个 Critical + 6 个 Important，全部是**跨组件**的（顺序依赖、四处 provider 名单
+不同步、文档里两套路径无法在同一个 cwd 下成立、sidecar 记录的 provider 与引擎实际
+选的不是一回事）。**逐任务评审不能替代一次整支评审。**
