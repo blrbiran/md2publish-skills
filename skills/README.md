@@ -37,6 +37,7 @@ article.md（tech-writer → tech-writer-deslop 产出的成稿）
 | `wechat-finetune` | 成稿 → 公众号版 Markdown（标题/精简/元数据） | 无（原文不改，另存） | 无 |
 | `md2publish-article` | Markdown → 微信内联样式 HTML | 无 | 无 |
 | `md2publish-images` | 封面/信息图（计划模式交宿主 Agent 生成） | 无 | 无 |
+| `md2publish-cover` | 封面图（微信 16:9 / 小红书 3:4），真调 provider 生成 | 本地文件 + **API 消费（花钱）** | provider API key（缺失时降级为只产 prompt） |
 | `md2publish-draft` | 上传图片 + 创建草稿（确认后执行） | 写微信素材库、草稿箱 | WECHAT_APPID/SECRET + IP 白名单 |
 
 ## 前置
@@ -48,8 +49,20 @@ md2wechat version --json
 
 发布配置见 `md2publish-draft/references/credentials.md`。
 
+`md2publish-cover` 另需（其余 skill 不需要）：
+
+```bash
+bun --version                          # 或 npx -y bun --version
+sips --version || magick --version     # 二者有其一
+```
+
+图片能力线的测试入口：`./scripts/check.sh`。没有 CI，手工跑。
+
 ## 设计要点
 
 - **免费路径**：`convert --mode ai` 产出排版指令，HTML 由 Agent 生成；草稿走 `upload_image` + `create_draft`（不走需要 API key 的 `convert --draft`）
 - **确认边界**：转换和配图零副作用；唯一的外部副作用（传图 + 建草稿）集中在 draft skill，且强制用户确认
+- **配图不再是零副作用**：`md2publish-cover` 真调 provider、真花钱、不可逆。
+  它的门在生成那一步（步骤 5），前四步仍然零成本——没配 provider 也能拿到 prompt 文件
+  自己去生。表格里 `md2publish-images` 那行的「无」只对旧的计划模式成立
 - **不用 `test-draft` 发正式文章**：其标题在 CLI 内硬编码，仅作连通性冒烟

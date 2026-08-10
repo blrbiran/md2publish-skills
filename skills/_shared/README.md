@@ -16,6 +16,12 @@
 | `presets/INDEX.md` | preset 与 dimensions 的唯一发现入口 |
 | `scripts/asset_lib.py` | 资产加载与 schema 校验 |
 | `scripts/compose_prompt.py` | prompt 渲染器（纯模板，不调模型） |
+| `costs.yaml` | provider × model 单张估价，允许 `unknown` |
+| `scripts/imagegen/` | vendor 自 baoyu-image-gen 的生图引擎（TS / bun），见 `VENDOR.md` |
+| `scripts/compress.py` | 压到字节上限内（sips → magick 降级链） |
+| `scripts/config.py` | 读 `~/.config/md2publish/images.yaml` |
+| `scripts/preflight.py` | 运行时 / provider / 压缩工具三项自检 |
+| `scripts/artifacts.py` | 重跑保护 + 产物 sidecar |
 
 ## 前置
 
@@ -31,15 +37,30 @@ PyYAML 是本层唯一的第三方依赖。
 
 ## 跑测试
 
+一条命令跑全部（推荐）：
+
 ```bash
-./scripts/test-asset-schema.sh      # 资产 schema 校验（13 项）
-./scripts/test-compose-prompt.sh    # 渲染器行为 + 占位符白名单（11 项）
-./scripts/test-platform-matrix.sh   # 平台 × archetype × preset 全矩阵（8 组合）
+./scripts/check.sh          # 仓库根目录
 ```
 
-**改了 `platforms/`、`presets/` 或 `scripts/` 里任何东西之后，三个都要跑一遍。**
-本仓库没有 CI、没有 git hooks，这是一条**有文档约束的手工流程，不是自动闸门**。
-二期会加 `scripts/check.sh` 把它们串起来，但那时也仍然是手工触发。
+单跑：
+
+```bash
+./scripts/test-asset-schema.sh      # 资产 schema + costs.yaml（17 项）
+./scripts/test-compose-prompt.sh    # 渲染器行为 + 占位符白名单（11 项）
+./scripts/test-platform-matrix.sh   # 平台 × archetype × preset 全矩阵（8 组合）
+./scripts/test-compress.sh          # 压缩不超限（6 项）
+python3 scripts/test-preflight.py   # 自检与配置（14 项）
+./scripts/test-artifacts.sh         # 重跑保护与 sidecar（10 项）
+(cd scripts/imagegen && bun test)   # 生图引擎（97 项）
+```
+
+**改了 `platforms/`、`presets/`、`costs.yaml` 或 `scripts/` 里任何东西之后，
+跑一遍 `scripts/check.sh`。** 本仓库没有 CI、没有 git hooks，这是一条
+**有文档约束的手工流程，不是自动闸门**。
+
+改完 `_shared/` 还要跑 `scripts/sync-shared.sh` 把改动推到各 skill 的 `shared/`，
+否则 `check.sh` 的漂移检查会红。
 
 ## 机械层与语义层
 
@@ -66,15 +87,12 @@ python3 compose_prompt.py \
 
 平台不支持某 archetype（如微信 × `series`）时命令直接失败并说明原因，不静默回退。
 
-## 一期故意没做的事
+## 还没做的事
 
-以下都推到二期，不是遗漏：
-
-- **`sync-shared.sh` / `check-shared-drift.sh` / `check.sh`** —— 此时没有任何 skill
-  消费 `_shared/`，vendor 脚本只能对着想象中的目录结构写，二期必然重写。
-- **`imagegen/`、`compress.py`、`preflight.py`** —— 二期从 `baoyu-image-gen` 搬入。
-- **`costs.yaml`** —— 成本表服务于生成阶段的确认门，二期才用得上。
 - **`bilibili.yaml`** —— B 站的画幅与文字约定属未验证的外部知识，
-  实施前需分别确认视频封面与专栏头图的规格，不猜。
-- **任何对现有 skill 的改动** —— 一期不碰 `md2publish-article` / `md2publish-draft` /
-  `md2publish-images` / `wechat-finetune` / `skills/README.md`。
+  需先分别确认视频封面与专栏头图的规格，不猜。
+- **`presets/dimensions/layouts/` 只有一个值** —— `infographic` / `series`
+  真正用起来（三期）时再补。
+- **`costs.yaml` 全是 `unknown`** —— 真实单价同属外部知识，用户实测后自己填。
+- **`md2publish-visuals` / `md2publish-diagram`** —— 三期。
+- **对现有 skill 的改动** —— `md2publish-images` 的删除与九处引用修改属二期 B。
