@@ -1,0 +1,17 @@
+name: editorial-warm
+archetype: cover
+description: 杂志编辑风封面，暖色调
+primary_use_case: 人文随笔与商业观察类长文的封面
+version: 1.0.0
+palette: warm-earth
+rendering: flat-vector
+layout: null
+incompatible_platforms: []
+metadata:
+  author: md2publish-skills
+  provenance: 改编自 md2wechat cover-editorial + baoyu-cover-image 维度体系
+template: |
+  {{PLATFORM_FRAME}}
+  {{PALETTE}}
+  {{RENDERING}}
+  {{CONTENT}}

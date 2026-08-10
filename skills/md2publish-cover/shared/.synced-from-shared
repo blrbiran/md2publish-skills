@@ -1,0 +1,2 @@
+本目录由 scripts/sync-shared.sh 从 skills/_shared/ 生成，不要手改。
+要改内容请改 skills/_shared/ 下的对应文件，然后重新跑 scripts/sync-shared.sh。

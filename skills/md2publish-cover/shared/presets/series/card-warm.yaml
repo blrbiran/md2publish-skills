@@ -1,0 +1,18 @@
+name: card-warm
+archetype: series
+description: 卡片系列，暖色扁平
+primary_use_case: 把一篇长文拆成 5–10 张可独立阅读的图卡
+version: 1.0.0
+palette: warm-earth
+rendering: flat-vector
+layout: bento-grid
+incompatible_platforms: [wechat]
+metadata:
+  author: md2publish-skills
+  provenance: 改编自 baoyu-xhs-images 的 12 风格 × 8 布局体系
+template: |
+  {{PLATFORM_FRAME}}
+  {{PALETTE}}
+  {{RENDERING}}
+  {{LAYOUT}}
+  {{CONTENT}}
