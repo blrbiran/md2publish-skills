@@ -5,6 +5,7 @@
 与 theme_lib.py 分开：那边读 theme.json，这边读产物 DOM。
 """
 import re
+import sys
 
 _HEX3 = re.compile(r"#([0-9a-fA-F]{3})$")
 _HEX6 = re.compile(r"#([0-9a-fA-F]{6})$")
@@ -63,7 +64,7 @@ def contrast_ratio(fg, bg):
 
 _STOP_TOKEN = re.compile(
     r"(#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b|rgba?\([^)]*\)|\btransparent\b)"
-    r"(?:\s+(-?\d+(?:\.\d+)?)%)?"
+    r"(?:\s+(-?\d+(?:\.\d+)?)(%|px))?"
 )
 
 #: 沿渐变采样的步数。101 = 每 1% 一个采样点。
@@ -72,14 +73,17 @@ GRADIENT_SAMPLES = 101
 
 
 def _parse_gradient_stops(css_value):
-    """按出现顺序抽取 (color, position) 对；position 是显式百分比数字，没写则 None。非渐变返回 []。"""
+    """按出现顺序抽取 (color, position) 对；position 是 (数值, 单位) 二元组，没写位置则 None。
+    单位认 `%` 与 `px`；两个位置只在单位相同时才可能相等——`1px` 和 `1%` 不是同一个位置，
+    不猜换算（比如把 px 按 100% 当分母折算成百分比），猜换算正是本项目明令禁止的那种臆造。
+    非渐变返回 []。"""
     if not css_value or "gradient" not in css_value:
         return []
     out = []
-    for tok, pos in _STOP_TOKEN.findall(css_value):
+    for tok, pos, unit in _STOP_TOKEN.findall(css_value):
         c = parse_color(tok)
         if c is not None:
-            out.append((c, float(pos) if pos else None))
+            out.append((c, (float(pos), unit) if pos else None))
     return out
 
 
@@ -91,11 +95,17 @@ def gradient_stops(css_value):
 def backdrop_samples(bg_color, image_value, parent_samples):
     """该元素的有效底候选集（不透明 RGB 列表）。
 
-    background-color 打底（不透明则盖住父级），再把 background-image 的色标按 alpha
-    依次合成上去。相邻两个色标若显式写了相同的百分比位置——CSS 的硬停（hard stop，
-    比如 morandi-fog 的下划线带 `transparent 62%, rgba(...) 62%`）——中间没有过渡区，
-    只取两端合成值；否则视为连续渐变，沿途按 GRADIENT_SAMPLES 采样，因为 L(t) 对 t
-    是凸的，最小值可能落在内部，端点法会漏判。
+    background-color 打底（不透明则盖住父级），再把 background-image 的色标合成上去。
+    相邻两个色标若显式写了相同的位置（数值与单位都相同——`1px` 和 `1%` 不是同一个位置，
+    不猜换算）——CSS 的硬停（hard stop，比如 morandi-fog 的下划线带
+    `transparent 62%, rgba(...) 62%`，或纹理渐变的 `rgba(...,0.02) 1px, transparent 1px`）
+    ——中间没有过渡区，只取两端；否则视为连续渐变，沿途按 GRADIENT_SAMPLES 采样，因为
+    L(t) 对 t 是凸的，最小值可能落在内部，端点法会漏判。
+
+    **插值顺序**：相邻两色标先按分量对 (r, g, b, alpha) 做未预乘的线性插值，插值结果
+    再合成到底色上——不能反过来先把两端各自合成、再对合成结果插值。两个色标 alpha 不同
+    时二者不等价（CSS 渲染引擎按前者），反过来做会静默算出错误的颜色而不是报错，
+    详见 docs/theme-design-lessons.md 里 rgba(255,0,0,0)→rgba(0,0,255,1) 那个反例。
     """
     base = list(parent_samples)
     c = parse_color(bg_color) if bg_color else None
@@ -114,15 +124,15 @@ def backdrop_samples(bg_color, image_value, parent_samples):
     # 完全盖住的旧底当成候选，污染 worst_contrast。
     out = []
     for b in base:
-        solid = [composite(s, b) for s in stops]
-        for i in range(len(solid) - 1):
-            p, q = solid[i], solid[i + 1]
+        for i in range(len(stops) - 1):
+            s0, s1 = stops[i], stops[i + 1]
             hard_stop = (positions[i] is not None and positions[i + 1] is not None
                          and positions[i] == positions[i + 1])
             steps = 2 if hard_stop else GRADIENT_SAMPLES
             for k in range(steps):
                 t = k / (steps - 1)
-                out.append(tuple(int(round(p[j] + (q[j] - p[j]) * t)) for j in range(3)))
+                interp = tuple(s0[j] + (s1[j] - s0[j]) * t for j in range(4))
+                out.append(composite(interp, b))
     # 去重但保持可预期的顺序
     seen, uniq = set(), []
     for s in out:
@@ -250,8 +260,13 @@ def _norm_style(s):
     return re.sub(r"\s+", " ", (s or "").strip()).rstrip(";").strip()
 
 
-def decor_signatures(theme):
-    """从 theme.json 抽出装饰节点的识别签名 → (样式串集合, 字面文本集合)。"""
+def decor_signatures(theme, theme_name=None):
+    """从 theme.json 抽出装饰节点的识别签名 → (样式串集合, 字面文本集合)。
+
+    某个注入字段的值若不是字符串（比如未来出现 "footer_html": 12345），该项会被跳过——
+    方向是安全的（只会让装饰集合变窄，从而让更多节点被当成文字判 4.5，不会漏判任何
+    真发现）；但跳过必须叫出声，不许静默吃掉，否则下次同类字段出现，没人知道被略过了。
+    """
     styles, texts = set(), set()
     for field in DECOR_FIELDS:
         val = theme.get(field)
@@ -259,6 +274,9 @@ def decor_signatures(theme):
             continue
         for item in (val if isinstance(val, list) else [val]):
             if not isinstance(item, str):
+                print(f"WARN 主题 {theme_name!r} 的字段 {field!r} 里有一项不是字符串"
+                      f"（类型 {type(item).__name__}），已跳过——装饰识别范围因此变窄，"
+                      f"不会漏判真发现，但请确认这是预期的字段值。", file=sys.stderr)
                 continue
             found = _STYLE_ATTR.findall(item)
             for s in found:
@@ -320,7 +338,7 @@ def _hx(rgb):
 
 def findings_for(theme_name, html, theme):
     """一份产物的全部不达标发现，同键合并计数。"""
-    sigs = decor_signatures(theme)
+    sigs = decor_signatures(theme, theme_name)
     acc = {}
     for n in walk(html):
         decor = is_decor(n, sigs)

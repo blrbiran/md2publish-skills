@@ -100,6 +100,19 @@ def prune_survivors(findings, base):
     return [f for f in findings if key_of(f) in base]
 
 
+def baseline_diff(findings, base):
+    """本轮 findings 相对旧基线的 (新增列表, 移除键列表)。
+
+    默认路径、--prune、--write-baseline 三条路都要用同一份 new/stale——尤其是
+    --write-baseline：它重写整份基线文件，diff 噪声很大，唯一能让人看清「有没有
+    夹带新组合」的时刻就是这里打印的摘要，算法必须与默认路径逐字一致，不能各算一遍。
+    """
+    seen = {key_of(f): f for f in findings}
+    new = [f for k, f in seen.items() if k not in base]
+    stale = [k for k in base if k not in seen]
+    return new, stale
+
+
 def write_baseline(findings):
     lines = [
         "# 对比度审计基线：已知、未处置的存量。含义不是「可接受」，只是「还没排到」。",
@@ -130,15 +143,31 @@ def main():
         print(f"\n{args.detail}：{len(sel)} 条")
         return 0
 
+    baseline_existed = BASELINE.is_file()
+    base = read_baseline()
+    new, stale = baseline_diff(findings, base)
+
     if args.write_baseline:
         write_baseline(findings)
         print(f"已写入基线 {BASELINE}：{len(findings)} 条")
+        # --write-baseline 重写整份文件（重新排序、参考列重算），diff 本身噪声很大，
+        # 会把少量真正新增的行埋进大片预期内的抖动里——这里补上默认路径已经算好的
+        # new/stale 摘要，是人还能看见「有没有东西被顺手夹带进基线」的唯一时刻。
+        # 不许据此拒绝写入，也不改写入的内容——只负责让新增显眼。
+        if not baseline_existed:
+            print("（此前没有基线文件——这是首次生成，无旧基线可比，"
+                  "以上条数不是相对旧基线的「新增」。）")
+        elif new:
+            print(f"\n⚠️ 相对旧基线新增 {len(new)} 条组合（未经人审阅，"
+                  f"随这次写入一起进了基线——如果不是预期中的改动，先看清楚再继续）：")
+            print("  " + "\t".join(HEADER))
+            for f in sorted(new, key=lambda f: f.ratio):
+                print("  " + "\t".join(row_of(f)))
+        else:
+            print("（相对旧基线无新增）")
+        if baseline_existed and stale:
+            print(f"（相对旧基线移除 {len(stale)} 条产物里已不存在的组合）")
         return 0
-
-    base = read_baseline()
-    seen = {key_of(f): f for f in findings}
-    new = [f for k, f in seen.items() if k not in base]
-    stale = [k for k in base if k not in seen]
 
     if args.prune:
         write_baseline(prune_survivors(findings, base))

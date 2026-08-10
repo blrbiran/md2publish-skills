@@ -90,6 +90,35 @@ BETWEEN = CL.backdrop_samples(None, "linear-gradient(#000000, #ffffff)", [(255,2
 ok("前景亮度夹在渐变两端之间时最差 = 1.0（端点法会给出 3.9494）",
    near(CL.worst_contrast((0x80,0x80,0x80), BETWEEN), 1.0))
 
+# ── 渐变插值顺序：alpha 也变化时必须先插值再合成，不能先合成再插值 ──
+# rgba(255,0,0,0) → rgba(0,0,255,1) 压在白底上：两个色标 alpha 不同（0 与 1）。
+# 正确做法——(r,g,b,alpha) 未预乘分量插值，中点 (127.5,0,127.5,0.5)，再合成到白上
+# ——中点是 (191,128,191)。先各自合成再插值的错误做法会给出 (128,128,255)：
+# 白底上合成 alpha=0 的红=白 (255,255,255)，合成 alpha=1 的蓝=蓝 (0,0,255)，
+# 两者中点 (128,128,255)——数值不同、结论也可能不同，是本轮 Finding 2 要修的错误。
+ALPHA_DIFFERS = CL.backdrop_samples("#ffffff", "linear-gradient(rgba(255,0,0,0), rgba(0,0,255,1))",
+                                     [(255,255,255)])
+ok("alpha 也变化的渐变：中点插值先分量再合成，正确值 (191,128,191)",
+   (191, 128, 191) in ALPHA_DIFFERS)
+ok("alpha 也变化的渐变：错误顺序（先合成再插值）的 (128,128,255) 不该出现",
+   (128, 128, 255) not in ALPHA_DIFFERS)
+
+# 恒定 alpha（都是 1.0）时两种顺序数学上等价——证明这次修复没有改动这一支路径。
+CONST_ALPHA = CL.backdrop_samples("#ffffff", "linear-gradient(rgba(255,0,0,1), rgba(0,0,255,1))",
+                                   [(255,255,255)])
+ok("alpha 恒定的渐变中点仍是 (128,0,128)，未预乘插值不改变这个结果",
+   (128, 0, 128) in CONST_ALPHA)
+
+# ── 硬停：位置单位不限于 %，但不同单位不能互相判等（不猜换算） ──
+# 纹理渐变的真实写法是 px 位置（如 autumn-warm 的 `rgba(...,0.02) 1px, transparent 1px`）：
+# 两个色标位置都是 "1px"，数值和单位都相同 → 硬停，只取两端，不做 101 点插值。
+HARDSTOP_PX = CL.backdrop_samples("#ffffff", "linear-gradient(#000000 1px, #ffffff 1px)",
+                                   [(255,255,255)])
+ok("px 位置相同 → 判定硬停，只有两端两个候选",
+   set(HARDSTOP_PX) == {(0, 0, 0), (255, 255, 255)})
+ok("px 硬停不会漏判成连续渐变——中间的采样点（如灰 128,128,128）不该出现",
+   (128, 128, 128) not in HARDSTOP_PX)
+
 # ── walk ───────────────────────────────────────────────────
 DOC = ('<div style="background-color: #f8f0e7">'
        '<section style="background-color: #fdf8f1">'

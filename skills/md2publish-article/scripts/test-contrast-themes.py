@@ -61,5 +61,18 @@ tautological = [f for f in findings if CT.key_of(f) in base or CT.key_of(f) in s
 ok("旧判据在这份数据上确实会把 NEW 悄悄收进去（证明本用例抓得住那个回归）",
    CT.key_of(NEW) in {CT.key_of(f) for f in tautological})
 
+# ── baseline_diff：--write-baseline 的增长信号背后那个纯函数（Finding 1）──
+# review-2 抓到的洞：--write-baseline 从不算 new/stale，「刷新基线」这个动作
+# 因此可以在零提示的情况下把一条未经审阅的新组合永久写死。修法是让
+# --write-baseline 复用默认路径已经在算的这份 new/stale，这里直接钉住算法本身：
+# 用同一套 OLD/NEW/STALE fixture（上面 prune_survivors 用过的那三个键）。
+new_d, stale_d = CT.baseline_diff(findings, base)
+ok("baseline_diff 认出 NEW 是新增（不在旧基线里）", CT.key_of(NEW) in {CT.key_of(f) for f in new_d})
+ok("baseline_diff 不把 OLD 算成新增（旧基线里已有）", CT.key_of(OLD) not in {CT.key_of(f) for f in new_d})
+ok("baseline_diff 认出 STALE 那一行已从本轮产物消失",
+   ("t", "th", "#999999", "#dddddd", "13", "400", "文字") in stale_d)
+ok("baseline_diff 恰好一条新增、一条移除（不多不少）",
+   len(new_d) == 1 and len(stale_d) == 1)
+
 print(f"\nok：{fails} 条失败")
 sys.exit(1 if fails else 0)
