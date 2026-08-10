@@ -56,9 +56,11 @@ def default_env_files() -> list[Path]:
 
 def parse_env_file(path: Path) -> dict:
     """按 imagegen/main.ts:loadEnvFile 的规则解析 .env：跳过空行与 # 开头，
-    以第一个 = 切分，去掉成对的单/双引号。读不到就当空文件，不报错。"""
+    以第一个 = 切分，去掉成对的单/双引号。读不到就当空文件，不报错。
+    非法字节按 imagegen/main.ts 的 readFile(p, "utf8") 同样处理：
+    用 U+FFFD 替换后继续解析，不因个别坏字节整份丢弃、也不抛异常。"""
     try:
-        content = Path(path).read_text(encoding="utf-8")
+        content = Path(path).read_text(encoding="utf-8", errors="replace")
     except OSError:
         return {}
     out: dict = {}

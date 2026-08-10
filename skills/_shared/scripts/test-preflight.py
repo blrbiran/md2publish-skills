@@ -110,6 +110,16 @@ with tempfile.TemporaryDirectory() as d:
     check(off["configured"] == [] and off["env_files"] == [],
           "env_files=[] 能彻底关掉文件读取（失败分支断言才可信）", str(off))
 
+    # 非 UTF-8 的 .env（如误存成 UTF-16 或含单个坏字节）不该让 preflight 崩溃。
+    bad_env = Path(d) / "bad.env"
+    bad_env.write_bytes(b"OPENAI_API_KEY=sk-\xff\xfe-bad\n")
+    bad_parsed = pf.parse_env_file(bad_env)  # 不抛异常即是关键断言
+    check(
+        bad_parsed.get("OPENAI_API_KEY", "").startswith("sk-") and "�" in bad_parsed["OPENAI_API_KEY"],
+        "非 UTF-8 字节被替换为 U+FFFD 而不是让整份文件解析失败",
+        str(bad_parsed),
+    )
+
     default_files = [e["path"] for e in pf.check_providers(env={})["env_files"]]
     check(
         default_files == [str(Path.home() / pf.ENV_FILE_RELPATH),
