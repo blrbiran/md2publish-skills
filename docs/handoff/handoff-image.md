@@ -44,15 +44,20 @@ git status -sb                            # 本地 main 与 origin/main 的差�
 
 一条命令跑九项检查，期望全部 ✓、末尾打印「全部通过。」：
 
-1. 资产 schema + `costs.yaml`（17 项）
+1. 资产 schema + `costs.yaml`（18 项，含 provider 名单四处一致的交叉校验）
 2. 渲染器 + 占位符白名单（11 项）
 3. 平台 × archetype × preset 矩阵（8 组合）
-4. 压缩不超限（6 项）
-5. preflight + config 自检（14 项）
+4. 压缩不超限（8 项）
+5. preflight + config 自检（20 项）
 6. 产物落盘规则：重跑保护 + sidecar（10 项）
 7. imagegen 引擎（`bun test`，97 pass / 0 fail / 12 files）
-8. vendor 同步与漂移（8 项）
-9. shared 漂移检查（`md2publish-cover/shared/` 与 `_shared/` 是否一致）
+8. shared 漂移检查（`md2publish-cover/shared/` 与 `_shared/` 是否一致）
+9. vendor 同步与漂移（9 项）
+
+**第 8、9 项的先后顺序是有意的，别调换。** 第 9 项开头就跑一遍 `sync-shared.sh`；
+它如今在临时沙箱副本里跑、不碰工作区，但只要有谁把它改回原地跑，真实漂移就会在
+第 8 项看见它之前被冲掉，第 8 项从此永远不可能失败。design §4.3 明说漂移是
+vendoring 唯一的真实失败模式，且**绝不能靠 re-sync 解决**。
 
 外加确认没碰坏另一条线（`check.sh` 不包含这一项，得单跑）：
 
@@ -108,13 +113,27 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # 期望：ok：0 
 
 **二期 A（已完成，纯新增，无破坏性）**
 - 从 `baoyu-skills/skills/baoyu-image-gen/` 搬入 `imagegen/`（11 个 provider，`codex-cli` 按 D1 剔除；零第三方依赖，纯 `node:` + fetch）。`bun test` 实测 **97 pass / 0 fail，12 个文件**。
-- 写好 `compress.py`（sips → magick，见 D3）、`preflight.py`、`config.py`、`artifacts.py`、`costs.yaml`。实测：资产 schema + costs **17 项**、压缩不超限 **6 项**、preflight + config **14 项**、产物落盘规则 **10 项**，全绿。
-- 建成 `md2publish-cover`；`shared-manifest.sh` / `sync-shared.sh` / `check-shared-drift.sh` / `scripts/check.sh` 全部写好并跑通，vendor 同步与漂移实测 **8 项**全绿。
+- 写好 `compress.py`（sips → magick，见 D3）、`preflight.py`、`config.py`、`artifacts.py`、`costs.yaml`。实测（**含最终评审七项修复后的数字**）：资产 schema + costs **18 项**、压缩不超限 **8 项**、preflight + config **20 项**、产物落盘规则 **10 项**，全绿。
+- 建成 `md2publish-cover`；`shared-manifest.sh` / `sync-shared.sh` / `check-shared-drift.sh` / `scripts/check.sh` 全部写好并跑通，vendor 同步与漂移实测 **9 项**全绿。
 - **`md2publish-images` 原地保留**，两者并存，本期未改它一个字。
 - 完成判据两条分开看：spec §13 五项全绿——**已验证**（`./scripts/check.sh` 九项全 ✓，见第二节）；端到端产出一张微信封面并压到 2MB 内的**手动付费 smoke——未做**。本机 `preflight.py` 实测「一个 provider 凭证都没配置」，无法真调用付费 API，这一步只能留给配好凭证的会话去跑，步骤见 spec §7 / `md2publish-cover/SKILL.md`。**九项检查全绿不等于端到端验证过——没跑就是没跑，别混着说。**
 - 已引入 TypeScript 运行时依赖（bun），README 前置已写明。
 
 **二期 B（下一步，唯一有破坏性的一期，单 commit 便于 revert）**
+
+> ⚠️ **给二期 B 的硬约束：`md2publish-draft` 绝不许硬编 `assets/<platform>/00-cover.png`。**
+>
+> 压缩**不是替换，是新增**。`md2publish-cover` 步骤 7 压完之后，超限的原图
+> `00-cover.png` 和压缩产物 `00-cover.jpg` **两个文件同时存在**，而 `.png` 恰好占着
+> 那个看起来最"正规"的名字。二期 B 若把 draft skill 指向 `.png`，就等于把
+> "推草稿箱时才发现封面超过 2MB" 这个失败模式原样请回来——而把压缩硬塞进
+> 二期 A 的封面流程，全部目的就是消灭它。
+>
+> 正确做法：**读 sidecar `assets/<platform>/00-cover.json` 里记的路径**（它永远指向
+> 最终产物），或直接消费 `compress.py` 打印的那个路径。未超限时该路径就是 `.png`，
+> 超限时是 `.jpg`——两种情况都由 sidecar 说了算，调用方不需要自己判断。
+> 契约写在 `skills/md2publish-cover/SKILL.md` 的步骤 7、步骤 8 与「产物布局」三处。
+
 - 删除 `md2publish-images`，改 spec §12 列出的**九处**引用。别信"四处"——`wechat-finetune/SKILL.md` 两处和 `docs/handoff/handoff.md` 三处极易漏。
 - **动手第一步**：spec §12 正文首句写的是"留下**七处**悬空引用"，但其下表格是 **9 行**，§16 修订记录写的是"从四处更正为九处"——三个数字互相矛盾。**以表格为准**：先把 §12 正文那句话改成"九处"，再照表格逐条改，别把正文的"七处"当真数抄一遍漏掉两处。
 - 完成判据：全仓库 grep 不到 `md2publish-images`。

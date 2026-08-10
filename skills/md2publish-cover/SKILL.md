@@ -14,6 +14,25 @@ allowed-tools: Read, Write, Bash, AskUserQuestion
 改了会被 `scripts/check-shared-drift.sh` 拦住，正确做法是改 `skills/_shared/`
 再跑 `scripts/sync-shared.sh`。
 
+## 工作目录与路径约定（先读这段，否则每条命令都会跑错地方）
+
+本文里的两类路径**基准不同**，混用必错：
+
+- **脚本路径**（`shared/scripts/...`）相对**本 skill 目录**；
+- **产物路径**（brief / prompt / 图 / sidecar）一律用**文章目录的绝对路径**。
+
+所以约定是固定的一条：**在本 skill 目录里执行命令，把产物写到文章目录的绝对路径下。**
+开工先把这两个变量定下来，后面每条命令都直接用它们：
+
+```bash
+cd <本 skill 目录的绝对路径>        # 例如 .../skills/md2publish-cover
+ART=<文章目录的绝对路径>            # 例如 /Users/me/posts/2026-08-10-cache-invalidation
+mkdir -p "$ART/briefs" "$ART/prompts" "$ART/assets"
+```
+
+`ART` 取文章 Markdown 所在的那个目录。**绝不要用相对路径写产物**——那会把 brief、
+prompt、图和 sidecar 全部落在 skill 目录里：脱离了文章，还脏了本仓库的工作区。
+
 ## 职责边界
 
 | 这件事 | 归谁 |
@@ -66,7 +85,7 @@ python3 shared/scripts/preflight.py
 
 ### 步骤 4：写 brief 并渲染 prompt（零成本，到此为止零副作用）
 
-**4a 语义层**：你写 `briefs/<platform>/00-cover.md`。四行，中文，不要写画幅和配色
+**4a 语义层**：你写 `$ART/briefs/<platform>/00-cover.md`。四行，中文，不要写画幅和配色
 （那些由平台和 preset 决定，写进来只会打架）：
 
 ```
@@ -79,18 +98,20 @@ alt：<给读者的替代文本，一句话>
 **4b 机械层**：
 
 ```bash
+mkdir -p "$ART/briefs/<platform>" "$ART/prompts/<platform>" "$ART/assets/<platform>"
 python3 shared/scripts/compose_prompt.py \
   --platform <platform> --preset <preset> \
-  --brief-file briefs/<platform>/00-cover.md \
-  --out prompts/<platform>/00-cover.md \
+  --brief-file "$ART/briefs/<platform>/00-cover.md" \
+  --out "$ART/prompts/<platform>/00-cover.md" \
   [--palette <value>] [--rendering <value>]
 ```
 
 平台不支持该组合时它直接失败并说明原因，不静默回退。
 
 **到这里为止零成本、零副作用。** 没配 provider 的用户就在这里收工——
-把 `prompts/<platform>/00-cover.md` 交给他，拿去即梦 / Midjourney / DALL·E 自己生，
-生成后把文件放到 `assets/<platform>/00-cover.png` 再跳到步骤 7。
+把 `$ART/prompts/<platform>/00-cover.md` 交给他，拿去即梦 / Midjourney / DALL·E 自己生，
+生成后把文件放到 `$ART/assets/<platform>/00-cover.png` 再跳到步骤 7
+（此时步骤 8 的 `--provider` / `--model` 照实写成他用的那个工具，别填本仓库的 provider 名）。
 
 ### ═══ 以下开始计费 ═══
 
@@ -100,7 +121,10 @@ python3 shared/scripts/compose_prompt.py \
 不要引导用户为此现配 API key，把选择权交给他。
 
 **成本门**：封面是单张，**不问**——用户主动要封面就是要了（spec §9）。
-但要把用什么 provider / 什么 model 说出来。价目查询：
+但要把**预计**用什么 provider / 什么 model 说出来。注意这里只是预告：
+省略 `--provider` / `--model` 时，引擎会先看 baoyu `EXTEND.md` 的默认值、再退到
+"第一个存在的 env key"，实际用的未必是你这里说的那个。**真相以步骤 6 的
+`--json` 输出为准**，sidecar 只能填那份输出里的值。价目查询：
 
 ```bash
 python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; print(a.estimate_cost('<provider>', '<model>'))"
@@ -113,11 +137,11 @@ python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as
 先过重跑保护：
 
 ```bash
-python3 shared/scripts/artifacts.py guard --path assets/<platform>/00-cover.png
+python3 shared/scripts/artifacts.py guard --path "$ART/assets/<platform>/00-cover.png"
 ```
 
 它非零退出就是文件已存在——**报告并停下问用户**，别自己加 `--force`。
-`briefs/` 和 `prompts/` 是复现记录，不是临时文件，一并保留。
+`$ART/briefs/` 和 `$ART/prompts/` 是复现记录，不是临时文件，一并保留。
 
 取画幅（别硬编 16:9，小红书是 3:4）：
 
@@ -125,20 +149,29 @@ python3 shared/scripts/artifacts.py guard --path assets/<platform>/00-cover.png
 ASPECT=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; p=a.load_platform('<platform>'); print(a.archetype_slot(p,'cover')['aspect'])")
 ```
 
-生成：
+生成。**必须带 `--json`**：不带的话 stdout 只有一个路径，你永远不知道引擎最后
+挑了哪个 provider / model，步骤 8 的 sidecar 就只能靠猜——而猜错的 sidecar 比没有
+更坏，spec §5.3 要它就是为了事后能追溯是谁生的这张图。
 
 ```bash
-bun shared/scripts/imagegen/main.ts \
-  --promptfiles prompts/<platform>/00-cover.md \
-  --image assets/<platform>/00-cover.png \
-  --ar "$ASPECT" \
-  [--provider <p>] [--model <m>]
+GEN=$(bun shared/scripts/imagegen/main.ts \
+  --promptfiles "$ART/prompts/<platform>/00-cover.md" \
+  --image "$ART/assets/<platform>/00-cover.png" \
+  --ar "$ASPECT" --json \
+  [--provider <p>] [--model <m>])
+
+RAW=$(python3      -c 'import json,sys; print(json.load(sys.stdin)["savedImage"])' <<<"$GEN")
+PROVIDER=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["provider"])'   <<<"$GEN")
+MODEL=$(python3    -c 'import json,sys; print(json.load(sys.stdin)["model"])'      <<<"$GEN")
 ```
 
-成功时 stdout 是产物绝对路径，日志走 stderr。
+`--json` 下 stdout 是一个 JSON 对象（`savedImage` / `provider` / `model` / `attempts`），
+日志仍走 stderr。产物路径取 `savedImage`，**不要**再把 stdout 整个当路径用。
+`${PROVIDER}` 与 `${MODEL}` 是引擎**实际**用的那一对，步骤 8 只准填它们，
+不准填步骤 5 里你预告的那个。
 
 **单张最多 2 次计费尝试**（引擎里已经压到 2）。生成了但不满意属于"质量类"失败：
-改 `prompts/<platform>/00-cover.md` 重跑那一张，**同样计入计费尝试**——
+改 `$ART/prompts/<platform>/00-cover.md` 重跑那一张，**同样计入计费尝试**——
 不要连着重试三四遍，先问用户还要不要继续花钱。
 
 失败分类处理：
@@ -156,42 +189,68 @@ bun shared/scripts/imagegen/main.ts \
 
 ```bash
 MAXB=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; p=a.load_platform('<platform>'); print(a.archetype_slot(p,'cover')['max_bytes'])")
-python3 shared/scripts/compress.py --image assets/<platform>/00-cover.png --max-bytes "$MAXB"
+FINAL=$(python3 shared/scripts/compress.py --image "$RAW" --max-bytes "$MAXB")
 ```
 
-stdout 是最终产物路径——**可能不是你传进去的那个**（需要压缩时会产出同名 `.jpg`）。
-后面的步骤一律用它打印的路径。压不下去时它硬失败，别自己降低上限绕过去。
+（跳过步骤 5–6 自己出图的用户，把 `RAW` 手动设成
+`"$ART/assets/<platform>/00-cover.png"` 再跑这条。）
+
+`${FINAL}` 是最终产物路径，**可能不是你传进去的那个**：需要压缩时它是同目录的
+同名 `.jpg`。压不下去时脚本硬失败，别自己降低上限绕过去。
+
+**关键：压缩不是替换，是新增。** 压完之后 `00-cover.png`（超限的原图）和
+`00-cover.jpg`（压缩产物）**两个文件同时存在**，`.png` 还占着那个看起来最"正规"的名字。
+从这一步起，**唯一的交接产物是 `${FINAL}`**，`.png` 只是原始底片，留着备查、不往下游传。
+后面每一步（sidecar、给用户的话术、`md2publish-draft`）一律用 `${FINAL}`，
+**任何地方都不许硬编 `00-cover.png`**。
 
 ### 步骤 8：写 sidecar 并交接
 
 ```bash
 python3 shared/scripts/artifacts.py sidecar \
-  --image <步骤 7 打印的路径> \
+  --image "$FINAL" \
   --platform <platform> --archetype cover --preset <preset> \
-  --provider <provider> --model <model> \
-  --prompt-file prompts/<platform>/00-cover.md \
-  --brief-file briefs/<platform>/00-cover.md \
+  --provider "$PROVIDER" --model "$MODEL" \
+  --prompt-file "$ART/prompts/<platform>/00-cover.md" \
+  --brief-file "$ART/briefs/<platform>/00-cover.md" \
   --alt-text "<brief 里那句 alt>" \
   [--override palette=<value>]
 ```
 
+sidecar 写在 `${FINAL}` 旁边、与它同名（`$ART/assets/<platform>/00-cover.json`），
+里面记的 `bytes` 也是 `${FINAL}` 的字节数。**它记录的路径就是下游该消费的路径。**
+
+`--provider` / `--model` 取步骤 6 那份 JSON 里的 `provider` / `model`。
+**不要**填步骤 5 的预告值——省略参数时引擎会自己回退挑一个，填错了 sidecar
+就成了一份误导性的追溯记录。
+
 交接话术：
 
-- 告诉用户最终文件路径，以及**它是否被压缩过、压成了什么格式**。
+- 告诉用户最终文件路径 `${FINAL}`，以及**它是否被压缩过、压成了什么格式**；
+  同时说明未压缩的 `.png` 底片还在原地，不是残留垃圾。
 - 微信：提醒头条按 2.35:1 裁、次条按 1:1 裁，重要视觉元素要在画面中央。
-  推草稿箱时 `md2publish-draft` 会拿它当 `--cover`。
+  推草稿箱时 `md2publish-draft` 拿 `${FINAL}`（即 sidecar 记的那个路径）当 `--cover`，
+  **不是** `00-cover.png`。
 - 小红书：本仓库**还没有**小红书的发布 skill，产物需要用户自己上传。如实说，别暗示能自动发。
 - 封面**不进正文**，不要往 Markdown 里插 `![]()`。
 
 ## 产物布局
 
+全部落在 `$ART`（文章目录的绝对路径）下，命令都在 skill 目录里跑：
+
 ```
-<article-dir>/
+$ART/
 ├─ briefs/<platform>/00-cover.md      ← 你写的语义 brief
 ├─ prompts/<platform>/00-cover.md     ← 渲染后的 prompt（复现记录，别删）
-└─ assets/<platform>/00-cover.png     ← 产物（压缩过则是 .jpg）
-   assets/<platform>/00-cover.json    ← sidecar
+└─ assets/<platform>/
+   ├─ 00-cover.png                    ← 引擎的原始产物。超限时**不会被删**，留在原地当底片
+   ├─ 00-cover.jpg                    ← 压缩产物。**只要它存在，交接产物就是它**
+   └─ 00-cover.json                   ← sidecar，写在最终产物旁边、记着它的真实路径
 ```
+
+`.png` 和 `.jpg` 是**共存**关系，不是替换：压缩从不删原图（那是花钱生成的东西）。
+未超限时就只有 `.png`，`${FINAL}` 也就等于它。判断该交哪个文件，**看 sidecar 记的路径
+或步骤 7 的 `${FINAL}`，不要看谁的名字更"正规"**。
 
 按平台分目录，所以 `wechat,xiaohongshu` 两张封面不会同名相撞。
 
@@ -203,5 +262,10 @@ sips --version || magick --version             # 二者有其一
 python3 -c 'import yaml'
 ```
 
-生成图片需要至少一个 provider 的 API key（环境变量，见 `shared/scripts/preflight.py`
-的 `PROVIDER_ENV`）。**没有也能用**——步骤 1–4 照跑，交付 prompt 文件。
+生成图片需要至少一个 provider 的 API key（清单见 `shared/scripts/preflight.py`
+的 `PROVIDER_ENV`）。凭证有三个来源，优先级从高到低：进程环境变量、
+`~/.baoyu-skills/.env`、`<当前目录>/.baoyu-skills/.env`——preflight 与生图引擎查的是
+同一组、同一顺序。第三个来源跟着当前目录走，这也是"命令一律在 skill 目录里跑"
+这条约定要守住的原因之一：换个目录跑，生效的 `.env` 就可能换了一份。
+
+**没有凭证也能用**——步骤 1–4 照跑，交付 prompt 文件。

@@ -27,8 +27,12 @@ run "压缩不超限（第 4 项）"                   bash skills/_shared/scrip
 run "preflight + config"                      python3 skills/_shared/scripts/test-preflight.py
 run "产物落盘规则"                            bash skills/_shared/scripts/test-artifacts.sh
 run "imagegen 引擎"                           bash -c 'cd skills/_shared/scripts/imagegen && bun test'
-run "vendor 同步与漂移（第 5 项）"            bash scripts/test-sync-drift.sh
+# 顺序有意义：漂移检查必须排在同步行为测试**之前**。
+# test-sync-drift.sh 如今在沙箱副本里跑、不碰工作区，但即便如此也别把它挪到前面——
+# 它做的第一件事是 sync-shared.sh，谁要是哪天把它改回原地跑，真实漂移就会在
+# 第 9 项看见它之前被冲掉，而 design §4.3 明说漂移**绝不能靠 re-sync 解决**。
 run "shared 漂移检查"                         bash scripts/check-shared-drift.sh
+run "vendor 同步与漂移（第 5 项）"            bash scripts/test-sync-drift.sh
 
 echo
 if [[ ${#FAILED[@]} -eq 0 ]]; then

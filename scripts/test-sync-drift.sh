@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 # sync-shared.sh / check-shared-drift.sh 的行为测试。对应 spec §13 第 5 项。
+#
+# **全程在临时沙箱副本里跑，绝不碰真实工作区。** 两条理由，都不是洁癖：
+#
+# 1. 本测试必须故意制造一次漂移才能验证漂移检查有效。在真实工作区里做，就意味着
+#    它开头那句 sync-shared.sh 会先把**别人真实的漂移**冲掉——`check.sh` 里紧随其后
+#    的漂移检查从此永远不可能失败，而 design §4.3 明说漂移是 vendoring 唯一的真实
+#    失败模式，且**绝不能靠 re-sync 解决**。
+# 2. 半途被打断（Ctrl-C、超时）时不会在真实工作区留下一个被改过的 vendor 副本。
+#    这个仓库里可能有另一个 agent 在同时提交，脏文件会被顺手带进他的 commit。
 set -uo pipefail
 cd "$(dirname "$0")/.."
+REPO=$(pwd)
 
 PASS=0
 FAIL=0
@@ -9,6 +19,19 @@ ok()  { echo "  ✅ $1"; PASS=$((PASS+1)); }
 bad() { echo "  ❌ $1"; echo "     $2"; FAIL=$((FAIL+1)); }
 
 DEST=skills/md2publish-cover/shared
+
+# 真实工作区里那份 vendor 副本的指纹。跑完要原样，证明沙箱确实隔离。
+REAL_PROBE="$REPO/$DEST/scripts/compress.py"
+REAL_BEFORE=$(cksum < "$REAL_PROBE" 2>/dev/null || echo "缺失")
+
+SANDBOX=$(mktemp -d)
+trap 'rm -rf "$SANDBOX"' EXIT INT TERM
+
+mkdir -p "$SANDBOX/skills"
+\cp -Rf "$REPO/scripts" "$SANDBOX/scripts"
+\cp -Rf "$REPO/skills/_shared" "$SANDBOX/skills/_shared"
+\cp -Rf "$REPO/skills/md2publish-cover" "$SANDBOX/skills/md2publish-cover"
+cd "$SANDBOX"
 
 echo "== sync =="
 
@@ -33,16 +56,15 @@ done
 echo
 echo "== vendor 出来的副本能独立跑 =="
 
-ROOT=$(pwd)
 out=$(cd "$DEST/scripts" && python3 compose_prompt.py --platform wechat --preset editorial-warm \
-        --brief-file "$ROOT/skills/_shared/scripts/fixtures/brief-sample.md" \
-        --out /tmp/mp-vendor-check.md 2>&1)
-if [[ $? -eq 0 && -s /tmp/mp-vendor-check.md ]]; then
+        --brief-file "$SANDBOX/skills/_shared/scripts/fixtures/brief-sample.md" \
+        --out "$SANDBOX/vendor-check.md" 2>&1)
+if [[ $? -eq 0 && -s "$SANDBOX/vendor-check.md" ]]; then
   ok "vendor 副本里的 compose_prompt.py 能跑（asset_lib 依赖没漏）"
 else
   bad "vendor 副本跑不起来" "$out"
 fi
-rm -f /tmp/mp-vendor-check.md
+rm -f "$SANDBOX/vendor-check.md"
 
 echo
 echo "== drift =="
@@ -62,6 +84,16 @@ fi
 ./scripts/sync-shared.sh >/dev/null 2>&1     # 恢复
 ./scripts/check-shared-drift.sh >/dev/null 2>&1
 [[ $? -eq 0 ]] && ok "re-sync 后恢复干净" || bad "re-sync 未恢复" ""
+
+echo
+echo "== 沙箱隔离 =="
+
+REAL_AFTER=$(cksum < "$REAL_PROBE" 2>/dev/null || echo "缺失")
+if [[ "$REAL_BEFORE" == "$REAL_AFTER" ]]; then
+  ok "真实工作区的 vendor 副本全程未被改动（漂移探针只落在沙箱里）"
+else
+  bad "本测试改到了真实工作区" "before=${REAL_BEFORE} after=${REAL_AFTER}"
+fi
 
 echo
 echo "通过 $PASS 项，失败 $FAIL 项"

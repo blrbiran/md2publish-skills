@@ -219,5 +219,38 @@ except a.AssetError:
 if [[ "$out" == "ok" ]]; then ok "unknown 返回 None、未知 provider 硬失败"; else bad "estimate_cost 行为不对" "$out"; fi
 
 echo
+echo "== provider 名单四处一致 =="
+
+# 同一份「已 vendor 的 11 个 provider」被写了四遍：asset_lib.PROVIDERS、
+# preflight.PROVIDER_ENV、imagegen/providers/*.ts、costs.yaml。加第 12 个时漏掉任何
+# 一处都不会当场报错，而是等到真要花钱那一刻才炸：漏 asset_lib.PROVIDERS →
+# estimate_cost 跑到一半抛异常；漏 PROVIDER_ENV → 凭证门把一个配置正确的用户拦下。
+# 下面这条是唯一把四者绑在一起的断言。
+out=$(py "
+import asset_lib as a, preflight as pf
+from pathlib import Path
+
+lists = {
+    'asset_lib.PROVIDERS': set(a.PROVIDERS),
+    'preflight.PROVIDER_ENV': set(pf.PROVIDER_ENV),
+    'imagegen/providers/*.ts': {
+        p.stem for p in (Path('imagegen') / 'providers').glob('*.ts')
+        if not p.name.endswith('.test.ts')
+    },
+    'costs.yaml providers': set(a.load_costs()['providers']),
+}
+union = set().union(*lists.values())
+gaps = {k: sorted(union - v) for k, v in lists.items() if union - v}
+assert not gaps, '四处名单不一致，各自缺: %s' % gaps
+assert len(union) == 11, '总数变了（当前 %d 个），四处都改了才算数: %s' % (len(union), sorted(union))
+print('ok')
+" 2>&1)
+if [[ "$out" == "ok" ]]; then
+  ok "provider 名单在 asset_lib / preflight / imagegen / costs.yaml 四处完全一致"
+else
+  bad "provider 名单四处不一致" "$out"
+fi
+
+echo
 echo "通过 $PASS 项，失败 $FAIL 项"
 [[ $FAIL -eq 0 ]]

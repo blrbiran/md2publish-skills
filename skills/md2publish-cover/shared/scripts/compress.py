@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -79,6 +80,17 @@ def _target_path(image: Path, out: Path | None, ext: str) -> Path:
     return dst
 
 
+def _staging_path(dst: Path) -> Path:
+    """每一级阶梯先写这个临时文件，只有压到上限内才落到 dst。
+
+    理由：dst 很可能是**上一次跑出来的、已经花过钱的好产物**。直接往 dst 上写，
+    压缩失败时它就被一堆超限的中间结果覆盖掉了；后面再 unlink 一次更是连尸体
+    都不剩。同目录、同扩展名——同目录保证 os.replace 不跨文件系统，同扩展名
+    保证 magick / cwebp 仍按原来的格式判定输出（它们看扩展名）。
+    """
+    return dst.with_name(f".{dst.stem}.compress-tmp{dst.suffix}")
+
+
 def compress(image: Path, max_bytes: int, out: Path | None, allow_webp: bool) -> dict:
     if not image.exists():
         raise CompressError(f"图片不存在: {image}")
@@ -94,22 +106,30 @@ def compress(image: Path, max_bytes: int, out: Path | None, allow_webp: bool) ->
         )
 
     steps: list[dict] = []
-    leftovers: set[Path] = set()
-    for name, fn, ext in tools:
-        dst = _target_path(image, out, ext)
-        for quality, max_dim in LADDER:
-            if not fn(image, dst, quality, max_dim):
-                steps.append({"tool": name, "quality": quality, "max_dim": max_dim, "bytes": None})
-                continue
-            leftovers.add(dst)
-            got = dst.stat().st_size
-            steps.append({"tool": name, "quality": quality, "max_dim": max_dim, "bytes": got})
-            if got <= max_bytes:
-                return {"action": "compressed", "path": str(dst), "bytes": got,
-                        "tool": name, "steps": steps}
+    staged: set[Path] = set()
+    try:
+        for name, fn, ext in tools:
+            dst = _target_path(image, out, ext)
+            tmp = _staging_path(dst)
+            staged.add(tmp)
+            for quality, max_dim in LADDER:
+                if not fn(image, tmp, quality, max_dim):
+                    steps.append({"tool": name, "quality": quality,
+                                  "max_dim": max_dim, "bytes": None})
+                    continue
+                got = tmp.stat().st_size
+                steps.append({"tool": name, "quality": quality, "max_dim": max_dim, "bytes": got})
+                if got <= max_bytes:
+                    os.replace(tmp, dst)   # 原子落盘；此前 dst 一直保持原样
+                    staged.discard(tmp)
+                    return {"action": "compressed", "path": str(dst), "bytes": got,
+                            "tool": name, "steps": steps}
+    finally:
+        # 只清自己写的临时文件。**绝不碰 dst**——它可能是上一轮花钱生成的好产物，
+        # 本次失败没有资格把它带走。
+        for path in staged:
+            path.unlink(missing_ok=True)
 
-    for path in leftovers:
-        path.unlink(missing_ok=True)   # 失败不留残骸，否则下次 guard 会误判"已生成"
     sizes = [s["bytes"] for s in steps if s["bytes"]]
     best = min(sizes) if sizes else "无"
     raise CompressError(

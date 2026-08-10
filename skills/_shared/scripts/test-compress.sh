@@ -66,6 +66,35 @@ else
 fi
 
 echo
+echo "== 失败时不许动既有产物 =="
+
+# 场景：上一轮已经生成并压好了一张 00-cover.jpg（花过钱），这一轮换了张更复杂的
+# 原图、上限又收紧，压缩必然失败。失败**不能**把上一轮那张好图删掉或覆盖掉。
+PREV="$TMP/prev-good.jpg"
+printf 'PREVIOUS-GOOD-PAID-ARTIFACT' > "$PREV"
+prev_before=$(cksum < "$PREV")
+python3 compress.py --image "$TMP/big.png" --max-bytes 500 --out "$PREV" >/dev/null 2>&1
+rc=$?
+prev_after=$(cksum < "$PREV" 2>/dev/null || echo "已被删除")
+if [[ $rc -ne 0 && -f "$PREV" && "$prev_before" == "$prev_after" ]]; then
+  ok "压缩失败后既有产物仍在、内容一字未改"
+else
+  bad "压缩失败把上一轮花钱生成的产物毁了" "rc=$rc before=${prev_before} after=${prev_after}"
+fi
+
+# 反方向：本来没有产物时，失败不能留下半成品——否则下次 artifacts.py guard 会
+# 误判"已生成"，把用户挡在门外。
+FRESH="$TMP/fresh.jpg"
+rm -f "$FRESH"
+python3 compress.py --image "$TMP/big.png" --max-bytes 500 --out "$FRESH" >/dev/null 2>&1
+strays=$(find "$TMP" -maxdepth 1 -name 'fresh*' -o -maxdepth 1 -name '.fresh*' | tr '\n' ' ')
+if [[ ! -e "$FRESH" && -z "${strays// /}" ]]; then
+  ok "压缩失败且原本无产物时不留残骸（含临时文件）"
+else
+  bad "失败后留下了残骸" "strays=${strays:-无} fresh 存在=$([[ -e "$FRESH" ]] && echo 是 || echo 否)"
+fi
+
+echo
 echo "== JSON 输出 =="
 
 out=$(python3 compress.py --image "$TMP/big.png" --max-bytes "$MAX" --json 2>&1)
