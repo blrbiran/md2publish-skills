@@ -175,5 +175,49 @@ print("OK")
 [[ "$out" == "OK" ]] && ok "INDEX.md 收录了全部 dimension 值" || bad "INDEX dimension 覆盖" "$out"
 
 echo
+echo "== costs.yaml（spec §9）=="
+
+py() { python3 -c "import sys; sys.path.insert(0,'.'); $1"; }
+
+out=$(py "
+import asset_lib as a
+c = a.load_costs()
+assert c['version'] == 1, c['version']
+assert c['currency'], 'currency 缺失'
+assert isinstance(c['providers'], dict) and c['providers'], 'providers 为空'
+print('ok')
+" 2>&1)
+if [[ "$out" == "ok" ]]; then ok "costs.yaml 结构合法"; else bad "costs.yaml 结构不合法" "$out"; fi
+
+out=$(py "
+import asset_lib as a
+extra = sorted(set(a.load_costs()['providers']) - set(a.PROVIDERS))
+print('ok' if not extra else 'unknown provider: %s' % extra)
+" 2>&1)
+if [[ "$out" == "ok" ]]; then ok "costs.yaml 里没有未 vendor 的 provider"; else bad "costs.yaml 有多余 provider" "$out"; fi
+
+out=$(py "
+import asset_lib as a
+bad_vals = []
+for p, models in a.load_costs()['providers'].items():
+    for m, v in (models or {}).items():
+        if v != 'unknown' and not (isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0):
+            bad_vals.append((p, m, v))
+print('ok' if not bad_vals else 'bad values: %s' % bad_vals)
+" 2>&1)
+if [[ "$out" == "ok" ]]; then ok "每个价格是正数或字符串 unknown"; else bad "价格取值非法" "$out"; fi
+
+out=$(py "
+import asset_lib as a
+assert a.estimate_cost('openai', 'gpt-image-2') is None, '未标价应返回 None'
+try:
+    a.estimate_cost('no-such-provider', 'x')
+    print('未知 provider 没有硬失败')
+except a.AssetError:
+    print('ok')
+" 2>&1)
+if [[ "$out" == "ok" ]]; then ok "unknown 返回 None、未知 provider 硬失败"; else bad "estimate_cost 行为不对" "$out"; fi
+
+echo
 echo "通过 $PASS 项，失败 $FAIL 项"
 [[ $FAIL -eq 0 ]]

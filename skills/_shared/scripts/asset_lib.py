@@ -22,6 +22,14 @@ PRESET_REQUIRED_FIELDS = [
 ]
 DIMENSION_KINDS = {"palettes", "renderings", "layouts"}
 
+# 已 vendor 进 scripts/imagegen/ 的 provider。codex-cli 不在其中（二期 A 未搬）。
+# 改 vendor 范围时这里和 preflight.PROVIDER_ENV 要同步改。
+PROVIDERS = [
+    "agnes", "azure", "dashscope", "google", "jimeng", "minimax",
+    "openai", "openrouter", "replicate", "seedream", "zai",
+]
+COST_UNKNOWN = "unknown"
+
 
 class AssetError(Exception):
     """资产结构不合法。所有校验失败统一抛这个。"""
@@ -144,3 +152,42 @@ def load_dimension(kind: str, value: str) -> str:
 
 def preset_supports(preset: dict, platform_name: str) -> bool:
     return platform_name not in preset.get("incompatible_platforms", [])
+
+
+def load_costs() -> dict:
+    path = shared_root() / "costs.yaml"
+    if not path.exists():
+        raise AssetError(f"costs.yaml 不存在: {path}")
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise AssetError("costs.yaml 不是 mapping")
+    for key in ("version", "currency", "providers"):
+        if key not in data:
+            raise AssetError(f"costs.yaml 缺字段 {key}")
+    if not isinstance(data["providers"], dict) or not data["providers"]:
+        raise AssetError("costs.yaml 的 providers 必须是非空 mapping")
+    unknown = sorted(set(data["providers"]) - set(PROVIDERS))
+    if unknown:
+        raise AssetError(
+            f"costs.yaml 含未 vendor 的 provider {unknown}；已 vendor 的是 {PROVIDERS}"
+        )
+    for provider, models in data["providers"].items():
+        if not isinstance(models, dict) or not models:
+            raise AssetError(f"costs.yaml 的 {provider} 必须是非空 mapping")
+        for model, value in models.items():
+            if value == COST_UNKNOWN:
+                continue
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+                raise AssetError(
+                    f"costs.yaml 的 {provider}.{model} 必须是正数或字符串 "
+                    f"'{COST_UNKNOWN}'，实为 {value!r}"
+                )
+    return data
+
+
+def estimate_cost(provider: str, model: str) -> float | None:
+    """返回单张估价；无价目返回 None。调用方据此说明'该 provider 无价目表'，别编数字。"""
+    if provider not in PROVIDERS:
+        raise AssetError(f"未知 provider: {provider}；已 vendor 的是 {PROVIDERS}")
+    value = (load_costs()["providers"].get(provider) or {}).get(model, COST_UNKNOWN)
+    return None if value == COST_UNKNOWN else float(value)
