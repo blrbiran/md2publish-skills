@@ -159,6 +159,17 @@ def _px_or_none(v):
     """
     m = re.fullmatch(r"\s*([\d.]+)px\s*", v or "")
     return float(m.group(1)) if m else None
+```
+
+> **2026-08-11 更正（Task 3 核实）**：上面代码块里的正则 `r"\s*([\d.]+)px\s*"` 是错的——
+> `[\d.]+` 是字符类，允许任意多个 `.`，会匹配 `1.2.3px` 这种非法长度值，`float()` 拿到
+> `"1.2.3"` 会抛 `ValueError`，而不是按本函数 docstring 与本计划 Global Constraints
+> 说好的「解不出来就返回 None、倒向保留图像」退化。实际入仓的实现用的是
+> `r"\s*(\d+(?:\.\d+)?)px\s*"`（`skills/md2publish-article/scripts/contrast_lib.py`），
+> 只允许至多一个小数点。这是事实性更正，不是设计变更——按第零节文档地图第 4 条的纪律，
+> 存档只在发现事实错误时更正，本次即是。
+
+```python
 
 
 def _padding_side(shorthand, side):
