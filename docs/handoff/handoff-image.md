@@ -18,9 +18,10 @@
 
 | 文档 | 管什么 |
 |---|---|
-| `docs/superpowers/specs/2026-08-09-md2publish-image-skills-design.md` | **设计的唯一真相源**（第二版）。skill 边界、资产 schema、执行链路、副作用边界、分期 |
+| `docs/superpowers/specs/2026-08-09-md2publish-image-skills-design.md` | **设计的唯一真相源**（第三版）。skill 边界、资产 schema、执行链路、副作用边界、分期 |
 | `docs/superpowers/plans/2026-08-09-shared-image-assets-phase1.md` | 一期的逐步实施计划（已执行完） |
-| `docs/superpowers/plans/2026-08-10-image-phase2a.md` | 二期 A 的逐步实施计划（已执行完）。开头有 D1–D4 偏离表与 Global Constraints，写二期 B 的计划时照抄那套约束 |
+| `docs/superpowers/plans/2026-08-10-image-phase2a.md` | 二期 A 的逐步实施计划（已执行完）。开头有 D1–D4 偏离表与 Global Constraints，写三期的计划时把这套约束照抄过去 |
+| `docs/superpowers/plans/2026-08-11-image-phase2b.md` | 二期 B 的逐步实施计划（已执行完）。开头有 D5–D10 偏离表与 Global Constraints——两份计划里更新的一份，写三期的计划时该照抄这份，不是二期 A 那份 |
 | `skills/_shared/scripts/imagegen/VENDOR.md` | vendor 来源、排除清单、与上游只差的两行、重新同步步骤 |
 | `skills/_shared/README.md` | `_shared/` 怎么用、怎么跑测试、哪些是故意推到二期的 |
 | `skills/_shared/presets/INDEX.md` | preset 与 dimensions 的**唯一发现入口**。选 preset 一律读它，别背名单 |
