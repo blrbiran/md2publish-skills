@@ -95,4 +95,3 @@ python3 compose_prompt.py \
   真正用起来（三期）时再补。
 - **`costs.yaml` 全是 `unknown`** —— 真实单价同属外部知识，用户实测后自己填。
 - **`md2publish-visuals` / `md2publish-diagram`** —— 三期。
-- **对现有 skill 的改动** —— `md2publish-images` 的删除与九处引用修改属二期 B。

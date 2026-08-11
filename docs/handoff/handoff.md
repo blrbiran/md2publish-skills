@@ -62,10 +62,10 @@
 
 - `skills/wechat-finetune/` — 成稿 → 公众号版 Markdown（重拟标题/删难懂与无关/开篇钩子/段落切短/frontmatter），原文不动、另存 `<name>.wechat.md`
 - `skills/md2publish-article/` — Markdown → 微信可粘贴 HTML（排版指令来自本地主题库）
-- `skills/md2publish-images/` — 封面/信息图（`--plan` 计划模式，交宿主 agent 生成）
+- `skills/md2publish-cover/` — 封面图（微信 / 小红书两种画幅，真调 provider 生成：花钱、不可逆；最终产物路径以 sidecar 的 `image` 字段为准，压缩后 `.png` 与 `.jpg` 并存）
 - `skills/md2publish-draft/` — 推草稿箱（`upload_image` + `create_draft`，强制用户确认）
 
-完整链路：`tech-writer`（读者懂不懂）→ `tech-writer-deslop`（像不像 AI 写的）→ `wechat-finetune`（适不适合公众号平台）→ `md2publish-article` → `md2publish-images` → `md2publish-draft`。前两个在另一个仓库 `~/code/skills/runskills/skills/`，三者判据不重叠、顺序不能反。
+完整链路：`tech-writer`（读者懂不懂）→ `tech-writer-deslop`（像不像 AI 写的）→ `wechat-finetune`（适不适合公众号平台）→ `md2publish-article` → `md2publish-draft`（封面并行走 `md2publish-cover`）。前两个在另一个仓库 `~/code/skills/runskills/skills/`，三者判据不重叠、顺序不能反。
 
 架构与职责边界见 `skills/README.md`；给人读的全流程教程在 `~/org/markdown/prompt/@inbox/md-to-wechat-draft-free-path.md`（仓库外，**写于主题统一重构之前，未反映 `md2html.py`**）。
 
@@ -737,7 +737,10 @@ mint-breeze 那条还写明了示例里 `width: 20px` 的正圆只演示单位�
 ### 4. 未实测的两个 skill
 
 - **`wechat-finetune` 未实测**，eval 循环未跑
-- **`md2publish-images` 从未实测**（宿主生图 + 上传封面未走通）
+- **`md2publish-cover` 的端到端付费 smoke 未跑**：本机一个 provider 凭证都没配，
+  真调一次 provider 生一张图并压到 2MB 内这一步从未做过。它的九项机械检查全绿，
+  但**九项绿不等于端到端验证过**。（旧的 `md2publish-images` 已于二期 B 删除，
+  它同样从未实测过）
 
 ### 5. 教程文档校订
 
