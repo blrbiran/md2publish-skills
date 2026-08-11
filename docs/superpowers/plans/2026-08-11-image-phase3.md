@@ -49,7 +49,7 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # ok：0 条失败
 | preflight + config | 21 | 21（不变） |
 | 产物落盘规则 | 12 | **18**（T1 加 6 项） |
 | imagegen 引擎 | 97 pass / 12 files | 不变 |
-| **Markdown 回写门**（新） | — | **12**（T3） |
+| **Markdown 回写门**（新） | — | **13**（T3） |
 | **SVG→位图降级链**（新） | — | **11**（T2，本机三后端齐全时；缺后端的机器上会少几项并打印 ⊘） |
 | **diagram 端到端**（新） | — | 通过或 SKIPPED（T7） |
 | shared 漂移检查 | 1 skill | **3 skills**（T6） |
@@ -90,7 +90,7 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # ok：0 条失败
 | `skills/_shared/scripts/fixtures/diagram-sample.svg` | **新建**。测试与端到端共用的 fixture | T2 |
 | `skills/_shared/scripts/test-svg2raster.sh` | **新建**。8 项，含 PATH 遮蔽沙箱 | T2 |
 | `skills/_shared/scripts/writeback.py` | **新建**。Markdown 回写 | T3 |
-| `skills/_shared/scripts/test-writeback.sh` | **新建**。12 项 | T3 |
+| `skills/_shared/scripts/test-writeback.sh` | **新建**。13 项 | T3 |
 | `skills/md2publish-diagram/SKILL.md` | **新建** | T4 |
 | `skills/md2publish-visuals/SKILL.md` | **新建** | T5 |
 | `scripts/shared-manifest.sh` | `SHARED_SKILLS` 加两个；两个新 case | T6 |
@@ -1098,7 +1098,7 @@ fi
 
 ins '[{"anchor": "## 三种写法", "position": "after", "image": "01-illustration.jpg", "alt": "x"}]'
 out=$(runwb)
-if [[ $? -ne 0 ]] && grep -q '2' <<<"$out"; then
+if [[ $? -ne 0 ]] && grep -q '命中 2 次' <<<"$out"; then
   ok "锚点 2 次命中时硬失败（插错位置比不插更难发现）"
 else
   bad "多重命中却挑了一个插" "$out"
@@ -1156,6 +1156,34 @@ else
 fi
 
 echo
+echo "== 多图（back-to-front 插入顺序） =="
+
+rm -f "$OUT"
+printf 'fake' > "$ASSETS/02-middle.jpg"
+printf 'fake' > "$ASSETS/03-end.jpg"
+ins '[
+  {"anchor": "开篇一段。", "position": "after", "image": "01-illustration.jpg", "alt": "开篇配图"},
+  {"anchor": "## 取舍", "position": "before", "image": "02-middle.jpg", "alt": "取舍前配图"},
+  {"anchor": "结尾一段。", "position": "after", "image": "03-end.jpg", "alt": "结尾配图"}
+]'
+out=$(runwb)
+rc=$?
+front_anchor=$(grep -n -F '开篇一段。' "$OUT" | head -1 | cut -d: -f1)
+front_img=$(grep -n -F '![开篇配图]' "$OUT" | head -1 | cut -d: -f1)
+mid_anchor=$(grep -n '^## 取舍' "$OUT" | head -1 | cut -d: -f1)
+mid_img=$(grep -n -F '![取舍前配图]' "$OUT" | head -1 | cut -d: -f1)
+end_anchor=$(grep -n -F '结尾一段。' "$OUT" | head -1 | cut -d: -f1)
+end_img=$(grep -n -F '![结尾配图]' "$OUT" | head -1 | cut -d: -f1)
+if [[ $rc -eq 0 \
+      && -n "${front_anchor}" && -n "${front_img}" && ${front_img} -gt ${front_anchor} \
+      && -n "${mid_anchor}"   && -n "${mid_img}"   && ${mid_img}   -lt ${mid_anchor} \
+      && -n "${end_anchor}"   && -n "${end_img}"   && ${end_img}   -gt ${end_anchor} ]]; then
+  ok "三条 insertion 分布在前中后时各自落在自己锚点的正确一侧（从后往前插入不会互相顶偏）"
+else
+  bad "多图插入位置错乱" "rc=${rc} front=${front_anchor}/${front_img} mid=${mid_anchor}/${mid_img} end=${end_anchor}/${end_img} out=${out}"
+fi
+
+echo
 echo "通过 $PASS 项，失败 $FAIL 项"
 [[ $FAIL -eq 0 ]]
 ```
@@ -1166,7 +1194,7 @@ echo "通过 $PASS 项，失败 $FAIL 项"
 cd skills/_shared/scripts && bash test-writeback.sh 2>&1 | tail -6 && cd ../../..
 ```
 
-预期：12 项全部失败（`writeback.py` 不存在）。
+预期：13 项全部失败（`writeback.py` 不存在）。
 
 - [ ] **Step 4: 写 writeback.py**
 
@@ -1286,7 +1314,7 @@ def main() -> int:
     ap.add_argument("--source", required=True, help="原文，只读，永不修改")
     ap.add_argument("--insertions", required=True, help="agent 写的插入计划 JSON")
     ap.add_argument("--assets-dir", required=True, help="图片所在目录")
-    ap.add_argument("--out", required=True, help="回写产物，默认 article.illustrated.md")
+    ap.add_argument("--out", required=True, help="输出路径，通常是 <文章目录>/article.illustrated.md")
     ap.add_argument("--force", action="store_true", help="覆盖已存在的 --out")
     ap.add_argument("--dry-run", action="store_true", help="只打印 diff，不写文件")
     args = ap.parse_args()
@@ -1326,7 +1354,7 @@ if __name__ == "__main__":
 cd skills/_shared/scripts && bash test-writeback.sh 2>&1 | tail -20 && cd ../../..
 ```
 
-预期：「通过 12 项，失败 0 项」。
+预期：「通过 13 项，失败 0 项」。
 
 - [ ] **Step 6: Commit**
 

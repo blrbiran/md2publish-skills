@@ -111,7 +111,7 @@ def main() -> int:
     ap.add_argument("--source", required=True, help="原文，只读，永不修改")
     ap.add_argument("--insertions", required=True, help="agent 写的插入计划 JSON")
     ap.add_argument("--assets-dir", required=True, help="图片所在目录")
-    ap.add_argument("--out", required=True, help="回写产物，默认 article.illustrated.md")
+    ap.add_argument("--out", required=True, help="输出路径，通常是 <文章目录>/article.illustrated.md")
     ap.add_argument("--force", action="store_true", help="覆盖已存在的 --out")
     ap.add_argument("--dry-run", action="store_true", help="只打印 diff，不写文件")
     args = ap.parse_args()

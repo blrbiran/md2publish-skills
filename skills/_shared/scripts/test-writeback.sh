@@ -94,7 +94,7 @@ fi
 
 ins '[{"anchor": "## 三种写法", "position": "after", "image": "01-illustration.jpg", "alt": "x"}]'
 out=$(runwb)
-if [[ $? -ne 0 ]] && grep -q '2' <<<"$out"; then
+if [[ $? -ne 0 ]] && grep -q '命中 2 次' <<<"$out"; then
   ok "锚点 2 次命中时硬失败（插错位置比不插更难发现）"
 else
   bad "多重命中却挑了一个插" "$out"
@@ -149,6 +149,34 @@ if [[ -n "${img_line}" && -n "${anchor_line}" && ${img_line} -lt ${anchor_line} 
   ok "position=before 时图片在锚点行之前"
 else
   bad "before 位置不对" "anchor=${anchor_line} img=${img_line}"
+fi
+
+echo
+echo "== 多图（back-to-front 插入顺序） =="
+
+rm -f "$OUT"
+printf 'fake' > "$ASSETS/02-middle.jpg"
+printf 'fake' > "$ASSETS/03-end.jpg"
+ins '[
+  {"anchor": "开篇一段。", "position": "after", "image": "01-illustration.jpg", "alt": "开篇配图"},
+  {"anchor": "## 取舍", "position": "before", "image": "02-middle.jpg", "alt": "取舍前配图"},
+  {"anchor": "结尾一段。", "position": "after", "image": "03-end.jpg", "alt": "结尾配图"}
+]'
+out=$(runwb)
+rc=$?
+front_anchor=$(grep -n -F '开篇一段。' "$OUT" | head -1 | cut -d: -f1)
+front_img=$(grep -n -F '![开篇配图]' "$OUT" | head -1 | cut -d: -f1)
+mid_anchor=$(grep -n '^## 取舍' "$OUT" | head -1 | cut -d: -f1)
+mid_img=$(grep -n -F '![取舍前配图]' "$OUT" | head -1 | cut -d: -f1)
+end_anchor=$(grep -n -F '结尾一段。' "$OUT" | head -1 | cut -d: -f1)
+end_img=$(grep -n -F '![结尾配图]' "$OUT" | head -1 | cut -d: -f1)
+if [[ $rc -eq 0 \
+      && -n "${front_anchor}" && -n "${front_img}" && ${front_img} -gt ${front_anchor} \
+      && -n "${mid_anchor}"   && -n "${mid_img}"   && ${mid_img}   -lt ${mid_anchor} \
+      && -n "${end_anchor}"   && -n "${end_img}"   && ${end_img}   -gt ${end_anchor} ]]; then
+  ok "三条 insertion 分布在前中后时各自落在自己锚点的正确一侧（从后往前插入不会互相顶偏）"
+else
+  bad "多图插入位置错乱" "rc=${rc} front=${front_anchor}/${front_img} mid=${mid_anchor}/${mid_img} end=${end_anchor}/${end_img} out=${out}"
 fi
 
 echo
