@@ -12,7 +12,9 @@ allowed-tools: Read, Write, Bash, AskUserQuestion
 
 - 本 skill 产物是**本地 HTML 文件**，零副作用：不联网上传、不建草稿。
 - 用户要"推草稿箱 / 发布 / 上传"时，转换完成后交接给 `md2publish-draft` skill。
-- 用户要封面图 / 信息图时，交接给 `md2publish-images` skill。
+- 用户要封面图时，交接给 `md2publish-cover` skill。
+- 用户要正文配图 / 信息图 / 示意图时，如实说 `md2publish-visuals`（配图、信息图、卡片系列）
+  与 `md2publish-diagram`（架构图、流程图）**三期才建、现在还没有**，别用封面流程凑合。
 
 ## 执行流程
 
@@ -82,7 +84,10 @@ md2wechat inspect <article.md> --mode ai --theme <theme> --json
 
 转换完成后报告：输出文件路径、使用的主题、元数据检查结果（含超限警告）。然后问用户下一步：
 
-- 需要封面图 → `md2publish-images`
+- 需要封面图 → `md2publish-cover`（与本 skill 并行，封面不进正文）
+- 需要正文配图 / 信息图 / 示意图 → `md2publish-visuals` / `md2publish-diagram`，
+  **三期，尚未实现**，如实说。三期落地后 `visuals` 要跑在本 skill **之前**——
+  它回写出的 `article.illustrated.md` 才是本 skill 的输入
 - 要推草稿箱 → `md2publish-draft`
 - 只要 HTML → 结束
 
