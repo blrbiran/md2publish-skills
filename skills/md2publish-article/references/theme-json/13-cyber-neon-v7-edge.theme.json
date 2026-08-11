@@ -10,6 +10,7 @@
   "strong_alt": {"keywords": ["注意", "警告", "不要", "会导致"], "style": "color: #ff4ba3; font-weight: 600"},
   "em": "color: #ff4ba3",
   "blockquote": "background-color: #10182a; border-left: 2px solid #39d0d8; padding: 14px 18px; margin: 0 0 16px; color: #7a869e; font-size: 14.5px",
+  "alert": {"warning": {"style": "background-color: #10182a; border-left: 2px solid #ff4ba3; padding: 14px 18px; margin: 0 0 16px; color: #c9d2e3; font-size: 14.5px", "label_html": "<span style=\"color: #ff4ba3; font-weight: 700;\">警告</span><br>"}},
   "pre": "background-color: #0a0e18; border: 1px solid #39456b; border-radius: 8px; padding: 16px; font-size: 13px; margin: 0 0 18px; line-height: 1.6",
   "code": "color: #c9d2e3; font-family: Menlo, Consolas, monospace",
   "inline_code": "background-color: #39456b; color: #c9d2e3; padding: 1px 5px; border-radius: 3px; font-family: Menlo, Consolas, monospace; letter-spacing: 0",
