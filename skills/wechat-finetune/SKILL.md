@@ -19,7 +19,7 @@ allowed-tools: Read, Write, Bash, AskUserQuestion
 
 同一篇稿子，读者的处境完全不同。所以「写清楚」（`tech-writer`）和「不像 AI 写的」（`tech-writer-deslop`）都做到了，稿子照样可能在公众号里没人看完——那是第三个问题，这个 skill 管这个。
 
-推荐的完整链路：`tech-writer` → `tech-writer-deslop` → **`wechat-finetune`** → `md2publish-article` → `md2publish-images` → `md2publish-draft`。
+推荐的完整链路：`tech-writer` → `tech-writer-deslop` → **`wechat-finetune`** → `md2publish-article` → `md2publish-draft`。封面走 `md2publish-cover`，与 `md2publish-article` 并行、不进正文。（三期的 `md2publish-visuals` 会把正文配图回写进 Markdown，届时它串在 `md2publish-article` **之前**，不是并行分支。）
 
 ## 唯一的判据
 
@@ -121,7 +121,7 @@ python3 scripts/verify.py <原文.md> <产物.wechat.md>
 
 ### 步骤 8：交接
 
-报告产物路径、改动清单、自检结果，然后问下一步：转 HTML 走 `md2publish-article`，要配图走 `md2publish-images`。不要未经询问就往下走。
+报告产物路径、改动清单、自检结果，然后问下一步：转 HTML 走 `md2publish-article`，要封面走 `md2publish-cover`；要正文配图 / 信息图 / 示意图，如实说 `md2publish-visuals` / `md2publish-diagram` **三期才建、现在没有**，别拿封面流程凑合。不要未经询问就往下走。
 
 ## 画像文件
 
