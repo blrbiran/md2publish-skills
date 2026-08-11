@@ -13,7 +13,7 @@
 01-autumn-warm	span	#c06b4d	#fef4e7	16	700	文字	3.54	3
 01-autumn-warm	span	#d97758	#fafafa	20	700	装饰	2.99	11
 01-autumn-warm	span	#d97758	#fafafa	16	400	装饰	2.99	9
-01-autumn-warm	strong	#c06b4d	#fafafa	16	700	文字	3.69	55
+01-autumn-warm	strong	#c06b4d	#fafafa	16	700	文字	3.69	54
 01-autumn-warm	strong	#c06b4d	#fafafa	14	700	文字	3.69	1
 01-autumn-warm	strong	#c06b4d	#fef4e7	15	700	文字	3.54	6
 01-autumn-warm	th	#c06b4d	#fef4e7	14	700	文字	3.54	7
@@ -29,7 +29,7 @@
 03-spring-fresh	span	#6b9b7a	#f3f7f4	16	400	装饰	2.95	9
 03-spring-fresh	span	#8fa08f	#eef4ee	13.5	400	文字	2.48	18
 03-spring-fresh	strong	#4a8058	#e8f0e8	15	700	文字	4.00	6
-03-spring-fresh	strong	#4a8058	#f3f7f4	16	700	文字	4.30	55
+03-spring-fresh	strong	#4a8058	#f3f7f4	16	700	文字	4.30	54
 03-spring-fresh	strong	#4a8058	#f3f7f4	14	700	文字	4.30	1
 03-spring-fresh	th	#4a8058	#e8f0e8	14	600	文字	4.00	7
 04-ink-wash	span	#8c887e	#efede7	13	400	文字	3.02	18
@@ -40,7 +40,7 @@
 08-morandi-fog	span	#b08e8a	#e6e1de	13	400	文字	2.29	208
 08-morandi-fog	span	#b08e8a	#e6e1de	13	600	文字	2.29	3
 08-morandi-fog	strong	#b08e8a	#e6e1de	14.5	600	文字	2.29	6
-08-morandi-fog	strong	#b08e8a	#f7f5f3	15.5	600	文字	2.73	55
+08-morandi-fog	strong	#b08e8a	#f7f5f3	15.5	600	文字	2.73	54
 08-morandi-fog	strong	#b08e8a	#f7f5f3	14	600	文字	2.73	1
 09-gilded-ink	span	#8f6f2f	#f5f1e8	13	400	文字	4.16	191
 09-gilded-ink	span	#8f6f2f	#f5f1e8	13	700	文字	4.16	3
@@ -80,20 +80,14 @@
 19-candy-pop	span	#f28ba8	#ffffff	16	700	装饰	2.32	7
 19-candy-pop	strong	#d96687	#fce8ee	14.5	700	文字	2.89	6
 19-candy-pop	strong	#d96687	#fdf6f0	14	700	文字	3.16	1
-19-candy-pop	strong	#d96687	#ffffff	15.5	700	文字	3.39	55
+19-candy-pop	strong	#d96687	#ffffff	15.5	700	文字	3.39	54
 19-candy-pop	th	#d96687	#fce8ee	14	700	文字	2.89	7
 21-aurora-flow	em	#38c6d9	#ecebfb	13	600	文字	1.74	1
 21-aurora-flow	h2	#ffffff	#38c6d9	17	700	文字	2.05	11
-21-aurora-flow	h3	#33344a	#6a5cff	16	700	文字	2.65	7
-21-aurora-flow	p	#33344a	#6a5cff	15.5	400	文字	2.65	257
-21-aurora-flow	span	#38c6d9	#38c6d9	15.5	400	装饰	1.00	4
-21-aurora-flow	span	#6a5cff	#6a5cff	15.5	400	装饰	1.00	5
+21-aurora-flow	span	#38c6d9	#ffffff	15.5	400	装饰	2.05	4
 21-aurora-flow	span	#6a5cff	#ecebfb	13	400	文字	3.89	191
 21-aurora-flow	span	#6a5cff	#ecebfb	13	700	文字	3.89	3
-21-aurora-flow	strong	#6a5cff	#6a5cff	15.5	700	文字	1.00	55
-21-aurora-flow	strong	#6a5cff	#6a5cff	14	700	文字	1.00	1
 21-aurora-flow	strong	#6a5cff	#ecebfb	14.5	700	文字	3.89	6
-21-aurora-flow	td	#33344a	#6a5cff	14	400	文字	2.65	14
 22-blueprint-grid	em	#b26a1b	#e7eff7	13.5	400	文字	3.64	1
 22-blueprint-grid	span	#7189a0	#e7eff7	13	400	文字	3.12	18
 22-blueprint-grid	span	#b26a1b	#e7eff7	13	400	文字	3.64	77
@@ -101,7 +95,7 @@
 23-terracotta-sun	p	#7d6250	#efe0cd	14.5	400	文字	4.34	23
 23-terracotta-sun	strong	#c2593b	#efe0cd	14.5	700	文字	3.39	6
 23-terracotta-sun	strong	#c2593b	#f8f0e7	14	700	文字	3.89	1
-23-terracotta-sun	strong	#c2593b	#fdf8f1	15.5	700	文字	4.15	55
+23-terracotta-sun	strong	#c2593b	#fdf8f1	15.5	700	文字	4.15	54
 24-botanic-press	em	#8a6d4e	#e9ecdf	13	400	文字	4.00	1
 24-botanic-press	p	#77816d	#fbfcf7	14	400	文字	3.96	23
 24-botanic-press	span	#77816d	#e9ecdf	13	400	文字	3.41	18
@@ -115,7 +109,7 @@
 25-washi-spring	span	#b56b7d	#f3e9e7	14	400	文字	3.28	191
 25-washi-spring	span	#b56b7d	#f3e9e7	14	600	文字	3.28	3
 25-washi-spring	strong	#b56b7d	#f3e9e7	14.5	600	文字	3.28	6
-25-washi-spring	strong	#b56b7d	#faf6f2	15.5	600	文字	3.64	55
+25-washi-spring	strong	#b56b7d	#faf6f2	15.5	600	文字	3.64	54
 25-washi-spring	strong	#b56b7d	#faf6f2	14	600	文字	3.64	1
 25-washi-spring	th	#b56b7d	#f3e9e7	14	600	文字	3.28	7
 27-retro-phosphor	p	#5a7a58	#0a0e0a	14	400	文字	4.04	23

@@ -285,8 +285,10 @@ class _Walker(HTMLParser):
         self.stack.append((
             tag,
             c[:3] if c else fg,
+            # 被 background-size 限制成贴边条带、且文字够不到的图像不算底色
             backdrop_samples(st.get("background-color") or st.get("background"),
-                             st.get("background-image"), samples),
+                             st.get("background-image") if image_reaches_text(st) else None,
+                             samples),
             _px(st.get("font-size"), size),
             _weight(st.get("font-weight"), weight),
             raw,
