@@ -1,6 +1,11 @@
 # Handoff：md2publish-skills 交接文档
 
-> 更新于 2026-08-11（清尾三件：cyber-neon 的 `alert` 补上——44 条至此全部收口；
+> 更新于 2026-08-11 下半场。**接手第一件事看第四节「2026-08-11 下半场」**：对比度那 116 条
+> 里查出 6 条是判据假阳（`contrast_lib.py` 不认 `background-size`），真实存量 110；
+> 修它的 spec 与 plan 都已入仓，**代码一行没动**，用户已裁定走 Subagent-Driven 执行。
+> 同一轮还出了 110 条的处置分档清单。
+>
+> 上半场（清尾三件）：cyber-neon 的 `alert` 补上——44 条至此全部收口；
 > 第六节第 2 条 park 的两条工程债还清——`WARN` 补了 stderr 断言、CLI 单测改名
 > `test-contrast-cli.py`。上一版 2026-08-10：对比度护栏落地，脚本、单测、变异测试、
 > 116 条冻结基线全部入仓，计划 Task 1–8 收口）。仓库位置：`~/code/skills/writing/md2publish-skills/`
@@ -24,9 +29,12 @@
 7. 改任何主题文件之前必读 `docs/theme-design-lessons.md`（规则 11–14 和两条判例是第四轮新立的）。
 8. 红线：**传图、建草稿、git commit/push 一律先经用户确认**；成本敏感，大批量开跑前先报预估。
 9. **对比度护栏本轮已落地**（第六节第 2 条）：第四套机械脚本 `contrast-themes.py` + 冻结基线
-   `references/contrast-baseline.tsv` 已入仓。真实基数是 **116 条**（立项那一轮一次性探针估的
-   113 只是下限，用的装饰判据已被 spec 否掉，别再当事实抄）。**存量不阻塞，冻结基线只挡新增组合**，
-   处置这 116 条是另一轮的事。这是第 5 条那句「0 不等于主题库成立」到目前为止最硬的一份证据。
+   `references/contrast-baseline.tsv` 已入仓。**存量不阻塞，冻结基线只挡新增组合。**
+   这是第 5 条那句「0 不等于主题库成立」到目前为止最硬的一份证据。
+   ⚠️ **基线里那 116 条，有 6 条是判据假阳，真实存量 110**——见第四节
+   「2026-08-11 下半场」。修它的 spec 与 plan 都已入仓、**一行代码都还没动**，
+   用户已裁定走 Subagent-Driven 执行。**接手第一件事就是它。**
+   （立项那一轮探针估的 113 是另一回事，用的装饰判据已被 spec 否掉，别再当事实抄。）
 10. ⚠️ **另一个会话确实在同一分支上并行提交，这已不是「可能」。**图片 skill 那条工作线
     （`_shared/` 图片资产层、`md2publish-cover`、`scripts/check.sh` 等）现在与本文这条线
     **共用 `main`**（原 `design/md2publish-image-skills` 已合入、本地只剩 remote）。
@@ -125,6 +133,8 @@ python3 skills/md2publish-article/scripts/test-contrast-lib.py
 # 9. 对比度普查（contrast-themes.py）这一套，三条一起跑：变异测试要 16 全绿；
 #    CLI 的 prune_survivors / baseline_diff 单测要 0 条失败；对真实库跑一遍——
 #    目前预期是 116 条不达标、116 条基线，无新增、exit 0
+#    ⚠️ 这 116 仍是当前真值（判据修复计划还没执行）。计划 Task 2 跑完应为 110/110；
+#       中途 `--prune` 之后会先出现 109，那是预期值不是算错。见第四节「2026-08-11 下半场」
 bash skills/md2publish-article/scripts/test-contrast-themes.sh
 python3 skills/md2publish-article/scripts/test-contrast-cli.py
 python3 skills/md2publish-article/scripts/contrast-themes.py
@@ -229,6 +239,57 @@ python3 skills/md2publish-article/scripts/contrast-themes.py
   `theme.json` 未动、产物逐字节不变
 - **删除 monochrome-mag 主题**（用户裁定不再使用），主题库 27 → 26，逐字节回归随之 27 → 26
 - **撤回一条自己写错的豁免注记**（mint-breeze），见第六节第 1 条的 ⚠️ 块
+
+### 2026-08-11 下半场：对比度 116 条查出 6 条是判据假阳，spec + plan 已入仓待执行
+
+**这是接手时最要紧的一条。**为处置那 116 条做分组清单时（纯读取，没动任何主题文件），
+逐色聚合后去看最差的一组，发现 `contrast_lib.py` **完全不处理 `background-size` /
+`background-repeat` / `background-position`**：aurora-flow 的 `card` 用
+`background-size: 100% 4px; no-repeat; position: top` 把渐变画成卡顶 4px 一条装饰线，
+卡内其余是白底，而走查把渐变当成铺满整张卡的底传给了所有后代文字。
+
+**7 行的底判错**，其中 **6 行在真实白底上其实达标**（`#33344a` 12.13:1、`#6a5cff` 4.58:1），
+第 7 行发现仍成立但底与比值都记错（`#38c6d9` 真实是 2.05:1，装饰阈值 3.0）。
+那个看着最吓人的 **`1.00:1 / 55 处` 不是「文字消失」**，是判据把一条装饰线当成了整张卡的底。
+**所以真实存量是 110 条，不是 116。**
+
+- **判据设计**：`docs/superpowers/specs/2026-08-11-background-size-backdrop-design.md`（已入仓）
+- **实施计划**：`docs/superpowers/plans/2026-08-11-background-size-backdrop.md`（已入仓，**三个任务一个都还没执行**）
+- **用户已裁定执行方式：Subagent-Driven**（每任务派新 subagent，任务间人工 review）
+- **执行前后基线数字**：现在仍是 **116 条 / 116 行**（第三节基线 9 的期望值没变，因为计划还没跑）；
+  计划 Task 2 跑完会变成 **110 条 / 110 行**，中途 `--prune` 之后会先出现 **109**，
+  **那个 109 是预期值不是算错**。Task 3 负责把第三节和本节的数字改掉
+
+**同一轮做的分档清单（纯读取，零文件改动）**：110 条真实存量落在 **42 支色**上——
+决策单元是「哪支色」而不是「哪一行」，因为改一支色常常一次销掉七八行。按「离阈值还差多少」
+分三档（差距 = 阈值 − 实测比值，越小越好改）：
+
+| 档 | 行 / 色 / 处 | 是什么 | 头两条 |
+|---|---|---|---|
+| **B 擦边** | 35 行 / 13 色 / 1134 处 | 差 ≤0.5，明度调一档就过，基本不含审美判断 | `03-spring-fresh #4a8058` 10 行 309 处只差 **0.50**；`15-mint-breeze #1e7a5c` 4 行 207 处只差 **0.05** |
+| **C 中等** | 45 行 / 14 色 / 1568 处 | 差 0.5–1.25，要动色但不动体系 | `01-autumn-warm #c06b4d` 10 行 309 处；`25-washi-spring #b56b7d` 7 行 280 处——都是一支色扛 h3+strong+th+span，动它必然改观感 |
+| **D 重定色** | 30 行 / 15 色 / 818 处 | 差 >1.25，等于重定这支色 | `19-candy-pop #d96687` 7 行 274 处差 1.61；`08-morandi-fog #b08e8a` 5 行 273 处差 2.21 |
+
+「candy-pop / morandi-fog / washi-spring 整套偏浅」这个旧判断**在数据上成立**：它们的失败色
+横跨 p/span/strong/th 多个层级，不是一两个色的事。**建议判据修完（那 6 条假阳消失）再从 B 档
+开刀**，B 档大部分是纯执行。**C/D 每支色都要用户单独拍板，不要自己开工。**
+另注意两条撞上第六节第 3 条「待真机观感定夺」的，**不该按数字改**：
+`27-retro-phosphor #5a7a58`（主题明文指定的三级绿）与 aurora-flow 的 h2 白字。
+
+**顺带量到的一件事**：全库 8 处渐变全写在 `background-image` 上（`background` 简写 0 处），
+其中只有 aurora-flow 的 `card` 命中判据四条；autumn-warm / ocean-calm / spring-fresh 的 `card`
+与 blueprint-grid 的 `container` 是 `20px 20px` 这类**平铺纹理**（不写 `background-repeat`
+即默认 `repeat`），它们确实铺满元素、确实在文字后面——**`no-repeat` 那一条是这道门里唯一
+真正承重的判据**，少了它会误伤这四个主题。
+
+⚠️ **一次提交事故，如实记在这里。**提交计划文件时用的是
+`git add <具体路径>` + `git commit`，但 `git commit` 提交的是**整个索引**——在「查
+`git status` 干净」和「执行 commit」之间，另一个会话把 `skills/md2publish-images/SKILL.md`
+的删除放进了暂存区，于是那个删除被卷进了计划那个提交。**没有工作丢失**（那条线本来就在
+系统性移除 md2publish-images，前两个提交是同一件事的文档部分），**只是归属错了**：删除记在
+计划提交名下。历史未改写——`main` 上另一个会话在活跃提交，`reset`/`revert` 有撞坏它的风险。
+**留给所有人的教训：`git add <路径>` 管不住 `git commit`。并行会话下要么用
+`git commit -- <路径>`，要么在 commit 前紧挨着再看一次 `git status`。**
 
 ### 2026-08-11 做完的（清尾三件，无新增功能）
 
@@ -692,7 +753,13 @@ mint-breeze 那条还写明了示例里 `width: 20px` 的正圆只演示单位�
 几行真的新增很容易被埋在预期内的抖动里——那等于把上面那条「唯一护栏」削掉大半。
 **注意这只是让增长看得见，并不拦它**：人读 diff 仍然是真正的护栏。
 
-**处置这 116 条是另一轮的事，性质与普查那 43 条完全不同**：43 条大半靠改标签、改描述、写
+⚠️ **2026-08-11 更正：这 116 条里有 6 条是判据假阳，真实存量 110。**详见第四节
+「2026-08-11 下半场」——`contrast_lib.py` 不认 `background-size`，把 aurora-flow 卡顶
+4px 装饰条当成了整张卡的底。修它的 spec 与 plan 已入仓、尚未执行。**下面这一段仍然
+成立，但把 116 读成 110**；处置分档（B 擦边 35 行 / C 中等 45 行 / D 重定色 30 行）
+也在第四节那一条里。
+
+**处置这 110 条是另一轮的事，性质与普查那 43 条完全不同**：43 条大半靠改标签、改描述、写
 豁免注记就能销，产物逐字节不变；这 116 条几乎每一条都要动配色、都会改产物、都含审美判断，
 而且 candy-pop / washi-spring / morandi-fog 是整套配色系统性偏浅，不是一两个色的事。这条
 状态不是待办清单，具体怎么处置要等用户逐条拍板。
