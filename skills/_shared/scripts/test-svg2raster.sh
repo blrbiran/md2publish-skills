@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# svg2raster.py 的降级链测试。对应 spec §14.3 与三期 D13。
+# svg2raster.py 的降级链测试。对应 spec §14.3 与三期 D13、D17。
 #
 # **降级链只能靠遮蔽 PATH 来验证。** 直接调 --backend 只证明"指定后端能用"，
-# 证明不了"rsvg 不在时会自动退到 magick"——而后者才是降级链存在的理由。
+# 证明不了"rsvg 不在时会自动退到下一级"——而后者才是降级链存在的理由。
 # 遮蔽是在沙箱 bin 目录里只放需要的那一个后端，再把 PATH 换成它。
 # 因此 svg2raster.py **必须只用标准库**：遮蔽后要用 /usr/bin/python3（3.9.6，
 # 没装 PyYAML）来跑，import yaml 会直接崩。
@@ -135,6 +135,61 @@ else
   else
     bad "--backend magick 在不可用时没有被拦住" "rc=${rc} out=${out}"
   fi
+fi
+
+echo
+echo "== 假 magick：给 magick_has_rsvg() 一个独立预言 =="
+# 上面两条 magick 相关断言的"真值"（magick_capable）是调 svg2raster.py --check
+# --json 算出来的——也就是被测代码自己，不是独立预言。这只能验证闸门内部自洽，
+# 抓不住"magick_has_rsvg() 被悄悄改坏"这类回归：如果它被简化成无条件 return
+# False，本机 magick 本来就会因带引号 fixture 而在实际光栅化时独立失败，两者
+# 巧合地看起来一致，上面两条断言会照样全绿。这里改用假 magick 脚本——让
+# magick -list format 打印我们指定的文本，直接给闸门的判定逻辑一个独立于本机
+# 真实 ImageMagick 构建的预言。
+
+make_fake_magick() {   # $1=bin 目录 $2=magick -list format 应打印的文本
+  local bin="$1" text="$2"
+  mkdir -p "${bin}"
+  printf '%s\n' "${text}" > "${bin}/magick.out"
+  cat > "${bin}/magick" <<'EOF'
+#!/bin/sh
+cat "$(dirname "$0")/magick.out"
+exit 0
+EOF
+  chmod +x "${bin}/magick"
+}
+
+run_fake_magick_check() {   # $1=magick -list format 应打印的文本
+  local text="$1"
+  local bin="$TMP/bin-fakemagick"
+  rm -rf "${bin}"
+  make_fake_magick "${bin}" "${text}"
+  env -i PATH="${bin}:/usr/bin:/bin" HOME="$HOME" SVG2RASTER_CHROME="/nonexistent/chrome" \
+    /usr/bin/python3 svg2raster.py --check --json 2>&1
+}
+
+FAKE_MAGICK_RSVG=$'     MSVG* SVG       rw+   ImageMagick internal SVG renderer\n      SVG* SVG       rw+   Scalable Vector Graphics (RSVG 2.40.20)\n     SVGZ* SVG       rw+   Compressed Scalable Vector Graphics (RSVG 2.40.20)'
+out=$(run_fake_magick_check "${FAKE_MAGICK_RSVG}")
+if grep -q '"magick"' <<<"$out"; then
+  ok "假 magick 的 SVG* 行带 RSVG 证据时，backends 里有 magick"
+else
+  bad "有 RSVG 证据却没被收进 backends" "$out"
+fi
+
+FAKE_MAGICK_XML=$'     MSVG* SVG       rw+   ImageMagick internal SVG renderer\n      SVG* SVG       rw+   Scalable Vector Graphics (XML 2.9.13)\n     SVGZ* SVG       rw+   Compressed Scalable Vector Graphics (XML 2.9.13)'
+out=$(run_fake_magick_check "${FAKE_MAGICK_XML}")
+if grep -q '"magick"' <<<"$out"; then
+  bad "只有 XML（本机真实输出）却被收进了 backends" "$out"
+else
+  ok "假 magick 的 SVG* 行只有 XML、没有 RSVG 证据时，backends 里没有 magick"
+fi
+
+FAKE_MAGICK_MSVG_ONLY=$'     MSVG* SVG       rw+   ImageMagick internal SVG renderer (RSVG bait, this line is MSVG not SVG)'
+out=$(run_fake_magick_check "${FAKE_MAGICK_MSVG_ONLY}")
+if grep -q '"magick"' <<<"$out"; then
+  bad "只有 MSVG* 行（描述里塞了 RSVG 诱饵）却被收进了 backends——把 MSVG* 当成了 SVG*，或者对整行 grep RSVG" "$out"
+else
+  ok "只有 MSVG* 行、没有 SVG* 行时，即使描述里塞了 RSVG 诱饵，backends 里也没有 magick"
 fi
 
 echo
