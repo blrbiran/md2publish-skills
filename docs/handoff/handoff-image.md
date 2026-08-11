@@ -23,7 +23,7 @@
 | `docs/superpowers/plans/2026-08-10-image-phase2a.md` | 二期 A 的逐步实施计划（已执行完）。开头有 D1–D4 偏离表与 Global Constraints，写三期的计划时把这套约束照抄过去 |
 | `docs/superpowers/plans/2026-08-11-image-phase2b.md` | 二期 B 的逐步实施计划（已执行完）。开头有 D5–D10 偏离表与 Global Constraints——两份计划里更新的一份，写三期的计划时该照抄这份，不是二期 A 那份 |
 | `skills/_shared/scripts/imagegen/VENDOR.md` | vendor 来源、排除清单、与上游只差的两行、重新同步步骤 |
-| `skills/_shared/README.md` | `_shared/` 怎么用、怎么跑测试、哪些是故意推到二期的 |
+| `skills/_shared/README.md` | `_shared/` 怎么用、怎么跑测试、哪些是故意没做的（末节「还没做的事」，二期做完后现在指向三期） |
 | `skills/_shared/presets/INDEX.md` | preset 与 dimensions 的**唯一发现入口**。选 preset 一律读它，别背名单 |
 | 本文 | 跨会话的状态、教训、环境事实 |
 | `docs/handoff/handoff.md` | 另一条线（主题库 / HTML 生成），与本文无交集 |
@@ -246,10 +246,10 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 | 排查测试失败 | `superpowers:systematic-debugging` |
 | 收尾分支 | `superpowers:finishing-a-development-branch` |
 
-## 八、执行中修掉的计划缺陷（写二期 B 的计划前先读这节）
+## 八、执行中修掉的计划缺陷（写三期的计划前先读这节）
 
-全都属于同一族：**计划看着对、跑起来错**。一期三条、二期 A 四条，四条里有三条是
-单个任务的评审看不出来、只有跨任务视角才暴露的。
+全都属于同一族：**计划看着对、跑起来错**。一期三条、二期 A 四条、二期 B 一条；二期 A
+那四条里有三条是单个任务的评审看不出来、只有跨任务视角才暴露的。
 
 **一期（三条）**
 
@@ -287,7 +287,7 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
    **教训：一条契约被多份文档反复引用，不等于它被实现过。跨组件的"谁读谁"改动，
    动手前先去读被读那一方的代码，确认它真的写了那个字段。**
 
-**给二期 B 的一条方法论**：二期 A 的八个任务全部通过了各自的评审，最终整支评审仍然
+**给三期的一条方法论**：二期 A 的八个任务全部通过了各自的评审，最终整支评审仍然
 抓出 1 个 Critical + 6 个 Important，全部是**跨组件**的（顺序依赖、四处 provider 名单
 不同步、文档里两套路径无法在同一个 cwd 下成立、sidecar 记录的 provider 与引擎实际
 选的不是一回事）。**逐任务评审不能替代一次整支评审。**
