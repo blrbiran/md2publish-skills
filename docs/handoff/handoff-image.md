@@ -72,7 +72,7 @@ git log --oneline origin/main..main                # 还没推上去的
 3. 平台 × archetype × preset 矩阵（8 组合）
 4. 压缩不超限（8 项）
 5. preflight + config 自检（21 项）
-6. 产物落盘规则：重跑保护 + sidecar（10 项）
+6. 产物落盘规则：重跑保护 + sidecar（12 项）
 7. imagegen 引擎（`bun test`，97 pass / 0 fail / 12 files）
 8. shared 漂移检查（`md2publish-cover/shared/` 与 `_shared/` 是否一致）
 9. vendor 同步与漂移（9 项）
@@ -136,7 +136,7 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # 期望：ok：0 
 
 **二期 A（已完成，纯新增，无破坏性）**
 - 从 `baoyu-skills/skills/baoyu-image-gen/` 搬入 `imagegen/`（11 个 provider，`codex-cli` 按 D1 剔除；零第三方依赖，纯 `node:` + fetch）。`bun test` 实测 **97 pass / 0 fail，12 个文件**。
-- 写好 `compress.py`（sips → magick，见 D3）、`preflight.py`、`config.py`、`artifacts.py`、`costs.yaml`。实测（**含最终评审七项修复后的数字**）：资产 schema + costs **18 项**、压缩不超限 **8 项**、preflight + config **21 项**、产物落盘规则 **10 项**，全绿。
+- 写好 `compress.py`（sips → magick，见 D3）、`preflight.py`、`config.py`、`artifacts.py`、`costs.yaml`。实测（**含最终评审七项修复后的数字**）：资产 schema + costs **18 项**、压缩不超限 **8 项**、preflight + config **21 项**、产物落盘规则 **10 项**，全绿——这是二期 A 收尾时测到的数字。**二期 B 的 T1 又把它从 10 项改成了 12 项**（加了 `image` 字段的两条断言，见下面「二期 B」那块），当前基线是 12 项，见第二节。
 - 建成 `md2publish-cover`；`shared-manifest.sh` / `sync-shared.sh` / `check-shared-drift.sh` / `scripts/check.sh` 全部写好并跑通，vendor 同步与漂移实测 **9 项**全绿。
 - **`md2publish-images` 原地保留**，两者并存，本期未改它一个字。
 - 完成判据两条分开看：spec §13 五项全绿——**已验证**（`./scripts/check.sh` 九项全 ✓，见第二节）；端到端产出一张微信封面并压到 2MB 内的**手动付费 smoke——未做**。本机 `preflight.py` 实测「一个 provider 凭证都没配置」，无法真调用付费 API，这一步只能留给配好凭证的会话去跑，步骤见 spec §7 / `md2publish-cover/SKILL.md`。**九项检查全绿不等于端到端验证过——没跑就是没跑，别混着说。**
@@ -238,7 +238,7 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 
 | 场景 | skill |
 |---|---|
-| 开始二期 B 前 | `superpowers:writing-plans`（二期 B 的计划尚未编写。spec §12 + 本文第六节的硬约束就是输入；照抄 `2026-08-10-image-phase2a.md` 开头的 Global Constraints） |
+| 开始三期前 | `superpowers:writing-plans`（三期的实施计划尚未编写。输入是 spec §15 的三期范围，加 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链）各自的要求；Global Constraints 照抄 `docs/superpowers/plans/2026-08-11-image-phase2b.md` 开头那套——就像那份计划当初照抄二期 A 的一样） |
 | 执行计划 | `superpowers:subagent-driven-development`（二期 A 就是这么跑完 8 个任务的，在有并发 agent 的情况下也没出事——关键是每个任务只用显式路径 `git add`）或 `superpowers:executing-plans`（内联） |
 | 动任何设计决策前 | `superpowers:brainstorming`（本设计的两版都是这么产出的） |
 | 每一期收尾 | `superpowers:requesting-code-review`。**必须做一次整支评审，逐任务评审替代不了它**——理由见第八节末尾。也顺带做事实核查：一期的 spec 复审抓出 6 处事实错误，其中"悬空引用四处"实为九处 |
