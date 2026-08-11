@@ -1,7 +1,9 @@
 # Handoff：md2publish-skills 交接文档
 
-> 更新于 2026-08-10（对比度护栏落地——脚本、单测、变异测试、116 条冻结基线全部入仓；
-> 计划 Task 1–8 全部收口，最终全分支评审 + 一次修复波也已走完）。仓库位置：`~/code/skills/writing/md2publish-skills/`
+> 更新于 2026-08-11（清尾三件：cyber-neon 的 `alert` 补上——44 条至此全部收口；
+> 第六节第 2 条 park 的两条工程债还清——`WARN` 补了 stderr 断言、CLI 单测改名
+> `test-contrast-cli.py`。上一版 2026-08-10：对比度护栏落地，脚本、单测、变异测试、
+> 116 条冻结基线全部入仓，计划 Task 1–8 收口）。仓库位置：`~/code/skills/writing/md2publish-skills/`
 >
 > 本文只说「做到哪一步了」，不写 commit hash——提交本文本身就会移动 HEAD，写死了立刻就是错的。
 > 要确认仓库实际状态，跑 `git log` / `git status`。
@@ -124,7 +126,7 @@ python3 skills/md2publish-article/scripts/test-contrast-lib.py
 #    CLI 的 prune_survivors / baseline_diff 单测要 0 条失败；对真实库跑一遍——
 #    目前预期是 116 条不达标、116 条基线，无新增、exit 0
 bash skills/md2publish-article/scripts/test-contrast-themes.sh
-python3 skills/md2publish-article/scripts/test-contrast-themes.py
+python3 skills/md2publish-article/scripts/test-contrast-cli.py
 python3 skills/md2publish-article/scripts/contrast-themes.py
 ```
 
@@ -227,6 +229,18 @@ python3 skills/md2publish-article/scripts/contrast-themes.py
   `theme.json` 未动、产物逐字节不变
 - **删除 monochrome-mag 主题**（用户裁定不再使用），主题库 27 → 26，逐字节回归随之 27 → 26
 - **撤回一条自己写错的豁免注记**（mint-breeze），见第六节第 1 条的 ⚠️ 块
+
+### 2026-08-11 做完的（清尾三件，无新增功能）
+
+- **cyber-neon 补 `alert.warning`**（第六节 1.4）——44 条里最后一条、也是普查原理上永远
+  报不出来的那条。产物逐字节不变（本语料 0 个 alert 标记），验证靠另跑的合成语料。
+  `.md` 与 `theme.json` 同步，十条基线数字全部不变
+- **还掉第六节第 2 条 park 的两条工程债**：`decor_signatures` 那条 stderr `WARN` 补了
+  5 条捕获 stderr 的断言进 `test-contrast-lib.py`（64 → 69 条），并**做过变异验证**——
+  删掉那行 `print` 后确实红 2 条、exit 1，还原后与 git HEAD 逐字节一致；
+  `test-contrast-themes.py` 改名 `test-contrast-cli.py`，三份测试的分工现在由文件名自己说清
+- 通则回写 lessons「机械审计方法」节：**一套脚本配多份测试时，文件名要说清测的是哪一层，
+  别让后缀去承担区分职责的活**
 
 ## 五、关键契约（教训换来的，别再踩）
 
@@ -344,8 +358,9 @@ python3 skills/md2publish-article/scripts/contrast-themes.py
 > **前四组是「销声」不是「修复」**——文件里那些颜色的处境一点没变，只是记录了为什么可接受；
 > 只有 C 改变了产物（celadon-scroll 的 HTML 已按第三节纪律先重生成、再跑 `test-md2html.sh`）。
 >
-> **六批之后仍然未动的，只剩一条**：1.4 那条脚本原理上抓不到的 cyber-neon 警示提示卡——
-> 它不在 43 条里，普查永远不会报它，**必须由人带着走**。
+> **六批之后仍然未动的那一条，已于 2026-08-11 做掉**：1.4 那条脚本原理上抓不到的
+> cyber-neon 警示提示卡（补 `alert.warning`）。它不在 43 条里，普查永远不会报它，
+> 从头到尾**由人带着走**——修完普查输出一个字没变，正是 1.4 自己预言的那样。
 > （`INVERT 10-lavender-dusk` 与 `INVERT 15-mint-breeze` 已于批次 6 处置；candy-pop 的
 > `NEAR-ZERO #e8f2f9` 与 terracotta-sun 的 `INVERT #c2593b` 已于批次 4 处置。）
 
@@ -367,10 +382,10 @@ python3 skills/md2publish-article/scripts/contrast-themes.py
 |---|---:|---|---|
 | 判据问题 → 改脚本 | 18 | 「背景色只挂在 `container`」的结构性 NEAR-ZERO，见 1.3 | **✅ 批次 1b 已执行** |
 | 正当设计 → 写豁免注记 | 11 | 6 条 INVERT + editor-slate 4 条 + bauhaus-pop `strong_alt` 误报 | editor-slate 4 条 + bauhaus-pop 1 条已办（批次 1a）；6 条 INVERT 里 3 条（autumn-warm / ocean-calm / spring-fresh）**批次 2 改走「对调角色标签」**、gilded-ink 与 candy-pop 2 条**批次 3 改走「把装饰色的『主强调』标签改掉」**（不是对调，压过它的色本来就标着「strong 用」）、mint-breeze 1 条批次 3 **真写了豁免**（阈值只差 3 处）。**六条 INVERT 里只有一条最后走了豁免，其余都是改描述**——遇到 INVERT 先问「是不是标签错了」，见 lessons 判例 |
-| 真缺陷 → 改 `theme.json`（不动 `.md`） | 7 | 5 条 UNMOUNTED + terracotta-sun 的 INVENTED + cyber-neon 的 `alert` | celadon-scroll 1 条已办（批次 1a）；ink-wash / cyber-neon / blueprint-grid 3 条 UNMOUNTED + terracotta-sun 的 INVENTED **✅ 批次 2 已执行**；mint-breeze 那条批次 2 退回用户、**批次 3 与 botanic-press 那条一起改写规范 + 写豁免**（见 1.7）；cyber-neon 的 `alert` 未办 |
+| 真缺陷 → 改 `theme.json`（不动 `.md`） | 7 | 5 条 UNMOUNTED + terracotta-sun 的 INVENTED + cyber-neon 的 `alert` | celadon-scroll 1 条已办（批次 1a）；ink-wash / cyber-neon / blueprint-grid 3 条 UNMOUNTED + terracotta-sun 的 INVENTED **✅ 批次 2 已执行**；mint-breeze 那条批次 2 退回用户、**批次 3 与 botanic-press 那条一起改写规范 + 写豁免**（见 1.7）；cyber-neon 的 `alert` **✅ 2026-08-11 已执行**（补 `alert.warning`，`.md` 同步补了具体规范行，见 1.4） |
 | 待定 → 需用户拍板 | 5 | monochrome-mag 2 条、candy-pop 2 条、botanic-press 1 条 | candy-pop 的 `INVERT` **✅ 批次 3 改标签**、botanic-press 那条 **✅ 批次 3 改写规范 + 豁免**；candy-pop 的 `NEAR-ZERO` **✅ 批次 4 写豁免注记**（1.5 里那个「不用斜体所以是死色」的前提已作废：`em` 样式串没有 `font-style: italic`，渲染出来是高亮块不是斜体）；monochrome-mag 2 条 **✅ 批次 3 随主题整体删除**（1.8） |
 | 真缺陷 → 改主题 `.md`（须同步 `theme.json`） | 3 | bauhaus-pop 错值 1 条 + gilded-ink 现造色 2 条 | gilded-ink 2 条**✅ 批次 1b 已执行**（走 (B) 路，产物不变），bauhaus-pop 的错值 **✅ 批次 3 已执行**（`#1e5aa8` → `#005baa`，2.65:1 复算后不变） |
-| **合计** | **44** | 脚本报的 43 条 + 1 条脚本原理上抓不到的（见 1.4） | 已处理 43 条，剩 0 条 + 1 条抓不到的；另有批次 4 新暴露的 1 条不在这 44 里 |
+| **合计** | **44** | 脚本报的 43 条 + 1 条脚本原理上抓不到的（见 1.4） | **44 条全部处理完**（43 条 + 那条抓不到的于 2026-08-11 收口）；另有批次 4 新暴露的 1 条不在这 44 里，已于批次 6 处置 |
 
 前三档基本是**机械事实驱动**的（对比度数字、`theme.json` 里有没有这个键、tokenizer 有没有
 这个类），可以照着核；「待定」那 5 条、外加 INVERT 里 gilded-ink 与 ocean-calm 两条，
@@ -386,12 +401,14 @@ python3 skills/md2publish-article/scripts/contrast-themes.py
    `test-md2html.sh` 的 PART B 预期变红，**要先重新生成 HTML 再跑**（第三节已写这条纪律）。
    **✅ 批次 2 做掉 3 条**（ink-wash / cyber-neon / blueprint-grid）；mint-breeze 与
    botanic-press 两条 **✅ 批次 3 处理**，但**不是补字段**——是改写规范 + 写豁免（1.7）；
-   cyber-neon 的 `alert` 仍未办
+   cyber-neon 的 `alert` **✅ 2026-08-11 已执行**（本语料 0 个 alert 标记，所以产物逐字节
+   不变、PART B 没变红——**不能拿「产物没变」当作它被验证过**，真的验证是另跑的合成语料，见 1.4）
 3. **判据改动批**：18 条结构性 NEAR-ZERO，见 1.3。**必须先补变异测试再改判据**（**✅ 已做**）
 4. **待定批**：等用户结论
 
-**这 44 条里剩下没做的只有第 2 批的 cyber-neon `alert`（1.4，普查报不出来）**——
-terracotta-sun 的 `INVERT #c2593b` 与 candy-pop 的 `NEAR-ZERO` 均已于批次 4 处置。
+**这 44 条已全部做完**：最后一条（第 2 批的 cyber-neon `alert`，1.4，普查报不出来）
+于 2026-08-11 收口；terracotta-sun 的 `INVERT #c2593b` 与 candy-pop 的 `NEAR-ZERO`
+均已于批次 4 处置。
 **另有一条不属于这 44 条的新发现**：`INVERT 10-lavender-dusk`，批次 4 改锐判据后才露头，见上方进度块 4c。
 
 #### 1.2 最要紧的三条
@@ -452,7 +469,26 @@ lessons「判据可以下窄」一节记了完整经过与五条硬约束。）
 永久转成 18 处沉默，第 28 个主题进来时会第 19 次报同样的东西。两条路都合规，这是本条里
 唯一一处建议动判据的地方，**需要用户明确拍板**。（用户已拍板走改判据这条，见上方进度块。）
 
-#### 1.4 脚本原理上抓不到的一条：cyber-neon 的警示提示卡
+#### 1.4 脚本原理上抓不到的一条：cyber-neon 的警示提示卡（✅ 2026-08-11 已修）
+
+> **✅ 已执行**：`13-cyber-neon-v7-edge.theme.json` 补 `alert.warning`
+> （底 `#10182a` 与引用块同一档、左边框 2px `#ff4ba3`、文字 `#c9d2e3`、
+> 标题 `警告` 品红 700），`cyber-neon.md` 在引用块那条下面同步补了具体规范行。
+> 色全部取自该主题既有调色板，三个组合都过门槛（品红标题在该底上 5.72:1、
+> 正文亮灰 11.64:1）。
+>
+> **规范只点名了「标题和左边框用品红」，文字色是执行时定的**：取正文亮灰 `#c9d2e3`
+> 而不是引用块的次级灰蓝 `#7a869e`（4.83:1，也达标）——理由是警报不该比正文更暗，
+> 且 editor-slate 这个唯一先例也把提示卡文字调得比引用块实。这是本次唯一一处
+> 规范推不出唯一解的地方，已在 `.md` 里写明理由。
+>
+> **`note` 刻意不配**：`[!NOTE]`/`[!TIP]` 退回青色引用块，正是规范括号里那句
+> 「信息性提示卡仍用青色」。这条决定也写进了 `.md`，免得下一个人来「补全」。
+>
+> **验证方式值得照抄**：本篇语料一个 `> [!...]` 都没有，所以产物逐字节不变、
+> PART B 不会变红——**「产物没变」在这里不构成任何验证**。真的验证是另跑一份合成语料，
+> 逐个确认 `[!WARNING]`/`[!CAUTION]`（alias）走品红带标题、`[!NOTE]`/`[!TIP]`（alias）
+> 与普通引用块三者同形、`[!` 标记无残留、探针产物过铁律自检。
 
 **这条不在 43 条里，`census-themes.py` 永远不会报它，必须由人带着走。**
 `cyber-neon.md:37` 写「提示卡里属于警示性质的那种，标题和左边框用品红（信息性提示卡仍用
@@ -462,10 +498,10 @@ lessons「判据可以下窄」一节记了完整经过与五条硬约束。）
 裁定**接受这个局限**，不为一条发现去放宽判据（实测代价：放宽后全库只多 2 条 = 这条真阳 +
 一条假阳）。
 
-**这就是「43 → 0 不等于主题库成立」的活证据**：修完这条，普查输出一个字都不会变，
-只能靠人读 `theme.json` 验收。另注意一个坑——**若决定本轮不动它，不要在那一行上方写
-`census-ok` 注记**：普查没报过它，写注记会立刻变成 `STALE-NOTE` 并以 ERROR 挂掉全库；
-要留话就写普通说明性注释。
+**这就是「43 → 0 不等于主题库成立」的活证据**：修完这条，普查输出一个字都没变
+（实测：0 条未销 + 8 条豁免，与修之前逐字相同），只能靠人读 `theme.json` 验收。
+另注意一个坑——**不要在那一行上方写 `census-ok` 注记**：普查从没报过它，写注记会立刻
+变成 `STALE-NOTE` 并以 ERROR 挂掉全库；要留话就写普通说明性注释。**修完也一样没写。**
 
 #### 1.5 两处已核实的更正、一处未解决的分歧、一条待核的线索
 
@@ -629,8 +665,9 @@ mint-breeze 那条还写明了示例里 `width: 20px` 的正圆只演示单位�
 
 **第四套机械脚本 `contrast-themes.py` 已入仓**，连同 `contrast_lib.py`（色彩原语：alpha 合成、
 渐变最差点采样、DOM 祖先链走查、按注入字段判装饰、阈值规则）、`test-contrast-lib.py`（原语
-单测）、`test-contrast-themes.sh`（16 条变异测试）、`test-contrast-themes.py`（4 条
-`prune_survivors` 单测）、以及冻结基线 `references/contrast-baseline.tsv`。判据设计见
+单测）、`test-contrast-themes.sh`（16 条变异测试）、`test-contrast-cli.py`（8 条
+`prune_survivors` + `baseline_diff` 单测；**原名 `test-contrast-themes.py`，2026-08-11 改名**）、
+以及冻结基线 `references/contrast-baseline.tsv`。判据设计见
 `docs/superpowers/specs/2026-08-10-contrast-audit-design.md`，实施步骤见
 `docs/superpowers/plans/2026-08-10-contrast-audit.md`，判据教训已回写
 `docs/theme-design-lessons.md`「机械审计方法」节。**这一轮没有改任何主题文件、`theme.json`
@@ -676,18 +713,20 @@ mint-breeze 那条还写明了示例里 `width: 20px` 的正圆只演示单位�
 - `decor_signatures` 遇到非字符串字段值改成往 stderr 打 `WARN` 再继续（不抛：一个坏字段
   不该中断全库）
 
-**三件如实记录、不隐瞒的事**：
+**三件如实记录、不隐瞒的事**（第 1、3 条已于 2026-08-11 收口，见第四节
+「2026-08-11 做完的」；第 2 条仍成立）：
 
-1. `test-contrast-themes.py`（CLI 单测，`prune_survivors` + `baseline_diff`）与
-   `test-contrast-themes.sh`（16 条变异测试）**同名只差后缀**——三名评审都点出这是真实的
-   维护隐患（本仓库的房规是 CLI 脚本只配 `.sh`、只有 `_lib.py` 配 `.py` 单测，它是第一个例外）。
-   本轮未合并、未改名；已归入第三节基线 9，不会再被基线扫漏。
+1. ~~`test-contrast-themes.py` 与 `test-contrast-themes.sh` 同名只差后缀~~
+   **✅ 已改名为 `test-contrast-cli.py`**。三名评审都点出这是真实的维护隐患（本仓库的房规是
+   CLI 脚本只配 `.sh`、只有 `_lib.py` 配 `.py` 单测，它是第一个例外）。现在三份的分工由文件名
+   自己说清：`test-contrast-lib.py` = 原语单测、`test-contrast-cli.py` = CLI 纯函数单测、
+   `test-contrast-themes.sh` = 变异测试。抽出的通则已回写 lessons「机械审计方法」节。
 2. **`contrast-ok` 豁免注记的解析故意没做**——116 条里没有一条已判定「可以永远这样」，
-   现在写等于没有调用方的代码；不是遗漏。
-3. **上面那条 `WARN` 没有任何测试钉住**——它打的是 stderr，两套套件都不断言 stderr，
-   将来有人删掉那行 `print`，所有套件照样全绿、行为静默退回到修复前。评审判为不阻塞
-   （方向安全：它只会让装饰面变窄、多报，永远不会藏掉发现），**按 park 处理、留档在此**。
-   要补的话就补一条捕获 stderr 的断言。
+   现在写等于没有调用方的代码；不是遗漏。**这条仍然成立。**
+3. ~~上面那条 `WARN` 没有任何测试钉住~~ **✅ 已补 5 条断言进 `test-contrast-lib.py`**
+   （捕获 stderr）。原状况是：它打 stderr 而两套套件都不断言 stderr，谁删掉那行 `print`，
+   所有套件照样全绿、行为静默退回「无声跳过」。评审当时判不阻塞（方向安全：只会让装饰面
+   变窄、多报，永远不会藏掉发现）故 park。现在这条 park 已还。
 
 ### 3. 待真机观感定夺（不要凭代码改）
 
