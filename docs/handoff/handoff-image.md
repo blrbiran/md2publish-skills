@@ -7,7 +7,7 @@
 ## 快速接手入口
 
 1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。
-2. **二期 A、二期 B 均已完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎（11 个 provider，D1 剔除了 codex-cli）、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover` skill、`scripts/check.sh` 一条命令串起九项检查（第 6 项现在是 12 项）。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。**手动付费 smoke 仍未做**——见第六节。
+2. **二期 A、二期 B 均已完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎（11 个 provider，D1 剔除了 codex-cli）、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover` skill、`scripts/check.sh` 一条命令串起九项检查（第 6 项现在是 12 项）。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`，并已跑完整支评审（抓出 4 个 Important、已全部关闭，教训见第八节第 9 条）。**手动付费 smoke 仍未做**——见第六节。
 3. 下一步是**三期**（`md2publish-visuals` + `md2publish-diagram`）。它的实施计划**尚未编写**。
 4. 动手前先跑第二节的 `./scripts/check.sh`，全绿才继续。
 5. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。除此之外任务循环里没有别的未决项：另外三条 Minor 已由最终整支评审的修复波关掉。
@@ -204,15 +204,19 @@ rm -rf "$T"
 层要镜像的那个 JS 引擎，遇到同样的输入是怎么做的？** 两边行为不一致，用户会遇到
 "引擎能跑、preflight 说没配置"这种最难查的矛盾。
 
-**二期 B（已完成，唯一有破坏性的一期，跑成了 T1–T8 八个 per-task commit，不是单 commit）**
+**二期 B（已完成并已过整支评审，唯一有破坏性的一期；跑成了逐任务 commit，不是单 commit）**
 
-本期在 `main` 上是八个逐任务 commit，第一个是 `0f79f78`（T1：sidecar 记录最终产物
-文件名），最后一个是 `4c8548c`（T8：删除 + 本文的完成记录）。
+本期在 `main` 上是 T1–T8 八个逐任务 commit，**外加数量不固定的评审修复 commit**——
+每个任务的评审、以及最终那次整支评审，各自都产生了若干。所以算 footprint 时
+**别只数那八个**，合计是十几条。
 
-**八个之外还有评审修复 commit，算 footprint 时别只数这八个**：T2 之后的 `a6e45e3`、
-T7 之后的 `63859f8`，加上最终整支评审的修复波 `a0acc2f`、`9ed98ce`、`c0c62ce`、
-`e2af7c4` 及其后续——任务 + 评审修复合起来，本期到最终评审为止是 **14 条**（此后每补
-一条修复就多一条）。准确清单一律用第一之二节那条带 range 的 `git log` 现查。
+起点 `0f79f78`（T1：sidecar 记录最终产物文件名）是稳定锚点，可以放心当 range 的下界。
+但**别去记"最后一个是哪个"**：本文每被修订一次就多一个 commit，任何写死的末端 SHA
+当天就过期。要清单就现查：
+
+```bash
+git log --oneline 0f79f78^..HEAD -- <第一之二节那串路径>
+```
 
 `skills/md2publish-images/SKILL.md` 的删除**不在**这八个 commit 的任何一个里：
 执行到 T8 时，一个并发会话跑了一次不带 pathspec 的 `git commit`，提交的是整个
@@ -263,9 +267,17 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
   `docs/superpowers/specs/`、`docs/superpowers/plans/`、本文、`.superpowers/` 下仍能
   grep 到——那也是执行记录，故意保留，别为了让全局 `grep -r .` 干净去改它们。
 
-**二期 B 的教训**：spec、`md2publish-cover/SKILL.md`、本文的硬约束三处都在写"读 sidecar
-里记的路径"，而 `artifacts.py` 写出的 sidecar 曾经根本没有路径字段——一条契约被反复
-引用不等于它被实现过。完整版见第八节「二期 B（一条）」。
+- **整支评审做过了，结论对三期有直接用处**：八个任务各自的评审全部通过之后，最终整支
+  评审仍抓出 **4 个 Important（0 Critical）**，而且四条是**同一个物种**——同一个事实在
+  一处改对了，没扫到其余几处断言同一事实的地方。具体是：`image` 不是路径这件事只改了
+  spec，`md2publish-cover/SKILL.md` 与 `skills/README.md` 漏了；完成判据与回滚方式只改
+  了本文，spec §15 漏了；第一之二节的 git recipe 在本期把 footprint 扩大之后从没回头看。
+  其中 spec §15 那条最危险：它当时还写着"回滚 = `git revert`"，照做会连带删掉另一条线
+  的文件（来历见上面那段）。四条已由一次性修复波关掉，教训见第八节第 9 条。
+
+**二期 B 的教训（两条）**：一是 spec、`md2publish-cover/SKILL.md`、本文的硬约束三处都在
+写"读 sidecar 里记的路径"，而 `artifacts.py` 写出的 sidecar 曾经根本没有路径字段——一条
+契约被反复引用不等于它被实现过。二是上面那条整支评审的发现。完整版见第八节。
 
 **三期**
 - `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链）。
@@ -286,8 +298,8 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 
 ## 八、执行中修掉的计划缺陷（写三期的计划前先读这节）
 
-全都属于同一族：**计划看着对、跑起来错**。一期三条、二期 A 四条、二期 B 一条；二期 A
-那四条里有三条是单个任务的评审看不出来、只有跨任务视角才暴露的。
+全都属于同一族：**计划看着对、跑起来错**。一期三条、二期 A 四条、二期 B 两条；二期 A
+那四条里有三条、二期 B 那两条全部，是单个任务的评审看不出来、只有跨任务视角才暴露的。
 
 **一期（三条）**
 
@@ -314,7 +326,7 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
    追加探针行，没有 `trap` 恢复；在有并发 agent 的仓库里，中途崩掉就留下污染。
    改成 `mktemp -d` 沙箱 + `trap ... EXIT INT TERM` 之后才安全。
 
-**二期 B（一条）**
+**二期 B（两条）**
 
 8. **文档三处承诺的契约，代码里一处都没实现。** spec §12、`md2publish-cover/SKILL.md`
    步骤 8、handoff 第六节的硬约束，全都写着"读 sidecar 里记的路径"，而 `artifacts.py`
@@ -325,7 +337,19 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
    **教训：一条契约被多份文档反复引用，不等于它被实现过。跨组件的"谁读谁"改动，
    动手前先去读被读那一方的代码，确认它真的写了那个字段。**
 
+9. **改对一处不等于改完——同一个事实往往被四五份文档各自断言过。** 二期 B 的最终整支
+   评审抓出的 4 个 Important 全是这一种：`image` 是文件名不是路径，只在 spec 改了，
+   `md2publish-cover/SKILL.md` 的「产物布局」和 `skills/README.md` 的流水线图漏了；
+   完成判据与回滚方式只在本文改了，spec §15 那一行漏了，而它还停在"回滚 = `git revert`"
+   这个**照做会误删另一条线文件**的状态；第一之二节的 git recipe 在本期把 footprint
+   从"`_shared` + `cover`"扩大到七八个路径之后，从没有人回头看它还准不准。
+   **教训：改一条事实之前，先 `grep` 出所有断言过它的地方，一次改完。**
+   `grep` 的关键词要用**那句话的说法**（如"记的路径"、"单 commit"、"九处"），
+   不是被改的标识符名——正是措辞不同才让它们躲过了前面八次逐任务评审。
+
 **给三期的一条方法论**：二期 A 的八个任务全部通过了各自的评审，最终整支评审仍然
 抓出 1 个 Critical + 6 个 Important，全部是**跨组件**的（顺序依赖、四处 provider 名单
 不同步、文档里两套路径无法在同一个 cwd 下成立、sidecar 记录的 provider 与引擎实际
-选的不是一回事）。**逐任务评审不能替代一次整支评审。**
+选的不是一回事）。二期 B 换了一批任务、换了一批评审者，结果**同样**是逐任务全绿、
+整支评审再抓 4 个 Important。**连续两期复现，这已经不是偶然：逐任务评审不能替代一次
+整支评审。三期照做，别省。**
