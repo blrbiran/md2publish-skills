@@ -37,20 +37,33 @@ def parse_overrides(pairs: list[str]) -> dict:
     return out
 
 
+# 零成本、确定性产出的 archetype：不调 AI，因此没有 preset / prompt / brief / model。
+# 它们的 provider 字段记的是**光栅化后端**（rsvg-convert / magick / chrome）——
+# 同一份 SVG 在不同机器上会被不同后端渲染成不同的位图，不记就无从追溯。
+DETERMINISTIC_ARCHETYPES = {"diagram"}
+
+
 def sidecar(image: Path, meta: dict) -> Path:
     if not image.exists():
         raise a.AssetError(f"图片不存在，无法写 sidecar: {image}")
-    preset = a.load_preset(meta["preset"])     # preset 不存在时在这里硬失败
+    if meta["archetype"] in DETERMINISTIC_ARCHETYPES:
+        preset_name = None
+        preset_version = None
+    else:
+        preset = a.load_preset(meta["preset"])   # preset 不存在时在这里硬失败
+        preset_name = meta["preset"]
+        preset_version = preset["version"]
     record = {
         "platform": meta["platform"],
         "archetype": meta["archetype"],
-        "preset": meta["preset"],
-        "preset_version": preset["version"],
+        "preset": preset_name,
+        "preset_version": preset_version,
         "overrides": meta["overrides"],
         "provider": meta["provider"],
         "model": meta["model"],
         "prompt_file": meta["prompt_file"],
         "brief_file": meta["brief_file"],
+        "source_file": meta["source_file"],
         "alt_text": meta["alt_text"],
         "image": image.name,
         "bytes": image.stat().st_size,
@@ -59,6 +72,39 @@ def sidecar(image: Path, meta: dict) -> Path:
     out = image.with_suffix(".json")
     out.write_text(json.dumps(record, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return out
+
+
+def check_sidecar_args(args) -> None:
+    """按 archetype 分支校验必填项。
+
+    argparse 的 required=True 做不到这件事：cover 必须有 preset，diagram 必须没有。
+    放任 diagram 传 preset 不报错的话，照抄 cover 命令的人会得到一份声称走过
+    preset 链路、实际根本没有的 sidecar。
+    """
+    ai_only = (
+        ("--preset", args.preset),
+        ("--model", args.model),
+        ("--prompt-file", args.prompt_file),
+        ("--brief-file", args.brief_file),
+    )
+    if args.archetype in DETERMINISTIC_ARCHETYPES:
+        if not args.source_file:
+            raise a.AssetError(
+                f"--archetype {args.archetype} 必须给 --source-file"
+                "（SVG 的文件名，不是路径）：它是这张图唯一的复现记录"
+            )
+        given = [flag for flag, value in ai_only if value]
+        if given:
+            raise a.AssetError(
+                f"--archetype {args.archetype} 不接受 {given}："
+                "它不调 AI、不走 preset / prompt 链路，这些字段一律记 null"
+            )
+        return
+    missing = [flag for flag, value in ai_only if not value]
+    if missing:
+        raise a.AssetError(f"--archetype {args.archetype} 缺必填参数: {missing}")
+    if args.source_file:
+        raise a.AssetError("--source-file 只用于确定性 archetype（当前：diagram）")
 
 
 def main() -> int:
@@ -71,9 +117,12 @@ def main() -> int:
 
     s = sub.add_parser("sidecar", help="写 <image 同名>.json，记录生成它的全部输入")
     s.add_argument("--image", required=True)
-    for field in ("platform", "archetype", "preset", "provider", "model",
-                  "prompt-file", "brief-file", "alt-text"):
+    # 所有 archetype 都必须有的
+    for field in ("platform", "archetype", "provider", "alt-text"):
         s.add_argument(f"--{field}", required=True)
+    # 按 archetype 分支必填，由 check_sidecar_args 校验（argparse 表达不了这种条件必填）
+    for field in ("preset", "model", "prompt-file", "brief-file", "source-file"):
+        s.add_argument(f"--{field}", default=None)
     s.add_argument("--override", action="append", default=[], metavar="KEY=VALUE")
 
     args = ap.parse_args()
@@ -81,6 +130,7 @@ def main() -> int:
         if args.cmd == "guard":
             guard(Path(args.path), args.force)
             return 0
+        check_sidecar_args(args)
         out = sidecar(Path(args.image), {
             "platform": args.platform,
             "archetype": args.archetype,
@@ -89,6 +139,7 @@ def main() -> int:
             "model": args.model,
             "prompt_file": args.prompt_file,
             "brief_file": args.brief_file,
+            "source_file": args.source_file,
             "alt_text": args.alt_text,
             "overrides": parse_overrides(args.override),
         })

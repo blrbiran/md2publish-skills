@@ -108,5 +108,72 @@ else
 fi
 
 echo
+echo "== sidecar：diagram 支路（零成本产物，不走 preset/prompt） =="
+
+printf 'fake-png-bytes' > "$TMP/00-diagram.png"
+DSIDE="$TMP/00-diagram.json"
+djq() { python3 -c "import json,sys; print(json.load(open('$DSIDE'))$1)"; }
+
+out=$(python3 artifacts.py sidecar \
+  --image "$TMP/00-diagram.png" \
+  --platform wechat --archetype diagram \
+  --provider rsvg-convert \
+  --source-file 00-diagram.svg \
+  --alt-text "三层缓存架构示意图" 2>&1)
+rc=$?
+if [[ $rc -eq 0 && -f "$DSIDE" ]]; then
+  ok "diagram：不传 preset/model/prompt/brief 也能写出 sidecar"
+else
+  bad "diagram 支路写不出 sidecar" "rc=${rc} out=${out}"
+fi
+
+got=$(djq "['preset']" 2>&1)
+got_v=$(djq "['preset_version']" 2>&1)
+if [[ "$got" == "None" && "$got_v" == "None" ]]; then
+  ok "diagram：preset 与 preset_version 都是 null"
+else
+  bad "diagram 的 preset 字段不对" "preset=${got} version=${got_v}"
+fi
+
+got=$(djq "['source_file']" 2>&1)
+if [[ "$got" == "00-diagram.svg" ]]; then
+  ok "diagram：source_file 记着 SVG 文件名（它是唯一的复现记录）"
+else
+  bad "source_file 不对" "got=${got}"
+fi
+
+got=$(djq "['provider']" 2>&1)
+if [[ "$got" == "rsvg-convert" ]]; then
+  ok "diagram：provider 记的是实际光栅化后端"
+else
+  bad "provider 不是后端名（换台机器就查不出 PNG 是谁生成的）" "got=${got}"
+fi
+
+out=$(python3 artifacts.py sidecar \
+  --image "$TMP/00-diagram.png" \
+  --platform wechat --archetype diagram \
+  --provider rsvg-convert --preset editorial-warm \
+  --source-file 00-diagram.svg \
+  --alt-text "三层缓存架构示意图" 2>&1)
+if [[ $? -ne 0 ]] && grep -q -- '--preset' <<<"$out"; then
+  ok "diagram 传了 --preset 时硬失败并点名（照抄 cover 命令会被拦住）"
+else
+  bad "diagram 接受了 --preset" "$out"
+fi
+
+out=$(python3 artifacts.py sidecar \
+  --image "$TMP/exists.png" \
+  --platform wechat --archetype cover \
+  --provider openai --model gpt-image-2 \
+  --prompt-file prompts/wechat/00-cover.md \
+  --brief-file briefs/wechat/00-cover.md \
+  --alt-text "暖色调编辑风封面" 2>&1)
+if [[ $? -ne 0 ]] && grep -q -- '--preset' <<<"$out"; then
+  ok "非 diagram 缺 --preset 仍硬失败（支路没把 cover 的必填放松掉）"
+else
+  bad "cover 少了 --preset 却通过了" "$out"
+fi
+
+echo
 echo "通过 $PASS 项，失败 $FAIL 项"
 [[ $FAIL -eq 0 ]]
