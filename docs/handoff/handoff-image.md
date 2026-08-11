@@ -10,7 +10,7 @@
 2. **二期 A、二期 B 均已完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎（11 个 provider，D1 剔除了 codex-cli）、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover` skill、`scripts/check.sh` 一条命令串起九项检查（第 6 项现在是 12 项）。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。**手动付费 smoke 仍未做**——见第六节。
 3. 下一步是**三期**（`md2publish-visuals` + `md2publish-diagram`）。它的实施计划**尚未编写**。
 4. 动手前先跑第二节的 `./scripts/check.sh`，全绿才继续。
-5. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。
+5. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。除此之外任务循环里没有别的未决项：另外三条 Minor 已由最终整支评审的修复波关掉。
 6. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
 7. 设计与计划不在本文里，见**第零节**的文档地图——**不要**在本文重复它们的内容。
 
@@ -36,13 +36,26 @@
 
 ## 一之二、git 状态怎么查（别信任何写死的 SHA）
 
-**本文每次提交都会改变 HEAD，所以这里不写 SHA，只写怎么自己查。**
+**本文每次提交都会改变 HEAD，所以这里不写"当前进度"类的 SHA，只写怎么自己查。**
+（已完成的期的 commit SHA 是不变的历史锚点，出现在命令注释里是为了说明某条 grep 会误抓什么，不是进度结论。）
 
 ```bash
 git log --oneline --grep='^一期 T' -6              # 一期的六个任务 commit（中文，规则生效前的遗留）
-git log --oneline --grep='^feat(shared)' --grep='^feat(cover)' --grep='^feat(scripts)' --grep='^fix(image)'
-                                                   # 二期 A 的任务 commit（英文）
-git log --oneline --grep='image-phase2a'           # 二期 A 的计划 commit
+
+# 各期的计划 commit：**按计划文件的路径找，别用 --grep**。
+# message 里根本没有期号——二期 A 是 "docs: add phase 2A implementation plan for image
+# skills"（`--grep='image-phase2a'` 零命中），二期 B 干脆就叫 "add image plan"；
+# 而 `--grep='image-phase2b'` 命中的是后来在正文里引用过计划文件名的 handoff commit，
+# 不是计划本身，拿它当句柄会指错人。
+git log --oneline -- docs/superpowers/plans/2026-08-10-image-phase2a.md   # 二期 A
+git log --oneline -- docs/superpowers/plans/2026-08-11-image-phase2b.md   # 二期 B
+P2B=$(git log --format=%H -- docs/superpowers/plans/2026-08-11-image-phase2b.md | tail -1)
+
+# 二期 A 的任务 commit（英文）。**必须用 "$P2B^" 截断**：不截断的话，二期 B 的 T1
+# `0f79f78 feat(shared): record final artifact filename in sidecar` 会跟着 ^feat(shared)
+# 一起出来，被误读成二期 A 的产物。
+git log --oneline --grep='^feat(shared)' --grep='^feat(cover)' --grep='^feat(scripts)' --grep='^fix(image)' "$P2B^"
+
 git status -sb                                     # 本地 main 与 origin/main 的差距
 git log --oneline origin/main..main                # 还没推上去的
 ```
@@ -52,10 +65,30 @@ git log --oneline origin/main..main                # 还没推上去的
 - **`main` 上是两条线交织的。** 另一个 agent（主题库 / contrast 审计那条线，产物在
   `skills/md2publish-article/`、`docs/handoff.md`、`docs/theme-design-lessons.md`）在同一个
   checkout 里并发提交，它的 commit 夹在我们的 commit 之间。算"图片线本次改了什么"时
-  **不能**用连续区间，要按路径过滤：
+  **不能**用连续区间，要按路径过滤——而且**路径清单必须覆盖整条线的 footprint**：
+  只列 `_shared` / `md2publish-cover` / `scripts` / 本文这四项，会漏掉本线改过的
+  `md2publish-article`、`md2publish-draft`、`wechat-finetune`、`skills/README.md`
+  与 `docs/superpowers/` 下的 spec 和计划（二期 B 的 14 条里只有 7 条会被捞到）：
   ```bash
-  git log --oneline -- skills/_shared skills/md2publish-cover scripts docs/handoff/handoff-image.md
+  git log --oneline -- \
+    skills/_shared skills/md2publish-cover skills/md2publish-draft \
+    skills/md2publish-article/SKILL.md skills/wechat-finetune skills/README.md \
+    skills/md2publish-images scripts \
+    docs/handoff/handoff-image.md docs/handoff/handoff.md \
+    docs/superpowers/specs/2026-08-09-md2publish-image-skills-design.md \
+    docs/superpowers/plans/2026-08-11-image-phase2b.md
   ```
+  只看**二期 B**时，给同一串路径加上 range（二期 B 的任务 commit 没有共同 message
+  前缀，`--grep` 抓不全，只能用 range；`$P2B` 见上面那段）：
+  ```bash
+  git log --oneline "$P2B^..HEAD" -- <上面那串路径>
+  ```
+  这条会带出三行**不属于图片线**的 commit，别当成本线的产出：`6b4cea6`（另一条线的
+  计划 commit，我们的删除被它卷走了，来历见第六节）、`4877c04` 与 `bd34df4`（另一条线
+  自己改 `docs/handoff/handoff.md`）。剩下的就是二期 B 的计划 commit 加本期全部
+  commit（任务 + 评审修复，清单见第六节）。
+  只列 `skills/md2publish-*` 而不列 `docs/handoff/handoff.md` 的话，还会漏掉
+  `63859f8`——它只动了那一个文件。
 - **那个 agent 会 push，且会顺带把我们的 commit 一起带上远程。** 二期 A 的绝大部分
   在没人主动推的情况下就已经到 `origin/main` 了。所以"本地领先远程"这件事随时在变，
   每次都重新查，别照抄任何一份文档里的结论（包括本文）。
@@ -174,7 +207,12 @@ rm -rf "$T"
 **二期 B（已完成，唯一有破坏性的一期，跑成了 T1–T8 八个 per-task commit，不是单 commit）**
 
 本期在 `main` 上是八个逐任务 commit，第一个是 `0f79f78`（T1：sidecar 记录最终产物
-文件名），最后一个是本次的 handoff 更新。
+文件名），最后一个是 `4c8548c`（T8：删除 + 本文的完成记录）。
+
+**八个之外还有评审修复 commit，算 footprint 时别只数这八个**：T2 之后的 `a6e45e3`、
+T7 之后的 `63859f8`，加上最终整支评审的修复波 `a0acc2f`、`9ed98ce`、`c0c62ce`、
+`e2af7c4` 及其后续——任务 + 评审修复合起来，本期到最终评审为止是 **14 条**（此后每补
+一条修复就多一条）。准确清单一律用第一之二节那条带 range 的 `git log` 现查。
 
 `skills/md2publish-images/SKILL.md` 的删除**不在**这八个 commit 的任何一个里：
 执行到 T8 时，一个并发会话跑了一次不带 pathspec 的 `git commit`，提交的是整个

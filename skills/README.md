@@ -26,7 +26,7 @@ article.md（tech-writer → tech-writer-deslop 产出的成稿）
 │  md → 内联样式 HTML  │      │  真调 provider 生图（花钱）    │
 │  (AI 模式, 零副作用) │      │  assets/<platform>/00-cover.*│
 └─────────┬───────────┘      └──────────────┬───────────────┘
-          │  article.html                   │  以 sidecar 记的路径为准
+          │  article.html                   │  以 sidecar 的 image 字段（文件名）为准
           └───────────────┬─────────────────┘
                           ▼
                ┌─────────────────────┐

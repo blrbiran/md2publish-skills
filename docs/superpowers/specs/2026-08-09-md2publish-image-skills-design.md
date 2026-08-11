@@ -453,7 +453,7 @@ sips --version || cwebp -version || convert --version
 |---|---|---|
 | `md2publish-article/SKILL.md` | `:15` 边界节 | 「封面图/信息图 → md2publish-images」拆成 cover / visuals / diagram 三个去向 |
 | `md2publish-article/SKILL.md` | `:85` 步骤 8 交接 | 同上 |
-| `md2publish-draft/SKILL.md` | `:33` 封面来源 | 「md2publish-images 产物」→「`md2publish-cover` 产物，**路径取 sidecar `assets/<platform>/00-cover.json` 的 `image` 字段（文件名，不是路径，需与 sidecar 同目录拼接，见 §5.3）**」。绝不许硬编 `00-cover.png`：压缩是新增不是替换，超限时 `.png` 与 `.jpg` 并存 |
+| `md2publish-draft/SKILL.md` | `:33` 封面来源 | 「md2publish-images 产物」→「`md2publish-cover` 产物，**取自 sidecar `assets/<platform>/00-cover.json` 的 `image` 字段（最终产物的文件名，在 sidecar 所在目录下解析，见 §5.3）**」。绝不许硬编 `00-cover.png`：压缩是新增不是替换，超限时 `.png` 与 `.jpg` 并存 |
 | `wechat-finetune/SKILL.md` | `:22` 完整链路 | 链路图加入 visuals 的上游位置 |
 | `wechat-finetune/SKILL.md` | `:124` 下一步询问 | 「要配图走 md2publish-images」→ 按 §3.2 路由表分流 |
 | `docs/handoff/handoff.md` | `:43` `:46` `:520` | skill 清单、完整链路、"从未实测"备注三处 |
@@ -500,12 +500,12 @@ sips --version || cwebp -version || convert --version
 |---|---|---|---|
 | 一 | `_shared/` 骨架（三个 platform profile + preset schema + dimensions 词表 + INDEX.md）、`compose-prompt.py`、§13 第 1–3 项测试（用 fixture brief） | 矩阵 / 白名单 / schema 三项测试通过 | 无 |
 | 二 A | 搬入 `imagegen/` `compress.py` `preflight.py`，建 `md2publish-cover`，加 `sync-shared.sh` / `check-shared-drift.sh` / `check.sh`（此时才有消费者）。**`md2publish-images` 原地保留** | 端到端产出一张微信封面并压到 2MB 内；手动 smoke 通过；§13 五项全绿 | 无（纯新增，两者并存） |
-| 二 B | 删除 `md2publish-images`，改 §12 的九处引用 | 全仓库 grep 不到 `md2publish-images` | **有**，单 commit，回滚 = `git revert` |
+| 二 B | 删除 `md2publish-images`，改 §12 的十一处引用 | **范围版**判据：`skills/` 与 `docs/handoff/handoff.md` 里没有活引用（`docs/superpowers/specs/`、`docs/superpowers/plans/`、`docs/handoff/handoff-image.md`、`.superpowers/` 下的提及是故意保留的执行记录，完整版见 `docs/handoff/handoff-image.md` 第六节） | **有**。回滚 = `git checkout 6b4cea6^ -- skills/md2publish-images/`，**不是** `git revert`：删除被并发会话一次不带 pathspec 的 `git commit` 卷进了 `6b4cea6`，而那个 commit 还装着另一条线的计划文件，revert 会连它一起删 |
 | 三 | `md2publish-visuals`（含 Markdown 回写门与 §8 的次序改动）、`md2publish-diagram`（含 SVG→PNG 降级链） | 小红书 5 张卡片系列 + 一张架构图端到端通过；`article.illustrated.md` 确实被 `md2publish-article` 消费 | 改 `md2publish-article` 输入表 |
 
 一期不动任何现有 skill，也不写 sync/drift 脚本——那时它们没有消费者，只能对着想象中的目录结构写，二期必然重写。
 
-二期拆成 A / B 是本版新增的：原方案把"建 cover"和"删 images"放在同一期，一旦封面生成不可用，仓库会处在既没有新能力、引用又已经指向不存在的 skill 的状态。拆开后 A 是纯新增，B 是一个可 revert 的单 commit。
+二期拆成 A / B 是本版新增的：原方案把"建 cover"和"删 images"放在同一期，一旦封面生成不可用，仓库会处在既没有新能力、引用又已经指向不存在的 skill 的状态。拆开后 A 是纯新增，B 的破坏性收窄到"删一个 skill 目录"这一件事。B 实际并没有跑成单 commit（是逐任务多个 commit），删除本身还落进了并发会话的 `6b4cea6`，所以回滚按上表那条 `git checkout` 走，别用 `git revert`。
 
 ## 16. 修订记录
 

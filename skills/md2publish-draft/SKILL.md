@@ -39,8 +39,9 @@ md2wechat doctor --json
 "推草稿箱才发现封面超限"这个失败模式请回来。
 
 ```bash
-# $ART 是文章目录，<platform> 通常是 wechat
-SIDECAR="$ART/assets/<platform>/00-cover.json"
+ART=<文章目录的绝对路径>     # 例如 /Users/me/posts/2026-08-10-cache-invalidation
+                            # 与 md2publish-cover 用的是同一个目录；本 skill 不继承它，必须自己定
+SIDECAR="$ART/assets/wechat/00-cover.json"   # 把 wechat 换成实际平台目录名
 COVER=$(python3 -c "import json,pathlib,sys; p=pathlib.Path(sys.argv[1]); \
 print(p.parent / json.load(p.open())['image'])" "$SIDECAR")
 ```
