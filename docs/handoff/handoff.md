@@ -739,8 +739,7 @@ mint-breeze 那条还写明了示例里 `width: 20px` 的正圆只演示单位�
 - **`wechat-finetune` 未实测**，eval 循环未跑
 - **`md2publish-cover` 的端到端付费 smoke 未跑**：本机一个 provider 凭证都没配，
   真调一次 provider 生一张图并压到 2MB 内这一步从未做过。它的九项机械检查全绿，
-  但**九项绿不等于端到端验证过**。（旧的 `md2publish-images` 已于二期 B 删除，
-  它同样从未实测过）
+  但**九项绿不等于端到端验证过**。
 
 ### 5. 教程文档校订
 
