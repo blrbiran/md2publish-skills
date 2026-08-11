@@ -153,6 +153,7 @@ out=$(python3 artifacts.py sidecar \
   --image "$TMP/00-diagram.png" \
   --platform wechat --archetype diagram \
   --provider rsvg-convert --preset editorial-warm \
+  --model x --prompt-file x --brief-file x \
   --source-file 00-diagram.svg \
   --alt-text "三层缓存架构示意图" 2>&1)
 if [[ $? -ne 0 ]] && grep -q -- '--preset' <<<"$out"; then
