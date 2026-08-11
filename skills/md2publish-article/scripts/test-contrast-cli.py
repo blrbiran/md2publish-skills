@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
-"""contrast-themes.py 的单元测试。目前只钉 --prune 的核心纯函数 prune_survivors。
+"""contrast-themes.py 里 CLI 层纯函数的单元测试：prune_survivors 与 baseline_diff。
 
-Task 7 会补全库的变异测试套件（test-contrast-themes.sh）；这里先钉住修复
-review-1 轮那条 Critical：`--prune` 曾经的过滤条件 `key_of(f) in base or
+对比度这套共三份测试，名字各管一段，别搞混：
+    test-contrast-lib.py    contrast_lib.py 的色彩原语单测
+    test-contrast-cli.py    本文件——contrast-themes.py 的 CLI 纯函数单测
+    test-contrast-themes.sh 变异测试（逐个证死错误实现）
+本文件原名 `test-contrast-themes.py`，与那份 `.sh` 同名只差后缀，评审判为真实的维护
+隐患——改错文件、以为跑了另一套，两边都不会报错提醒你。2026-08-11 改成现名。
+
+钉住的是修复 review-1 轮那条 Critical：`--prune` 曾经的过滤条件 `key_of(f) in base or
 key_of(f) in seen` 里 `seen` 就是本轮 findings 自己算出来的，`in seen` 恒真，
 整个 or 是同义反复，等价于把 --prune 悄悄做成了 --write-baseline——新组合会
 在清理 stale 行的同一时刻被无声写进基线，从不报新增、从不 exit 1。

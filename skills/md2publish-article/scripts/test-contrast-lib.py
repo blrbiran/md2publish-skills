@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """contrast_lib.py 的单元测试。锚点值全部来自项目历史上人手量过的真实主题色对。"""
+import io
 import sys
+from contextlib import redirect_stderr
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 import contrast_lib as CL
@@ -180,6 +182,32 @@ ok("没有 style 的注入字段按字面文本认",
    CL.is_decor(node("", "1."), SIGS))
 ok("样式串比对忽略首尾空白与末尾分号",
    CL.is_decor(node("  color: #6f7a4d  ", "☘"), SIGS))
+
+# ── 非字符串字段值：跳过必须叫出声 ──────────────────────────
+# 这条 WARN 曾在评审里被判「不阻塞」而 park：方向确实安全（跳过只让装饰集合变窄、
+# 多报，永不藏掉发现）。但它打的是 stderr，而在这之前两套套件都不断言 stderr——
+# 谁把那行 print 删掉，全套件照样全绿，行为静默退回「无声跳过」。这几条就是钉那行。
+BAD_THEME = {
+    "h3_prefix_html": '<span style="color: #6f7a4d;">☘&nbsp;</span>',
+    "list_prefix_ol_html": 12345,      # 不是字符串：该被跳过，且必须打 WARN
+}
+_err = io.StringIO()
+with redirect_stderr(_err):
+    BAD_SIGS = CL.decor_signatures(BAD_THEME, theme_name="t-bad")
+_msg = _err.getvalue()
+
+ok("非字符串字段值会往 stderr 打 WARN（删掉那行 print 这条就红）", "WARN" in _msg)
+ok("WARN 点名了主题与字段，不是一句无从追查的空话",
+   "t-bad" in _msg and "list_prefix_ol_html" in _msg)
+ok("被跳过的只是那一项，同主题其余字段照常进签名",
+   CL.is_decor(node("color: #6f7a4d;", "☘"), BAD_SIGS))
+ok("被跳过的那一项不进签名——装饰面变窄是预期方向",
+   not CL.is_decor(node("", "12345"), BAD_SIGS))
+
+_quiet = io.StringIO()
+with redirect_stderr(_quiet):
+    CL.decor_signatures(THEME, theme_name="t-ok")
+ok("字段值全正常时一个字都不打（不许狼来了）", _quiet.getvalue() == "")
 
 # ── 阈值 ───────────────────────────────────────────────────
 ok("18.66px/700 是大文本",       CL.is_large_text(18.66, 700))
