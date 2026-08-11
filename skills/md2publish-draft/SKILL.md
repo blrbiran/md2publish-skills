@@ -30,8 +30,24 @@ md2wechat doctor --json
 |---|---|
 | HTML 文件 | 用户指定 → 当前目录最新 `.html` |
 | 标题/作者/摘要 | HTML 头部 `<!-- md2publish {...} -->` 注释 → 源 md frontmatter → 询问用户 |
-| 封面图 | 用户指定 → md2publish-images 产物 → 询问用户 |
+| 封面图 | 用户指定 → `md2publish-cover` 产物（**路径读 sidecar，见表下**）→ 询问用户 |
 | 正文本地图片清单 | 扫描 HTML 中非 `mmbiz.qpic.cn` 的 `<img src>` |
+
+**封面来自 `md2publish-cover` 时，路径从 sidecar 里读，不许硬编 `00-cover.png`。**
+压缩是**新增不是替换**：封面超过 2MB 时，原图 `00-cover.png` 与压缩产物 `00-cover.jpg`
+**两个文件同时存在**，而 `.png` 恰好占着看起来最"正规"的那个名字。拿错就等于把
+"推草稿箱才发现封面超限"这个失败模式请回来。
+
+```bash
+# $ART 是文章目录，<platform> 通常是 wechat
+SIDECAR="$ART/assets/<platform>/00-cover.json"
+COVER=$(python3 -c "import json,pathlib,sys; p=pathlib.Path(sys.argv[1]); \
+print(p.parent / json.load(p.open())['image'])" "$SIDECAR")
+```
+
+`image` 字段记的是最终产物的**文件名**：未超限时是 `.png`、超限时是 `.jpg`，两种情况都由它
+说了算，调用方不需要自己判断，也不要去比较两个文件谁更大或谁更新。sidecar 不存在时
+（用户从别处拿的图）直接问用户要路径，别猜。
 
 元数据硬限制（微信侧强制，超限 `create_draft` 会失败）：
 
