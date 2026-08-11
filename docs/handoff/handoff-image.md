@@ -1,14 +1,14 @@
 # Handoff：图片能力线（cover / visuals / diagram）
 
-最后更新：2026-08-10
+最后更新：2026-08-11
 
 本文只管**图片这条线**。主题库与 HTML 生成那条线在 `docs/handoff/handoff.md`，两者互不重叠，别读错。
 
 ## 快速接手入口
 
 1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。
-2. **二期 A 已完成并合进本地 `main`**：vendor 进 `imagegen/` 生图引擎（11 个 provider，D1 剔除了 codex-cli）、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover` skill、`scripts/check.sh` 一条命令串起九项检查。纯新增，`md2publish-images` 原地未动。**手动付费 smoke 未做**——见第六节。
-3. 下一步是**二期 B**（删除 `md2publish-images`，改 spec §12 列出的引用，唯一有破坏性的一期）。它的实施计划**尚未编写**。
+2. **二期 A、二期 B 均已完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎（11 个 provider，D1 剔除了 codex-cli）、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover` skill、`scripts/check.sh` 一条命令串起九项检查（第 6 项现在是 12 项）。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。**手动付费 smoke 仍未做**——见第六节。
+3. 下一步是**三期**（`md2publish-visuals` + `md2publish-diagram`）。它的实施计划**尚未编写**。
 4. 动手前先跑第二节的 `./scripts/check.sh`，全绿才继续。
 5. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。
 6. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
@@ -170,24 +170,37 @@ rm -rf "$T"
 层要镜像的那个 JS 引擎，遇到同样的输入是怎么做的？** 两边行为不一致，用户会遇到
 "引擎能跑、preflight 说没配置"这种最难查的矛盾。
 
-**二期 B（下一步，唯一有破坏性的一期，单 commit 便于 revert）**
+**二期 B（已完成，唯一有破坏性的一期，单 commit 便于 revert）**
 
-> ⚠️ **给二期 B 的硬约束：`md2publish-draft` 绝不许硬编 `assets/<platform>/00-cover.png`。**
+> ⚠️ **`md2publish-draft` 的既成契约：不许硬编 `assets/<platform>/00-cover.png`。**
 >
 > 压缩**不是替换，是新增**。`md2publish-cover` 步骤 7 压完之后，超限的原图
 > `00-cover.png` 和压缩产物 `00-cover.jpg` **两个文件同时存在**，而 `.png` 恰好占着
-> 那个看起来最"正规"的名字。二期 B 若把 draft skill 指向 `.png`，就等于把
+> 那个看起来最"正规"的名字。若 draft skill 指向 `.png`，就等于把
 > "推草稿箱时才发现封面超过 2MB" 这个失败模式原样请回来——而把压缩硬塞进
 > 二期 A 的封面流程，全部目的就是消灭它。
 >
-> 正确做法：**读 sidecar `assets/<platform>/00-cover.json` 里记的路径**（它永远指向
-> 最终产物），或直接消费 `compress.py` 打印的那个路径。未超限时该路径就是 `.png`，
-> 超限时是 `.jpg`——两种情况都由 sidecar 说了算，调用方不需要自己判断。
-> 契约写在 `skills/md2publish-cover/SKILL.md` 的步骤 7、步骤 8 与「产物布局」三处。
+> 正确做法：**读 sidecar `assets/<platform>/00-cover.json` 里记的 `image` 字段**——
+> 最终产物的**文件名**（不是完整路径），要在 sidecar 自己所在的目录下解析。它是二期
+> B 的 T1（commit `0f79f78`）补上的：sidecar 路径本身是 `image.with_suffix(".json")`，
+> 所以压缩产物 `00-cover.jpg` 与原图 `00-cover.png` 会算出**同一个** `00-cover.json`，
+> 文件名区分不了两者，只有这个字段能。未超限时它是 `.png`，超限时是 `.jpg`——两种
+> 情况都由 sidecar 说了算，调用方不需要自己判断。契约写在 `skills/md2publish-cover/SKILL.md`
+> 的步骤 7、步骤 8 与「产物布局」三处，`md2publish-draft` 已按这条契约读取。
 
-- 删除 `md2publish-images`，改 spec §12 列出的**九处**引用。别信"四处"——`wechat-finetune/SKILL.md` 两处和 `docs/handoff/handoff.md` 三处极易漏。
-- **动手第一步**：spec §12 正文首句写的是"留下**七处**悬空引用"，但其下表格是 **9 行**，§16 修订记录写的是"从四处更正为九处"——三个数字互相矛盾。**以表格为准**：先把 §12 正文那句话改成"九处"，再照表格逐条改，别把正文的"七处"当真数抄一遍漏掉两处。
-- 完成判据：全仓库 grep 不到 `md2publish-images`。
+- 删除了 `md2publish-images`，改完 spec §12 列出的**十一处**活引用（T2 把矛盾的
+  "七处/九处"更正为十一处——以表格为准；二期 A 新建 `md2publish-cover/SKILL.md`
+  与 `_shared/README.md` 时又带出两处新的，加起来是十一）。全部改指向 `md2publish-cover`。
+- 完成判据是 D10 的**范围版**，不是全仓库 grep：
+  ```bash
+  grep -rn "md2publish-images" skills/ docs/handoff/handoff.md   # 期望无输出，rc=1
+  ```
+  `docs/superpowers/specs/`、`docs/superpowers/plans/`、本文、`.superpowers/` 下仍能
+  grep 到——那是执行记录，故意保留，别为了让全局 `grep -r .` 干净去改它们。
+
+**二期 B 的教训**：spec、`md2publish-cover/SKILL.md`、本文的硬约束三处都在写"读 sidecar
+里记的路径"，而 `artifacts.py` 写出的 sidecar 曾经根本没有路径字段——一条契约被反复
+引用不等于它被实现过。完整版见第八节「二期 B（一条）」。
 
 **三期**
 - `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链）。
@@ -235,6 +248,17 @@ rm -rf "$T"
 7. **测试脚本不要改真实工作区。** 计划里的漂移测试直接往被 git 跟踪的 vendor 副本里
    追加探针行，没有 `trap` 恢复；在有并发 agent 的仓库里，中途崩掉就留下污染。
    改成 `mktemp -d` 沙箱 + `trap ... EXIT INT TERM` 之后才安全。
+
+**二期 B（一条）**
+
+8. **文档三处承诺的契约，代码里一处都没实现。** spec §12、`md2publish-cover/SKILL.md`
+   步骤 8、handoff 第六节的硬约束，全都写着"读 sidecar 里记的路径"，而 `artifacts.py`
+   写出的 sidecar **根本没有路径字段**——只有 `bytes`。更糟的是 sidecar 路径是
+   `image.with_suffix(".json")`，压缩产物 `.jpg` 与原图 `.png` 算出来**是同一个
+   `00-cover.json`**，文件名本身也区分不了。照 spec 原样执行二期 B，只会退回硬编
+   `00-cover.png`，正是二期 A 要消灭的失败模式。
+   **教训：一条契约被多份文档反复引用，不等于它被实现过。跨组件的"谁读谁"改动，
+   动手前先去读被读那一方的代码，确认它真的写了那个字段。**
 
 **给二期 B 的一条方法论**：二期 A 的八个任务全部通过了各自的评审，最终整支评审仍然
 抓出 1 个 Critical + 6 个 Important，全部是**跨组件**的（顺序依赖、四处 provider 名单
