@@ -209,6 +209,79 @@ with redirect_stderr(_quiet):
     CL.decor_signatures(THEME, theme_name="t-ok")
 ok("字段值全正常时一个字都不打（不许狼来了）", _quiet.getvalue() == "")
 
+# ── image_reaches_text：被 background-size 限制成条带的图像不算文字的底 ──
+# 判据说法：图像被限制成一条贴边条带、且该侧 padding 保证文字够不到它，
+# 此时文字的底是 background-color。四条必要条件缺一都倒向「保留图像」。
+# 设计与逐条理由见 docs/superpowers/specs/2026-08-11-background-size-backdrop-design.md
+STRIP = {
+    "background-color": "#ffffff",
+    "background-image": "linear-gradient(135deg, #6a5cff, #38c6d9)",
+    "background-repeat": "no-repeat",
+    "background-size": "100% 4px",
+    "background-position": "top",
+    "padding": "26px 22px",
+}
+def without(d, *keys):
+    return {k: v for k, v in d.items() if k not in keys}
+
+ok("四条全中：aurora-flow 卡顶那条 4px 渐变够不到卡内文字",
+   CL.image_reaches_text(STRIP) is False)
+ok("没有 background-image 时无所谓够不够得到",
+   CL.image_reaches_text(without(STRIP, "background-image")) is True)
+
+# 条件 1：no-repeat。这是唯一真正承重的一条——真实库里 autumn-warm / ocean-calm /
+# spring-fresh 的 card 与 blueprint-grid 的 container 都是 `20px 20px` 这类平铺纹理、
+# 且不写 background-repeat，它们确实铺满整个元素、确实在文字后面。
+ok("显式 repeat 会把条带平铺满整个元素 → 保留图像",
+   CL.image_reaches_text({**STRIP, "background-repeat": "repeat"}) is True)
+ok("不写 background-repeat 就是 CSS 默认的 repeat → 保留图像",
+   CL.image_reaches_text(without(STRIP, "background-repeat")) is True)
+
+# 条件 2：background-size 两个分量、高度是 px 固定长度
+ok("不写 background-size → 保留图像",
+   CL.image_reaches_text(without(STRIP, "background-size")) is True)
+ok("高度是百分比 → 保留图像",
+   CL.image_reaches_text({**STRIP, "background-size": "100% 10%"}) is True)
+ok("高度是 auto → 保留图像",
+   CL.image_reaches_text({**STRIP, "background-size": "100% auto"}) is True)
+ok("cover 是单分量关键字 → 保留图像",
+   CL.image_reaches_text({**STRIP, "background-size": "cover"}) is True)
+ok("contain 是单分量关键字 → 保留图像",
+   CL.image_reaches_text({**STRIP, "background-size": "contain"}) is True)
+ok("只给一个分量时那是宽度、高度按 auto 走 → 保留图像",
+   CL.image_reaches_text({**STRIP, "background-size": "4px"}) is True)
+ok("多层背景（含逗号）一律不解析 → 保留图像",
+   CL.image_reaches_text({**STRIP, "background-size": "100% 4px, cover"}) is True)
+
+# 条件 3：background-position 恰好 top 或 bottom
+ok("position 是 center 时条带落在元素中间，padding 证明不了任何事 → 保留图像",
+   CL.image_reaches_text({**STRIP, "background-position": "center"}) is True)
+ok("不写 background-position → 保留图像",
+   CL.image_reaches_text(without(STRIP, "background-position")) is True)
+ok("position 是 bottom 时看 padding-bottom，同样成立",
+   CL.image_reaches_text({**STRIP, "background-position": "bottom"}) is False)
+
+# 条件 4：该侧 padding 是 px 且 ≥ 条带高度——「文字够不到条带」的机械证明
+ok("padding 为 0 时文字真压在条带上 → 保留图像",
+   CL.image_reaches_text({**STRIP, "padding": "0"}) is True)
+ok("padding 单位不是 px 时不猜换算 → 保留图像",
+   CL.image_reaches_text({**STRIP, "padding": "2em 22px"}) is True)
+ok("_px_or_none 对畸形多点数字（如 1.2.3px）返回 None，不抛 ValueError",
+   CL._px_or_none("1.2.3px") is None)
+ok("padding 是畸形多点数字时同样保留图像，不炸也不误判达标",
+   CL.image_reaches_text({**STRIP, "padding": "1.2.3px 22px"}) is True)
+ok("padding 小于条带高度 → 保留图像",
+   CL.image_reaches_text({**STRIP, "padding": "2px 22px"}) is True)
+ok("padding 长写法优先于简写",
+   CL.image_reaches_text({**STRIP, "padding": "0", "padding-top": "26px"}) is False)
+# 简写取错侧会让下面两条里恰好一条红：三值简写 top=2px、bottom=30px，
+# 条带高 4px，所以 top 那边不够、bottom 那边够。
+ok("三值 padding 简写：position top 取的是第 1 个值（2px < 4px）",
+   CL.image_reaches_text({**STRIP, "padding": "2px 22px 30px"}) is True)
+ok("三值 padding 简写：position bottom 取的是第 3 个值（30px ≥ 4px）",
+   CL.image_reaches_text({**STRIP, "padding": "2px 22px 30px",
+                          "background-position": "bottom"}) is False)
+
 # ── 阈值 ───────────────────────────────────────────────────
 ok("18.66px/700 是大文本",       CL.is_large_text(18.66, 700))
 ok("18.2px/700 不是大文本",      not CL.is_large_text(18.2, 700))

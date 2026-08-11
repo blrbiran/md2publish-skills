@@ -185,6 +185,88 @@ def _weight(v, default):
     return int(v) if v.isdigit() else default
 
 
+def _px_or_none(v):
+    """严格版长度解析：只认 `<数字>px`，别的一律 None。
+
+    **不要用上面的 `_px()`**：它解析失败时返回调用方给的 default，会把
+    「解析不出来」变成「等于某个数」。这里两个用处的失败方向正好相反
+    （条带高度算大了会放行、padding 算小了会拦住），静默默认值会各错一次。
+    `padding: 0` 这种合法的无单位零也判 None——倒向「保留图像」，方向安全。
+    """
+    m = re.fullmatch(r"\s*(\d+(?:\.\d+)?)px\s*", v or "")
+    return float(m.group(1)) if m else None
+
+
+def _padding_side(shorthand, side):
+    """从 padding 简写里取上边或下边的值（px），取不出来返回 None。
+
+    CSS 简写四种形态：1 个值 = 四边；2 个 = 上下 / 左右；3 个 = 上 / 左右 / 下；
+    4 个 = 上 / 右 / 下 / 左。上边永远是第 1 个；下边在 3、4 值时是第 3 个，
+    1、2 值时与上边同值。
+    """
+    parts = (shorthand or "").split()
+    if not parts or len(parts) > 4:
+        return None
+    top = parts[0]
+    bottom = parts[2] if len(parts) >= 3 else parts[0]
+    return _px_or_none(top if side == "top" else bottom)
+
+
+# 条带贴哪一边 → 该看哪一侧的 padding
+_STRIP_SIDES = {"top": "padding-top", "bottom": "padding-bottom"}
+
+
+def image_reaches_text(st):
+    """这个元素的 background-image 有没有可能落在它自己的文字后面。
+
+    **默认 True。**只有当图像被限制成一条贴边条带、且该侧 padding 保证文字
+    够不到它时才返回 False——此时元素内文字的底是 background-color，那张
+    图像不参与底色候选。
+
+    四条必要条件（全部成立才 False）：
+      1. background-repeat 恰好是 no-repeat
+      2. background-size 有两个分量，且高度分量（第二个）是 px 固定长度
+      3. background-position 恰好是 top 或 bottom
+      4. 该侧 padding 是 px 且 ≥ 条带高度
+
+    任何一条判不出来（属性缺失、单位不是 px、值不认识、多层背景）都倒向 True
+    = 保留图像 = 继续按渐变判。所以这道门**只可能多报，不可能藏发现**。
+    设计与逐条理由：docs/superpowers/specs/2026-08-11-background-size-backdrop-design.md
+    """
+    if not st.get("background-image"):
+        return True
+
+    # 1. 没写 background-repeat 就是 CSS 默认的 repeat——一条 4px 的渐变会平铺满
+    #    整个元素。真实库里 autumn-warm / ocean-calm / spring-fresh 的 card 与
+    #    blueprint-grid 的 container 正是这个形态（`20px 20px` 纹理，不写 repeat），
+    #    它们确实盖在文字后面。这一条是这道门里唯一真正承重的。
+    if (st.get("background-repeat") or "").strip().lower() != "no-repeat":
+        return True
+
+    # 2. 多层背景（含逗号）一律不解析；必须两个分量且高度是 px。
+    size = (st.get("background-size") or "").strip().lower()
+    if not size or "," in size:
+        return True
+    parts = size.split()
+    if len(parts) != 2:
+        return True
+    strip_h = _px_or_none(parts[1])
+    if strip_h is None:
+        return True
+
+    # 3. 只认光秃秃的 top / bottom。`top left`、`0 0`、`center top` 这些等价写法
+    #    一律走保留图像那条路——收窄是安全方向。
+    pad_key = _STRIP_SIDES.get((st.get("background-position") or "").strip().lower())
+    if pad_key is None:
+        return True
+
+    # 4. 长写法优先于简写。这是唯一一条把「条带存在」变成「文字够不到条带」的
+    #    机械证明；证明不了就保留图像。
+    pad = _px_or_none(st[pad_key]) if st.get(pad_key) else _padding_side(
+        st.get("padding"), pad_key.rsplit("-", 1)[1])
+    return pad is None or pad < strip_h
+
+
 class _Walker(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
