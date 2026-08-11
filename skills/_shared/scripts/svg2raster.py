@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import os
 import re
@@ -49,12 +50,48 @@ def find_chrome() -> str | None:
     return CHROME_MAC_APP if os.access(CHROME_MAC_APP, os.X_OK) else None
 
 
+@functools.lru_cache(maxsize=None)
+def magick_has_rsvg() -> bool:
+    """ImageMagick 的 SVG coder 探测——正向要证据，找不到证据一律判"不可用"。
+
+    没有编译进 RSVG delegate 的 magick 会退到它自己那套很弱的内置 MSVG
+    渲染器：带 CJK 文字的 SVG 能被它"跑通"（exit 0、产出合法 PNG），但
+    图上所有文字会被静默丢光——这是本机实测出来的真实故障模式，比直接
+    报错凶险得多，因为退出码看不出任何异常，要等发布出去才会被发现。
+
+    判据：`magick -list format` 的输出里，第一列恰好是 SVG/SVG*（不是
+    MSVG*，也不是 SVGZ*）的那一行，描述里必须出现 RSVG 字样。magick 不
+    存在、命令失败、或输出格式认不出来，一律当作"不可用"处理——宁可漏用
+    一个其实可用的 magick（顶多降级到 chrome，无害），也不能误用一个会
+    丢字的 magick。
+
+    用 lru_cache 缓存：一次进程里只 fork 一次 magick 探测子进程，不会
+    每次挑后端就重新问一遍。
+    """
+    exe = shutil.which("magick")
+    if not exe:
+        return False
+    try:
+        proc = subprocess.run([exe, "-list", "format"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except OSError:
+        return False
+    if proc.returncode != 0:
+        return False
+    for line in proc.stdout.decode("utf-8", errors="replace").splitlines():
+        m = re.match(r"^\s*SVG\*?\s+\S+\s+\S+\s+(.*)$", line)
+        if m and "RSVG" in m.group(1).upper():
+            return True
+    return False
+
+
 def available_backends() -> list[str]:
-    """顺序即优先级。rsvg-convert 质量最好且最快，Chrome 最重，排最后。"""
+    """顺序即优先级。rsvg-convert 质量最好且最快，Chrome 最重，排最后。
+
+    magick 只有在探测到真的 RSVG delegate 时才计入——见 magick_has_rsvg()。"""
     found = []
     if shutil.which("rsvg-convert"):
         found.append("rsvg-convert")
-    if shutil.which("magick"):
+    if shutil.which("magick") and magick_has_rsvg():
         found.append("magick")
     if find_chrome():
         found.append("chrome")
@@ -155,6 +192,13 @@ def rasterize(svg: Path, out: Path, aspect: str, width: int, backend: str | None
     if backend is not None:
         if backend not in BACKENDS:
             raise RasterError(f"未知 backend: {backend}；可选 {sorted(BACKENDS)}")
+        if backend == "magick" and not magick_has_rsvg():
+            raise RasterError(
+                "本机的 magick 没有 RSVG delegate（magick -list format 里 SVG 一行"
+                "显示的是内置渲染器），它能跑通但会丢掉图上所有文字。"
+                "装 librsvg（brew install librsvg）后 magick 才能用，"
+                "或者直接用 rsvg-convert / chrome。"
+            )
         order = [backend]
     else:
         order = [b for b in ("rsvg-convert", "magick", "chrome") if b in available_backends()]

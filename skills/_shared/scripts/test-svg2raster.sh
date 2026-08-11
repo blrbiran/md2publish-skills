@@ -6,6 +6,14 @@
 # 遮蔽是在沙箱 bin 目录里只放需要的那一个后端，再把 PATH 换成它。
 # 因此 svg2raster.py **必须只用标准库**：遮蔽后要用 /usr/bin/python3（3.9.6，
 # 没装 PyYAML）来跑，import yaml 会直接崩。
+#
+# **遮掉 rsvg-convert 之后，期望退到的不一定是 magick。** magick 只有探测到真
+# 的 RSVG delegate 才会被信任（见 svg2raster.py 的 magick_has_rsvg()）：没有
+# delegate 的 magick 能把 SVG"跑通"（exit 0、产出合法 PNG），却会把图上所有
+# CJK 文字静默丢光——这是本机实测出来的真实故障模式，比硬失败凶险得多。所以下
+# 面"降级链的真行为"那条断言按本机探测结果二选一：探测到 delegate 就该退到
+# magick，探测不到就该退到 chrome。如果看到它断言"退到 chrome"，别以为是降级
+# 链断了——那是刻意不让一个会丢字的 magick 被静默选中。
 set -uo pipefail
 cd "$(dirname "$0")"
 
@@ -84,26 +92,49 @@ else
   skip "rsvg-convert"
 fi
 
-if command -v magick >/dev/null; then
-  out=$(run_masked magick "$TMP/b.png" "")
-  if [[ $? -eq 0 ]] && grep -q '"backend": "magick"' <<<"$out" && [[ "$(png_w "$TMP/b.png")" == "800" ]]; then
-    ok "遮掉 rsvg-convert 后自动退到 magick"
-  else
-    bad "magick 这一级不成立（降级链断了）" "$out"
-  fi
-else
-  skip "magick"
+# 本机 magick 是否真的可信（探测到 RSVG delegate），用非遮蔽的正常调用判断——
+# 这反映的是这台机器的真实能力，跟接下来遮不遮 PATH 无关。
+magick_capable=0
+if command -v magick >/dev/null && python3 svg2raster.py --check --json 2>/dev/null | grep -q '"magick"'; then
+  magick_capable=1
 fi
 
-if [[ -x "$CHROME_APP" ]]; then
-  out=$(run_masked "" "$TMP/c.png" "$CHROME_APP")
-  if [[ $? -eq 0 ]] && grep -q '"backend": "chrome"' <<<"$out" && [[ -s "$TMP/c.png" ]]; then
-    ok "前两级都遮掉后退到 headless Chrome"
+echo
+echo "== 降级链的真行为：遮掉 rsvg-convert 之后该退到谁 =="
+
+if command -v magick >/dev/null; then
+  out=$(run_masked magick "$TMP/b.png" "$CHROME_APP")
+  rc=$?
+  if [[ "${magick_capable}" == "1" ]]; then
+    if [[ $rc -eq 0 ]] && grep -q '"backend": "magick"' <<<"$out" && [[ "$(png_w "$TMP/b.png")" == "800" ]]; then
+      ok "本机 magick 探测到 RSVG delegate，遮掉 rsvg-convert 后信任并退到它"
+    else
+      bad "本机 magick 应该可信却没被退到（降级链断了）" "$out"
+    fi
   else
-    bad "chrome 这一级不成立" "$out"
+    if [[ $rc -eq 0 ]] && grep -q '"backend": "chrome"' <<<"$out" && [[ -s "$TMP/b.png" ]]; then
+      ok "本机 magick 没有 RSVG delegate，遮掉 rsvg-convert 后没有静默选它，而是退到 chrome"
+    else
+      bad "遮掉 rsvg-convert 后没有正确避开不可信的 magick" "rc=${rc} out=${out}"
+    fi
   fi
 else
-  skip "chrome"
+  skip "magick（本机没装，无法验证遮掉 rsvg-convert 后的落点）"
+fi
+
+echo
+echo "== 显式 --backend magick 在不可用时硬失败并点名 =="
+
+if [[ "${magick_capable}" == "1" ]]; then
+  skip "--backend magick 硬失败（本机 magick 有 RSVG delegate，指定它应当成功）"
+else
+  out=$(python3 svg2raster.py --svg "$SVG" --out "$TMP/e.png" --aspect 16:9 --backend magick 2>&1)
+  rc=$?
+  if [[ $rc -ne 0 ]] && grep -q 'RSVG' <<<"$out" && [[ ! -e "$TMP/e.png" ]]; then
+    ok "本机 magick 没有 RSVG delegate，显式指定 --backend magick 时硬失败并说明原因"
+  else
+    bad "--backend magick 在不可用时没有被拦住" "rc=${rc} out=${out}"
+  fi
 fi
 
 echo

@@ -72,6 +72,7 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # ok：0 条失败
 | D14 | §13：`check.sh` 串起五项；「一项不进自动化、手动跑：真调 provider 的最小 smoke」 | `check.sh` 由 9 项扩到 **12 项**；新增的「diagram 端到端」在三个后端全缺时打印 `SKIPPED`，并把末尾口径由「全部通过。」改成「全部通过（N 项跳过：…）」 | diagram 零成本，它的端到端**可以**自动化，不该跟付费 smoke 一起挂账。但它依赖机器上装了 rsvg/magick/chrome，硬失败会把只想改主题库的人也拦在门外。SKIPPED 必须显式改末尾口径——不改就是二期 A 教训 4 的假绿：一项从未真正跑过，而摘要在说"全部通过" |
 | D15 | §8：「有配图时，`article` 的输入是 `article.illustrated.md` 而不是 `article.wechat.md`」 | 输入表写成：同目录存在 `article.illustrated.md` 时**默认用它，并告知用户选了哪份、不带图的那份叫什么**；用户显式给了路径则优先 | spec 只说"必须认"，没说默认规则。每次都问会退化成 §3.2 明确反对的多轮问答；静默改默认又会让用户不知道自己转的是哪一份 |
 | D16 | §3.1：`visuals` 的三种形态（插图 / 信息图 / 卡片系列）统一处理 | **`series` 不回写 Markdown**：`visuals` 跑小红书时到写完 sidecar 就结束，**不产生** `article.illustrated.md` | 卡片系列是内容本身、不进正文（§3.1 自己就是这么论证 series 与 illustration 的差别的）。回写门只在 `illustration` / `infographic` / `diagram` 要插进正文时触发 |
+| D17 | §14.3：降级链 `rsvg-convert → magick → headless Chrome` 三级 | magick 这一级加能力闸：`magick -list format` 的 SVG 行里没有 `RSVG` 证据时，既不进降级链、显式指定也硬失败 | 本机实测：没有 RSVG delegate 的 magick 会 **exit 0 却把图上所有文字丢光**，只剩图形。静默产出无字废图比硬失败坏得多——它要到发布后才会被发现。spec 假定三级都是可用的渲染器，实际第二级的可用性取决于一个必须探测的编译期 delegate |
 
 ### 为什么是逐任务 commit
 
@@ -419,13 +420,21 @@ ls -d "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" 2>/dev/null
 
 ```bash
 #!/usr/bin/env bash
-# svg2raster.py 的降级链测试。对应 spec §14.3 与三期 D13。
+# svg2raster.py 的降级链测试。对应 spec §14.3 与三期 D13、D17。
 #
 # **降级链只能靠遮蔽 PATH 来验证。** 直接调 --backend 只证明"指定后端能用"，
-# 证明不了"rsvg 不在时会自动退到 magick"——而后者才是降级链存在的理由。
+# 证明不了"rsvg 不在时会自动退到下一级"——而后者才是降级链存在的理由。
 # 遮蔽是在沙箱 bin 目录里只放需要的那一个后端，再把 PATH 换成它。
 # 因此 svg2raster.py **必须只用标准库**：遮蔽后要用 /usr/bin/python3（3.9.6，
 # 没装 PyYAML）来跑，import yaml 会直接崩。
+#
+# **遮掉 rsvg-convert 之后，期望退到的不一定是 magick。** magick 只有探测到真
+# 的 RSVG delegate 才会被信任（见 svg2raster.py 的 magick_has_rsvg()）：没有
+# delegate 的 magick 能把 SVG"跑通"（exit 0、产出合法 PNG），却会把图上所有
+# CJK 文字静默丢光——这是本机实测出来的真实故障模式，比硬失败凶险得多。所以下
+# 面"降级链的真行为"那条断言按本机探测结果二选一：探测到 delegate 就该退到
+# magick，探测不到就该退到 chrome。如果看到它断言"退到 chrome"，别以为是降级
+# 链断了——那是刻意不让一个会丢字的 magick 被静默选中。
 set -uo pipefail
 cd "$(dirname "$0")"
 
@@ -504,26 +513,49 @@ else
   skip "rsvg-convert"
 fi
 
-if command -v magick >/dev/null; then
-  out=$(run_masked magick "$TMP/b.png" "")
-  if [[ $? -eq 0 ]] && grep -q '"backend": "magick"' <<<"$out" && [[ "$(png_w "$TMP/b.png")" == "800" ]]; then
-    ok "遮掉 rsvg-convert 后自动退到 magick"
-  else
-    bad "magick 这一级不成立（降级链断了）" "$out"
-  fi
-else
-  skip "magick"
+# 本机 magick 是否真的可信（探测到 RSVG delegate），用非遮蔽的正常调用判断——
+# 这反映的是这台机器的真实能力，跟接下来遮不遮 PATH 无关。
+magick_capable=0
+if command -v magick >/dev/null && python3 svg2raster.py --check --json 2>/dev/null | grep -q '"magick"'; then
+  magick_capable=1
 fi
 
-if [[ -x "$CHROME_APP" ]]; then
-  out=$(run_masked "" "$TMP/c.png" "$CHROME_APP")
-  if [[ $? -eq 0 ]] && grep -q '"backend": "chrome"' <<<"$out" && [[ -s "$TMP/c.png" ]]; then
-    ok "前两级都遮掉后退到 headless Chrome"
+echo
+echo "== 降级链的真行为：遮掉 rsvg-convert 之后该退到谁 =="
+
+if command -v magick >/dev/null; then
+  out=$(run_masked magick "$TMP/b.png" "$CHROME_APP")
+  rc=$?
+  if [[ "${magick_capable}" == "1" ]]; then
+    if [[ $rc -eq 0 ]] && grep -q '"backend": "magick"' <<<"$out" && [[ "$(png_w "$TMP/b.png")" == "800" ]]; then
+      ok "本机 magick 探测到 RSVG delegate，遮掉 rsvg-convert 后信任并退到它"
+    else
+      bad "本机 magick 应该可信却没被退到（降级链断了）" "$out"
+    fi
   else
-    bad "chrome 这一级不成立" "$out"
+    if [[ $rc -eq 0 ]] && grep -q '"backend": "chrome"' <<<"$out" && [[ -s "$TMP/b.png" ]]; then
+      ok "本机 magick 没有 RSVG delegate，遮掉 rsvg-convert 后没有静默选它，而是退到 chrome"
+    else
+      bad "遮掉 rsvg-convert 后没有正确避开不可信的 magick" "rc=${rc} out=${out}"
+    fi
   fi
 else
-  skip "chrome"
+  skip "magick（本机没装，无法验证遮掉 rsvg-convert 后的落点）"
+fi
+
+echo
+echo "== 显式 --backend magick 在不可用时硬失败并点名 =="
+
+if [[ "${magick_capable}" == "1" ]]; then
+  skip "--backend magick 硬失败（本机 magick 有 RSVG delegate，指定它应当成功）"
+else
+  out=$(python3 svg2raster.py --svg "$SVG" --out "$TMP/e.png" --aspect 16:9 --backend magick 2>&1)
+  rc=$?
+  if [[ $rc -ne 0 ]] && grep -q 'RSVG' <<<"$out" && [[ ! -e "$TMP/e.png" ]]; then
+    ok "本机 magick 没有 RSVG delegate，显式指定 --backend magick 时硬失败并说明原因"
+  else
+    bad "--backend magick 在不可用时没有被拦住" "rc=${rc} out=${out}"
+  fi
 fi
 
 echo
@@ -580,6 +612,7 @@ cd skills/_shared/scripts && bash test-svg2raster.sh 2>&1 | tail -6 && cd ../../
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import os
 import re
@@ -616,12 +649,48 @@ def find_chrome() -> str | None:
     return CHROME_MAC_APP if os.access(CHROME_MAC_APP, os.X_OK) else None
 
 
+@functools.lru_cache(maxsize=None)
+def magick_has_rsvg() -> bool:
+    """ImageMagick 的 SVG coder 探测——正向要证据，找不到证据一律判"不可用"。
+
+    没有编译进 RSVG delegate 的 magick 会退到它自己那套很弱的内置 MSVG
+    渲染器：带 CJK 文字的 SVG 能被它"跑通"（exit 0、产出合法 PNG），但
+    图上所有文字会被静默丢光——这是本机实测出来的真实故障模式，比直接
+    报错凶险得多，因为退出码看不出任何异常，要等发布出去才会被发现。
+
+    判据：`magick -list format` 的输出里，第一列恰好是 SVG/SVG*（不是
+    MSVG*，也不是 SVGZ*）的那一行，描述里必须出现 RSVG 字样。magick 不
+    存在、命令失败、或输出格式认不出来，一律当作"不可用"处理——宁可漏用
+    一个其实可用的 magick（顶多降级到 chrome，无害），也不能误用一个会
+    丢字的 magick。
+
+    用 lru_cache 缓存：一次进程里只 fork 一次 magick 探测子进程，不会
+    每次挑后端就重新问一遍。
+    """
+    exe = shutil.which("magick")
+    if not exe:
+        return False
+    try:
+        proc = subprocess.run([exe, "-list", "format"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except OSError:
+        return False
+    if proc.returncode != 0:
+        return False
+    for line in proc.stdout.decode("utf-8", errors="replace").splitlines():
+        m = re.match(r"^\s*SVG\*?\s+\S+\s+\S+\s+(.*)$", line)
+        if m and "RSVG" in m.group(1).upper():
+            return True
+    return False
+
+
 def available_backends() -> list[str]:
-    """顺序即优先级。rsvg-convert 质量最好且最快，Chrome 最重，排最后。"""
+    """顺序即优先级。rsvg-convert 质量最好且最快，Chrome 最重，排最后。
+
+    magick 只有在探测到真的 RSVG delegate 时才计入——见 magick_has_rsvg()。"""
     found = []
     if shutil.which("rsvg-convert"):
         found.append("rsvg-convert")
-    if shutil.which("magick"):
+    if shutil.which("magick") and magick_has_rsvg():
         found.append("magick")
     if find_chrome():
         found.append("chrome")
@@ -722,6 +791,13 @@ def rasterize(svg: Path, out: Path, aspect: str, width: int, backend: str | None
     if backend is not None:
         if backend not in BACKENDS:
             raise RasterError(f"未知 backend: {backend}；可选 {sorted(BACKENDS)}")
+        if backend == "magick" and not magick_has_rsvg():
+            raise RasterError(
+                "本机的 magick 没有 RSVG delegate（magick -list format 里 SVG 一行"
+                "显示的是内置渲染器），它能跑通但会丢掉图上所有文字。"
+                "装 librsvg（brew install librsvg）后 magick 才能用，"
+                "或者直接用 rsvg-convert / chrome。"
+            )
         order = [backend]
     else:
         order = [b for b in ("rsvg-convert", "magick", "chrome") if b in available_backends()]
