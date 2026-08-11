@@ -218,7 +218,8 @@ python3 shared/scripts/artifacts.py sidecar \
 ```
 
 sidecar 写在 `${FINAL}` 旁边、与它同名（`$ART/assets/<platform>/00-cover.json`），
-里面记的 `bytes` 也是 `${FINAL}` 的字节数。**它记录的路径就是下游该消费的路径。**
+里面记的 `image`（文件名）和 `bytes` 都是 `${FINAL}` 的。**`image` 字段就是下游该消费的
+那个文件**——`.png` 和 `.jpg` 算出来是同一个 `.json`，文件名区分不了，只有这个字段能。
 
 `--provider` / `--model` 取步骤 6 那份 JSON 里的 `provider` / `model`。
 **不要**填步骤 5 的预告值——省略参数时引擎会自己回退挑一个，填错了 sidecar

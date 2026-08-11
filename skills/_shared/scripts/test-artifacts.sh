@@ -75,6 +75,31 @@ else
   bad "generated_at 格式不对" "$got_at"
 fi
 
+got_image=$(jq_get "['image']" 2>&1)
+if [[ "$got_image" == "exists.png" ]]; then
+  ok "image 记的是最终产物的文件名"
+else
+  bad "image 字段缺失或不对（下游只能靠猜 .png/.jpg）" "got=${got_image}"
+fi
+
+# 为什么必须有这个字段：sidecar 路径是 image.with_suffix('.json')，
+# 所以 exists.png 和 exists.jpg 算出来是同一个 exists.json——
+# 文件名本身区分不了这两个，只有字段能。
+printf 'fake-compressed-bytes' > "$TMP/exists.jpg"
+python3 artifacts.py sidecar \
+  --image "$TMP/exists.jpg" \
+  --platform wechat --archetype cover --preset editorial-warm \
+  --provider openai --model gpt-image-2 \
+  --prompt-file prompts/wechat/00-cover.md \
+  --brief-file briefs/wechat/00-cover.md \
+  --alt-text "暖色调编辑风封面" >/dev/null 2>&1
+got_image=$(jq_get "['image']" 2>&1)
+if [[ "$got_image" == "exists.jpg" ]]; then
+  ok "png 与 jpg 共写同一个 .json 时，image 指向压缩产物"
+else
+  bad "压缩产物没被记下来（draft 会拿到超限的 .png）" "got=${got_image}"
+fi
+
 out=$(run_sidecar no-such-preset)
 if [[ $? -ne 0 ]] && grep -q 'no-such-preset' <<<"$out"; then
   ok "preset 不存在时硬失败并点名"

@@ -52,6 +52,7 @@ def sidecar(image: Path, meta: dict) -> Path:
         "prompt_file": meta["prompt_file"],
         "brief_file": meta["brief_file"],
         "alt_text": meta["alt_text"],
+        "image": image.name,
         "bytes": image.stat().st_size,
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
     }

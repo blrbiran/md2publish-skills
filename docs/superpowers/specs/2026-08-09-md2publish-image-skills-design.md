@@ -277,10 +277,15 @@ template: |
   "prompt_file": "prompts/wechat/00-cover.md",
   "brief_file": "briefs/wechat/00-cover.md",
   "alt_text": "暖色调的编辑风封面，主体是一支钢笔与散落的稿纸",
+  "image": "00-cover.jpg",
   "bytes": 1843200,
   "generated_at": "2026-08-09T14:22:31+08:00"
 }
 ```
+
+`image` 记的是**最终产物的文件名**（不是路径）：sidecar 写在最终产物旁边、与它同名，
+而压缩产物 `.jpg` 与原图 `.png` 算出来是同一个 `.json`，**文件名本身区分不了两者**。
+下游要消费哪个文件，一律读这个字段，在 sidecar 所在目录下解析。
 
 它同时解决三件事：preset 演进后能查出某张图是哪个版本产的（主题库刚经历过 27 → 26 的删改，preset 也会）；§7 的重跑跳过判断有依据；`alt_text` 有地方存——旧 skill 有这个字段，新设计里一度丢了，Markdown 回写需要它。
 
