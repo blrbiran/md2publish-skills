@@ -453,7 +453,7 @@ sips --version || cwebp -version || convert --version
 |---|---|---|
 | `md2publish-article/SKILL.md` | `:15` 边界节 | 「封面图/信息图 → md2publish-images」拆成 cover / visuals / diagram 三个去向 |
 | `md2publish-article/SKILL.md` | `:85` 步骤 8 交接 | 同上 |
-| `md2publish-draft/SKILL.md` | `:33` 封面来源 | 「md2publish-images 产物」→「`md2publish-cover` 产物，**路径读 sidecar `assets/<platform>/00-cover.json` 的 `image` 字段**」。绝不许硬编 `00-cover.png`：压缩是新增不是替换，超限时 `.png` 与 `.jpg` 并存 |
+| `md2publish-draft/SKILL.md` | `:33` 封面来源 | 「md2publish-images 产物」→「`md2publish-cover` 产物，**路径取 sidecar `assets/<platform>/00-cover.json` 的 `image` 字段（文件名，不是路径，需与 sidecar 同目录拼接，见 §5.3）**」。绝不许硬编 `00-cover.png`：压缩是新增不是替换，超限时 `.png` 与 `.jpg` 并存 |
 | `wechat-finetune/SKILL.md` | `:22` 完整链路 | 链路图加入 visuals 的上游位置 |
 | `wechat-finetune/SKILL.md` | `:124` 下一步询问 | 「要配图走 md2publish-images」→ 按 §3.2 路由表分流 |
 | `docs/handoff/handoff.md` | `:43` `:46` `:520` | skill 清单、完整链路、"从未实测"备注三处 |
@@ -513,9 +513,9 @@ sips --version || cwebp -version || convert --version
 
 **事实更正**：§12 悬空引用从四处更正为九处（漏了 `wechat-finetune/SKILL.md:22` `:124` 与 `docs/handoff/handoff.md:43` `:46` `:520`）；`md2publish-article/SKILL.md:16` → `:15`；`skills/README.md:51-56` → `:51-55`；§4.2 中 `zip` 的符号链接默认行为写反了（默认跟随，非保留）；§1 "完全依赖 `--plan`" 改为"以 `--plan` 为主路径"（另有直连路径）；§5.2 补 `primary_use_case` 必填字段；§4.1 补 `codex-cli` 是经 wrapper 间接 spawn。
 
-第三版（2026-08-11，二期 B 开工前）：§12 悬空引用**从九处更正为十一处**——正文原写"七处"、表格 9 行、§16 原写"从四处更正为九处"，三个数字互相矛盾，现统一以表格为准，并补上二期 A 新建的 `skills/md2publish-cover/SKILL.md` 与 `skills/_shared/README.md` 两处；§12 表格中 `md2publish-draft` 一格由硬编 `00-cover.png` 改为读 sidecar 的 `image` 字段（压缩是新增不是替换，`.png` 与 `.jpg` 并存）；§5.3 sidecar schema 补 `image` 字段——原 schema 无任何路径字段，而 §12 与 `md2publish-cover/SKILL.md` 都已在断言"sidecar 记的路径就是下游该消费的路径"。
-
 **结构性修订**：新增 §6（机械层 / 语义层分界）、§8（流水线次序，`visuals` 在 `article` 上游）、§11（TS 运行时前置）；§5.1 platform profile 改为按 archetype 分槽并补 `infographic` / `diagram` 槽，`text_on_image` 由枚举改为结构，`max_bytes` 改整数；§7 凭证门从流程开头移到生成那一步，新增产物布局与重跑跳过规则；§7.2 多平台限定于 cover / diagram；§5.2 `compatible_platforms` 改为 `incompatible_platforms`，补占位符白名单与维度覆盖机制；§5.3 新增产物 sidecar；§9 补成本表与计费尝试上限；§13 把"进 quality gate"落到具体的 `scripts/check.sh` 并诚实说明无自动闸门，§4.3 补漂移恢复程序；§15 二期拆为 A / B；§14 移除 `html_constraints` 预留字段。
+
+第三版（2026-08-11，二期 B 开工前）：§12 悬空引用**从九处更正为十一处**——正文原写"七处"、表格 9 行、§16 原写"从四处更正为九处"，三个数字互相矛盾，现统一以表格为准，并补上二期 A 新建的 `skills/md2publish-cover/SKILL.md` 与 `skills/_shared/README.md` 两处；§12 表格中 `md2publish-draft` 一格由硬编 `00-cover.png` 改为读 sidecar 的 `image` 字段（压缩是新增不是替换，`.png` 与 `.jpg` 并存）；§5.3 sidecar schema 补 `image` 字段——原 schema 里没有这个字段，而 §12 与 `md2publish-cover/SKILL.md` 都已经在断言"下游该消费哪个文件，读 sidecar 就知道"。
 
 ## 17. 参考
 
