@@ -170,7 +170,27 @@ rm -rf "$T"
 层要镜像的那个 JS 引擎，遇到同样的输入是怎么做的？** 两边行为不一致，用户会遇到
 "引擎能跑、preflight 说没配置"这种最难查的矛盾。
 
-**二期 B（已完成，唯一有破坏性的一期，单 commit 便于 revert）**
+**二期 B（已完成，唯一有破坏性的一期，跑成了 T1–T8 八个 per-task commit，不是单 commit）**
+
+本期在 `main` 上是八个逐任务 commit，第一个是 `0f79f78`（T1：sidecar 记录最终产物
+文件名），最后一个是本次的 handoff 更新。
+
+`skills/md2publish-images/SKILL.md` 的删除**不在**这八个 commit 的任何一个里：
+执行到 T8 时，一个并发会话跑了一次不带 pathspec 的 `git commit`，提交的是整个
+暂存区，把本次已经 `git rm` 好、还没来得及提交的删除一起带走了，于是删除被记在
+了那个会话的 `6b4cea6`（"docs(plan): implementation plan for the background-size
+strip gate"）名下。没有工作丢失，只是归属错了。历史故意没有改写——`main` 上另一
+个会话在活跃提交，`reset` / `revert` 有撞坏它的风险。
+
+要撤销这次删除，正确命令是（已用 `git show 6b4cea6^:skills/md2publish-images/SKILL.md`
+验证过该版本能读到文件，未在工作区真的复原过）：
+
+```bash
+git checkout 6b4cea6^ -- skills/md2publish-images/
+```
+
+**可迁移的教训**：`git add <路径>` 管不住 `git commit`——并发会话下要么用
+`git commit -- <路径>`，要么在 commit 前紧挨着再看一次 `git status`。
 
 > ⚠️ **`md2publish-draft` 的既成契约：不许硬编 `assets/<platform>/00-cover.png`。**
 >
@@ -191,12 +211,18 @@ rm -rf "$T"
 - 删除了 `md2publish-images`，改完 spec §12 列出的**十一处**活引用（T2 把矛盾的
   "七处/九处"更正为十一处——以表格为准；二期 A 新建 `md2publish-cover/SKILL.md`
   与 `_shared/README.md` 时又带出两处新的，加起来是十一）。全部改指向 `md2publish-cover`。
-- 完成判据是 D10 的**范围版**，不是全仓库 grep：
+- 完成判据是 D10 的**范围版**，判的是"没有活引用"，不是"grep 不到这串字符"：
   ```bash
-  grep -rn "md2publish-images" skills/ docs/handoff/handoff.md   # 期望无输出，rc=1
+  grep -rn "md2publish-images" skills/         # 承重的那一半：必须无输出，rc=1
+  grep -n "md2publish-images" docs/handoff/handoff.md
   ```
+  `skills/` 必须完全干净——这是判据真正守护的东西，实测确实无输出。
+  `docs/handoff/handoff.md` 目前会命中两行，但都在另一条线自己的提交事故记录里
+  （见上面"删除不在这八个 commit 里"那段的来历），是**讲那次删除的散文**，不是指向
+  该 skill 的活引用。所以下次跑这条 grep，看到 `docs/handoff/handoff.md` 里这两行
+  历史记录不算回归，别误判成有人又写了活引用。
   `docs/superpowers/specs/`、`docs/superpowers/plans/`、本文、`.superpowers/` 下仍能
-  grep 到——那是执行记录，故意保留，别为了让全局 `grep -r .` 干净去改它们。
+  grep 到——那也是执行记录，故意保留，别为了让全局 `grep -r .` 干净去改它们。
 
 **二期 B 的教训**：spec、`md2publish-cover/SKILL.md`、本文的硬约束三处都在写"读 sidecar
 里记的路径"，而 `artifacts.py` 写出的 sidecar 曾经根本没有路径字段——一条契约被反复
