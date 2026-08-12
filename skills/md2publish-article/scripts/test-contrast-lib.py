@@ -229,6 +229,28 @@ ok("四条全中：aurora-flow 卡顶那条 4px 渐变够不到卡内文字",
 ok("没有 background-image 时无所谓够不够得到",
    CL.image_reaches_text(without(STRIP, "background-image")) is True)
 
+# 条件 0（闭世界检查，在四条之前先拦）：元素声明的 background-*/padding-* 属性只要
+# 有一个不在 `_MODELED_BG_PADDING` 白名单里，不看值一律保留图像。下面两条
+# （background-origin / background-attachment）现在只是这条通用规则的两个实例，
+# 不再是专门代码——留着当回归钉：曾经的专项特判被撤掉后，它们必须仍然一样绿。
+ok("有 background-origin 时不看值，一律保留图像（content-box 会让条带贴到文字上）",
+   CL.image_reaches_text({**STRIP, "background-origin": "content-box"}) is True)
+ok("有 background-attachment 时不看值，一律保留图像（fixed 把定位区挪到视口）",
+   CL.image_reaches_text({**STRIP, "background-attachment": "fixed"}) is True)
+# background-position-x/-y 是 background-position 的标准长写法，后写的赢。
+# `background-position: top; background-position-y: bottom` 实际条带在底部，
+# 但旧的两属性特判看不见 background-position-y，会照样读 shorthand 的 "top"、
+# 查 padding-top，算出错误的 False——闭世界检查不关心它的值，只要它出现就拦下。
+ok("有 background-position-y 时不看值，一律保留图像（它是标准长写法，后写会赢过 shorthand）",
+   CL.image_reaches_text({**STRIP, "background-position-y": "bottom"}) is True)
+# padding-block 这类逻辑属性会覆盖 padding 简写判出的那一侧，同属未建模属性。
+ok("有 padding-block 时不看值，一律保留图像（它会覆盖 padding 简写判出的那一侧）",
+   CL.image_reaches_text({**STRIP, "padding-block": "26px"}) is True)
+# 反方向的钉子：padding-left/-right 在白名单里，光有它们不该关掉这道门——
+# 这条防的是「以后有人嫌名单太宽，把它们一起挪出去」这种过度收紧。
+ok("有 padding-left 时不影响判定，白名单里的属性不该关掉这道门",
+   CL.image_reaches_text({**STRIP, "padding-left": "1.5em"}) is False)
+
 # 条件 1：no-repeat。这是唯一真正承重的一条——真实库里 autumn-warm / ocean-calm /
 # spring-fresh 的 card 与 blueprint-grid 的 container 都是 `20px 20px` 这类平铺纹理、
 # 且不写 background-repeat，它们确实铺满整个元素、确实在文字后面。
@@ -252,6 +274,11 @@ ok("只给一个分量时那是宽度、高度按 auto 走 → 保留图像",
    CL.image_reaches_text({**STRIP, "background-size": "4px"}) is True)
 ok("多层背景（含逗号）一律不解析 → 保留图像",
    CL.image_reaches_text({**STRIP, "background-size": "100% 4px, cover"}) is True)
+# 上面那条即使删掉逗号守卫也照样绿——"100% 4px, cover" 逗号一分为三，
+# 早被 `len(parts) != 2` 挡下了。逗号守卫真正承重的是这种分两瓣、
+# 恰好还是两个分量的值：第一层是铺满元素的 `100% auto`，第二层单独是 `4px`。
+ok("两层背景、逗号分隔后恰好两个分量，仍必须整串不解析 → 保留图像",
+   CL.image_reaches_text({**STRIP, "background-size": "100%, 4px"}) is True)
 
 # 条件 3：background-position 恰好 top 或 bottom
 ok("position 是 center 时条带落在元素中间，padding 证明不了任何事 → 保留图像",
@@ -260,6 +287,12 @@ ok("不写 background-position → 保留图像",
    CL.image_reaches_text(without(STRIP, "background-position")) is True)
 ok("position 是 bottom 时看 padding-bottom，同样成立",
    CL.image_reaches_text({**STRIP, "background-position": "bottom"}) is False)
+# 上面这条的 padding 是 "26px 22px"——2 值简写里上下同值，取错侧（错读成 parts[1]）
+# 也不会露馅。换一份上下不对称的 2 值简写才钉得住：真正的 padding-bottom 是 2px，
+# 够不到 4px 的条带，若实现误读 parts[1]（这里是 "22px"）就会错判成 False。
+ok("2 值 padding 简写不对称时，bottom 必须取第 1 个值（同上），不是 parts[1]",
+   CL.image_reaches_text({**STRIP, "padding": "2px 22px",
+                          "background-position": "bottom"}) is True)
 
 # 条件 4：该侧 padding 是 px 且 ≥ 条带高度——「文字够不到条带」的机械证明
 ok("padding 为 0 时文字真压在条带上 → 保留图像",

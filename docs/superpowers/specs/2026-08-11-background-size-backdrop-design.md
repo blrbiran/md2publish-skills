@@ -182,6 +182,46 @@ backdrop_samples(st.get("background-color") or st.get("background"), image, samp
 - **不做 `px` ↔ `%` 换算**（沿用硬停判定已经定下的纪律：那种等价是猜的）。
 - **不碰 `background-attachment` / `background-clip` / `background-origin`。** 真实库里
   一个都没用到，加了就是没有调用方的代码。
+
+  > **2026-08-12 更正（复审核实）**：上面这条把三个属性归成一类，理由「真实库一个都没用到」
+  > 只对其中安全的那类省略成立，`background-attachment` 与 `background-origin` 不是那类，
+  > 本条把它们并进来是事实错误，不是表达问题。这道判据的安全性依赖的是「判不出来就倒向
+  > 保留图像」，而「倒向保留图像」对应的是**属性缺席**：左右条带没样本、`px`↔`%` 换算不做、
+  > `background` 简写不进底色候选，这几处省略都是「属性/写法不出现，判据照旧继续按已有
+  > 路径走，不会藏掉发现」。`background-attachment` 与 `background-origin` 恰好相反——
+  > **出现**才危险，**缺席**才安全：`background-origin: content-box` 把 `background-position`
+  > 的定位区从 padding box 挪到 content box，`top` 会贴在文字第一行顶上，条件 4「padding
+  > 隔开文字与条带」的证明因此不成立；`background-attachment: fixed` 把定位区挪到视口，
+  > padding 更是什么都证明不了。一个未处理属性「出现时会让判据错误地删掉一条真发现」，
+  > 和一个未处理属性「缺席时判据本就会继续保留图像、不藏发现」，不是同一种省略。
+  > **实际入仓的实现**（`contrast_lib.image_reaches_text`，2026-08-12 补）在四条必要条件
+  > 之前单独加了一道预判：`background-origin` 或 `background-attachment` 任一出现（不看
+  > 值）就直接返回 `True`——这两个已经从「不碰」移出去了。**`background-clip` 仍然不碰**：
+  > 它只影响背景的裁剪区域，不影响 `background-position` 的定位基准，条件 4 的 padding
+  > 证明不受它干扰，本条对它的原判断仍然成立，没有变。这是事实性更正，不是设计变更——
+  > 按 `docs/handoff/handoff.md` 文档地图第 4 条的纪律，存档只在发现事实错误时更正，
+  > 本次即是。
+  >
+  > **2026-08-12 更正之二（复审二轮核实）**：上面那条更正本身在重蹈它要纠正的错误——把
+  > 危险属性当成「点名两个」的特判来处理，而不是先问「这一类省略还有没有别的成员」。
+  > 复审又核出一个同形的第三个属性：`background-position-x` / `background-position-y`
+  > 是 `background-position` 的标准长写法，后写的赢；`background-position: top;
+  > background-position-y: bottom` 会让条带实际落在底部，而只点名 origin/attachment
+  > 的实现只看 shorthand、查 `padding-top`，照样会算出错误的 `False`，藏掉一条真发现。
+  > 同一形状还能再举出 `padding-block*`（覆盖 `padding` 简写判出的那一侧）和
+  > `background` 简写（可能带着没被看到的 origin/position/size）——每次核出一个就点名
+  > 一个，是在按下葫芦浮起瓢，说明「点名」这个修法本身就是错的，该关的是这一整类，
+  > 不是逐个补丁。**实际入仓的实现已改成闭世界白名单**：`image_reaches_text` 只在
+  > 元素声明的每一个 `background-*`/`padding-*` 属性都落在 `_MODELED_BG_PADDING`
+  > （`background-color`、`background-image`、`background-repeat`、`background-size`、
+  > `background-position`、`padding`、`padding-top`、`padding-bottom`、`padding-left`、
+  > `padding-right`）这个集合内时才继续往下判；集合外的任何属性——包括上一条点名过的
+  > `background-origin`/`background-attachment`、这次新核出的
+  > `background-position-x`/`-y`、`background-clip`、`padding-block*`/`padding-inline*`，
+  > 以及未来 CSS 新增的、这里谁都没想到的任何一个——一律不看值直接倒向 `True`。
+  > `background-clip` 因此也不再是「特意不碰」的一个例外，而是「闭世界名单没收它，
+  > 和其它任何一个还没出现过的属性待遇相同」。上一条更正把「不碰」改成「碰了两个」，
+  > 这里再改成「碰了整个类」——这同样是事实性更正，不是设计变更，理由同上一条。
 - **不为这一处引入 `contrast-ok` 豁免注记。** 这是判据错了，不是「可以永远这样」；
   用豁免注记去盖判据缺陷，正是本项目立项要防的那个形状（见 handoff 里 mint-breeze
   那条用假理由灭真发现的自伤记录）。

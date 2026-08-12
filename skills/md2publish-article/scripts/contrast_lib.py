@@ -215,6 +215,23 @@ def _padding_side(shorthand, side):
 # 条带贴哪一边 → 该看哪一侧的 padding
 _STRIP_SIDES = {"top": "padding-top", "bottom": "padding-bottom"}
 
+#: 闭世界白名单：这道门只认识这些 background-* / padding-* 属性。元素声明的属性只要
+#: 有一个不在这个集合里，判据不看值直接倒向 True——不是"认识但选择忽略"，是"没有
+#: 能力判断这个属性会不会打断下面四条证明"。`background-color` 是四条要用的底色，
+#: 留着；`padding-left` / `padding-right` 单独留下是因为想清楚过：贴上下边的条带，
+#: 左右 padding 挪不动文字与条带的相对位置，动它们不影响条件 4 的证明——真实库
+#: 里 h2/h3 的 border-left 装饰、列表项的悬挂缩进都靠 padding-left，如果不放行，
+#: 这些元素一旦以后长出 background-image，判据会在完全不相关的属性上误判不出来，
+#: 方向仍然安全但等于把这道门锁死。集合外的一切——`background-origin`、
+#: `background-attachment`、`background-clip`、`background-position-x`/`-y`、
+#: `background`（简写）、`padding-block*`、`padding-inline*`，以及未来 CSS 新增的、
+#: 这里谁都没想到的任何一个——一律不认识、一律 True。
+_MODELED_BG_PADDING = {
+    "background-color", "background-image", "background-repeat",
+    "background-size", "background-position",
+    "padding", "padding-top", "padding-bottom", "padding-left", "padding-right",
+}
+
 
 def image_reaches_text(st):
     """这个元素的 background-image 有没有可能落在它自己的文字后面。
@@ -223,16 +240,35 @@ def image_reaches_text(st):
     够不到它时才返回 False——此时元素内文字的底是 background-color，那张
     图像不参与底色候选。
 
-    四条必要条件（全部成立才 False）：
+    **闭世界前提，在四条之前先检查**：这道门只认识 `_MODELED_BG_PADDING` 那一小撮
+    background-*/padding-* 属性。元素声明的属性只要有一个不在集合里，直接返回
+    True，不看那个属性的值。下面四条是一条证明「文字够不到条带」的链条，每一步
+    都假设「除了被检查的这几个属性，别的都不存在」——一个没建模的属性随时可能
+    在证明的某一步插一脚而不被察觉：`background-position-x`/`-y` 后写会覆盖
+    `background-position` 判出的方向（条件 3 白判了）、`background` 简写可能带着
+    没被看到的 origin/position/size（条件 1–3 全部可能是错的）、`padding-block*`
+    会覆盖 `padding` 简写判出的那一侧（条件 4 白判了）。这道门没有能力逐一验证
+    「这个没建模的属性到底有没有干扰」，所以**不认识就不下结论**，而不是遇到什么
+    就临时加一条特判——特判法只能防住已经想到的属性，闭世界防的是还没想到的。
+
+    四条必要条件（全部成立才 False，且只在上面的闭世界检查通过之后才会走到）：
       1. background-repeat 恰好是 no-repeat
       2. background-size 有两个分量，且高度分量（第二个）是 px 固定长度
       3. background-position 恰好是 top 或 bottom
       4. 该侧 padding 是 px 且 ≥ 条带高度
 
-    任何一条判不出来（属性缺失、单位不是 px、值不认识、多层背景）都倒向 True
-    = 保留图像 = 继续按渐变判。所以这道门**只可能多报，不可能藏发现**。
+    任何一条判不出来（值不认识、多层背景）都倒向 True = 保留图像 = 继续按渐变判。
+    所以这道门**只可能多报，不可能藏发现**——这句话现在是无条件成立的，不是
+    「目前想到的属性都遵守这个方向」：任何声明了的、这道门不认识的属性都会在
+    走到四条之前就先被拦下，不存在「漏判了某个属性、四条却继续算出错误 False」
+    这种情况。
     设计与逐条理由：docs/superpowers/specs/2026-08-11-background-size-backdrop-design.md
     """
+    for prop in st:
+        if (prop.startswith("background") or prop.startswith("padding")) \
+                and prop not in _MODELED_BG_PADDING:
+            return True
+
     if not st.get("background-image"):
         return True
 
