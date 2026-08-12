@@ -85,13 +85,33 @@ MAXB=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset
 - **不要在 SVG 里引用外部资源**（外链字体、外链图片）：光栅化在离线环境里跑，
   引用不到就是空白，而空白在缩略图上看不出来。
 
+样例可参考 `shared/scripts/fixtures/diagram-sample.svg`（它同时是测试 fixture，别改它）。
+
+起手处，一个节点 + 一条连线的最小骨架：
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <rect x="0" y="0" width="1600" height="900" fill="#F7F5F2"/>
+  <g font-family="&quot;PingFang SC&quot;, &quot;Noto Sans CJK SC&quot;, &quot;Microsoft YaHei&quot;, sans-serif"
+     font-size="36" fill="#2B2B2B" text-anchor="middle">
+    <rect x="120" y="380" width="320" height="140" rx="12" fill="#FFFFFF" stroke="#8C6A4F" stroke-width="3"/>
+    <text x="280" y="458">节点</text>
+    <line x1="440" y1="450" x2="640" y2="450" stroke="#8C6A4F" stroke-width="3"/>
+  </g>
+</svg>
+```
+
+节点是 `rect` + `text` 的组合：`text` 的坐标取 `rect` 的中心，配合
+`text-anchor="middle"` 居中；连线用 `line`，端点接在相邻节点的边界上。多节点的图
+照这个模式重复摆放、用 `line` 依次连起来即可。
+
 ### 步骤 4：光栅化
 
 ```bash
 SVG="$ART/diagrams/${PLATFORM}/00-diagram.svg"
 PNG="$ART/assets/${PLATFORM}/00-diagram.png"
 mkdir -p "$(dirname "${SVG}")" "$(dirname "${PNG}")"
-python3 shared/scripts/artifacts.py guard --path "${PNG}"        # 已存在就停，别静默覆盖
+python3 shared/scripts/artifacts.py guard --path "${PNG}"        # 报告并停下问用户，别自己加 --force
 RASTER=$(python3 shared/scripts/svg2raster.py --svg "${SVG}" --out "${PNG}" --aspect "${ASPECT}" --json)
 BACKEND=$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['backend'])" "${RASTER}")
 ```
