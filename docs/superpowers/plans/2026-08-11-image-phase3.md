@@ -1775,10 +1775,11 @@ else
   bad "diagram 带上了 imagegen（多 vendor 一整个引擎）" ""
 fi
 
-for f in scripts/svg2raster.py scripts/artifacts.py scripts/compress.py platforms/wechat.yaml; do
+for f in scripts/svg2raster.py scripts/artifacts.py scripts/compress.py platforms/wechat.yaml \
+         scripts/fixtures/diagram-sample.svg; do
   [[ -e "skills/md2publish-diagram/shared/${f}" ]] || missing="${missing} diagram:${f}"
 done
-for f in scripts/writeback.py scripts/compose_prompt.py scripts/imagegen/main.ts; do
+for f in scripts/writeback.py scripts/compose_prompt.py scripts/imagegen/main.ts presets/INDEX.md; do
   [[ -e "skills/md2publish-visuals/shared/${f}" ]] || missing="${missing} visuals:${f}"
 done
 [[ -z "${missing}" ]] && ok "两个新 skill 的清单都到位" || bad "新 skill 的 vendor 缺文件" "${missing}"
@@ -1837,7 +1838,8 @@ scripts/writeback.py scripts/imagegen"
       # 不带 presets/costs.yaml/config.py/preflight.py（没有 provider 可查）。
       # asset_lib.py 仍要带——artifacts.py 硬 import 它，且画幅要从 platform profile 取。
       echo "platforms \
-scripts/asset_lib.py scripts/artifacts.py scripts/compress.py scripts/svg2raster.py"
+scripts/asset_lib.py scripts/artifacts.py scripts/compress.py scripts/svg2raster.py \
+scripts/fixtures/diagram-sample.svg"
       ;;
 ```
 
