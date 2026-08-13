@@ -1,17 +1,17 @@
 # Handoff：图片能力线（cover / visuals / diagram）
 
-最后更新：2026-08-13
+最后更新：2026-08-14
 
 本文只管**图片这条线**。主题库与 HTML 生成那条线在 `docs/handoff/handoff.md`，两者互不重叠，别读错。
 
 ## 快速接手入口
 
 1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。**三期做完之后，这个目标已经达成**——三个 skill 全部建成。
-2. **一期、二期 A、二期 B、三期全部完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover`。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。三期建成 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链），并把 `visuals` 接进 `md2publish-article` 的上游；`scripts/check.sh` 从二期的 9 项长大到**当前的 12 项**。二期 A、二期 B 都跑过整支评审；**三期的整支评审尚未执行**，见第六节「三期」小节与第八节末尾。
+2. **一期、二期 A、二期 B、三期全部完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover`。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。三期建成 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链），并把 `visuals` 接进 `md2publish-article` 的上游；`scripts/check.sh` 从二期的 9 项长大到**当前的 12 项**。二期 A、二期 B、三期**都跑过整支评审并已执行完毕**：二期 A 是 1 Critical + 6 Important，二期 B 是 4 Important，三期是 **0 Critical + 6 Important**（全部跨组件问题，逐任务评审看不见）；三期评审详情见第六节「三期」小节与第八节。
 3. **手动付费 smoke 现在欠两次，不是一次**：`cover`（二期起欠）与 `visuals`（三期新欠）各有一次"真调 provider 生一张图"的 smoke 从未跑过——本机没有任何 provider 凭证。`diagram` 是唯一的例外，它零成本，端到端**已经真跑过**。三者不要混着说，完整口径见第六节。
 4. **下一步**：`bilibili.yaml` 仍然故意未做（B 站画幅属未验证的外部知识，见第六节末尾）；配好凭证后补跑两次付费 smoke；除此之外 spec 定义的三期范围已经做完，没有排定中的下一期。
 5. 动手前先跑第二节的 `./scripts/check.sh`，全绿（或按 SKIPPED 语义部分跳过）才继续。
-6. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。三期**没有留下已知未修缺陷**——两个真 bug（见第八节）都在收尾前修掉并重新验证过。
+6. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。三期**没有留下已知未修缺陷**——两个真 bug（见第八节）都在收尾前修掉并重新验证过。三期整支评审之后另外裁定了 5 项"可以留到下一期"的已知项（非缺陷，是评审时明确决定不在本期修的边角情况），清单见第六节「三期」小节末尾。
 7. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
 8. 设计与计划不在本文里，见**第零节**的文档地图——**不要**在本文重复它们的内容。
 
@@ -101,7 +101,7 @@ git log --oneline origin/main..main                # 还没推上去的
 ./scripts/check.sh
 ```
 
-一条命令跑**十二项**检查（二期时是九项，三期又加了三项），期望全部 ✓、末尾打印「全部通过。」：
+一条命令跑**十二项**检查（二期时是九项，三期又加了三项），期望全部 ✓、末尾打印「全部通过（12 项）。」：
 
 1. 资产 schema + `costs.yaml`（18 项，含 provider 名单四处一致的交叉校验）
 2. 渲染器 + 占位符白名单（11 项）
@@ -121,7 +121,7 @@ git log --oneline origin/main..main                # 还没推上去的
 第 11 项看见它之前被冲掉，第 11 项从此永远不可能失败。design §4.3 明说漂移是
 vendoring 唯一的真实失败模式，且**绝不能靠 re-sync 解决**。
 
-**SKIPPED 是第三态，不是失败也不是通过。** `check.sh` 的 `run()` 除了 ✓ / ✗，子进程退出码为 2 时会打印 `⊘ SKIPPED`——目前只有第 10 项（diagram 端到端）会触发，机器上 `rsvg-convert` / `magick` / Chrome 一个都没装时如实报 SKIPPED，而不是把只想改主题库、没装光栅化工具的人也硬拦住。**SKIPPED 不算通过**：末尾摘要区分「全部通过。」（零跳过）与「全部通过（N 项跳过：……）。」（有跳过），后者紧跟一句「跳过的项没有跑过，不等于通过」。
+**SKIPPED 是第三态，不是失败也不是通过。** `check.sh` 的 `run()` 除了 ✓ / ✗，子进程退出码为 2 时会打印 `⊘ SKIPPED`——目前只有第 10 项（diagram 端到端）会触发，机器上 `rsvg-convert` / `magick` / Chrome 一个都没装时如实报 SKIPPED，而不是把只想改主题库、没装光栅化工具的人也硬拦住。**SKIPPED 不算通过**：末尾摘要区分「全部通过（12 项）。」（零跳过）与「N 项通过，M 项跳过：……。」（有跳过），后者紧跟一句「跳过的项**没有跑过**，不等于通过」。
 
 外加确认没碰坏另一条线（`check.sh` 不包含这一项，得单跑）：
 
@@ -294,7 +294,7 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 写"读 sidecar 里记的路径"，而 `artifacts.py` 写出的 sidecar 曾经根本没有路径字段——一条
 契约被反复引用不等于它被实现过。二是上面那条整支评审的发现。完整版见第八节。
 
-**三期（九个任务已完成并逐任务过了评审，最后一期；跑成了逐任务 commit T1–T9，不是单 commit；整支评审尚未执行，见下）**
+**三期（九个任务已完成并逐任务过了评审，最后一期；跑成了逐任务 commit T1–T9，不是单 commit；整支评审已执行，0 Critical + 6 Important，见下）**
 
 - 建成 `md2publish-visuals`（含 Markdown 回写门，`writeback.py` 新脚本）与 `md2publish-diagram`（含 SVG→PNG 降级链，`svg2raster.py` 新脚本）；`artifacts.py` 加了 diagram 支路（`source_file` 字段 + 确定性 archetype 分支）；`scripts/check.sh` 从 9 项接入到 **12 项**（新增 Markdown 回写门 13 项、SVG→位图降级链 11 项、diagram 端到端 7 项）；`shared-manifest.sh` / `test-sync-drift.sh` 从只认 1 个 skill 扩到 3 个；把 `visuals` 接进 `md2publish-article` 的上游，`article` 步骤 1 输入表默认认 `article.illustrated.md`。
 - **`visuals` 在 `md2publish-article` 的上游**，不是并行分支（spec §8）。它产出 `article.illustrated.md`，`md2publish-article` 的步骤 1 输入表必须认这个文件，否则它永远不被转换。
@@ -317,6 +317,32 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
    - `scripts/check.sh` 的 `run()` SKIPPED 分支写的是裸 `$label` 紧跟全角冒号（`echo "  ⊘ $label：SKIPPED"`），bash 3.2.57 + `set -u` 下会把变量名解析坏、报假的 `unbound variable`。本机三个光栅化后端齐全，日常跑测试永远走不到这条分支，只有专门造一次"三后端全缺"的场景才会触发（T7）。
    - `scripts/test-diagram-e2e.sh` 最初写的压缩阈值 `SMALL=20000`，比本机实际光栅化出的原始 PNG（18914 字节）还大，导致 `compress.py` 的"未超限"分支直接生效、返回 `action: "none"`，"强制压缩"那条断言名义上跑了，实际压缩代码路径从未被走到——这同时也是 Important 1（压缩产物没有真正喂给 sidecar）能够藏住的原因：两个假象叠在一起，直到把压缩产物真正串进下游消费（sidecar 的 `image` 字段）才同时暴露（T7）。两处都已修：前者改 `${label}`；后者改用光栅化产物实际字节数的 90% 作为阈值，并补了断言确认压缩代码路径真的被走到。
 4. **`bilibili.yaml` 仍然故意未做**：B 站画幅与文字约定属未验证的外部知识（一期就已留白），三期不猜，需要先分别确认视频封面与专栏头图各自的规格。
+
+**三期整支评审已执行：0 Critical，6 Important，全部是跨组件问题**——没有一条是逐任务评审能看见的。这是连续第三期证明整支评审不可省（一期不算，那次是 spec 事实核查；二期 A：1 Critical + 6 Important；二期 B：4 Important）。六条依次是：
+
+1. **D15 的契约钉在一个上游并不保证的文件名上。** `md2publish-article` 匹配字面量 `article.illustrated.md`，`md2publish-visuals` 硬编码 `$ART/article.wechat.md` → `$ART/article.illustrated.md`，README 与 spec §8 同样；但上游的 `wechat-finetune` 写出的是 `<name>.wechat.md`（`<name>` 是用户的文件名），仓库里根本没有"每篇文章一个目录"的约定。失效方式**恰是 D15 要杀掉的那个**：article 的默认永不触发，花钱生成的配图静默进不了 HTML。已改为推导规则 `<name>.wechat.md` → `<name>.illustrated.md`，article 步骤 1 改为在同目录匹配 `*.illustrated.md`、匹配到多份时列出候选问用户。
+2. **diagram → 正文 的回写路线三处都写了、一处都跑不通。** diagram 的 SKILL.md、spec §7.2、§8 都说"交给 visuals 的回写门"，但 diagram 的 vendor 子集不含 `writeback.py`，而 visuals 的步骤 9 排在凭证门、计费门和一次真 provider 调用之后。照做的 agent 要么为插一张零成本图去跑付费流水线、要么卡住。已给 diagram 自己 vendor 一份 `writeback.py` 并加了独立的回写步骤（`writeback.py` 只依赖 `artifacts.py`/`asset_lib.py`，两者本就在 diagram 清单里，没有把付费资产拖进来）。
+3. **`skills/README.md` 里唯一做否定断言的那句话过时了**——「cover 另需（其余 skill 不需要）：bun / sips|magick」，而 visuals 两个都要、diagram 需要光栅化后端。扫尾改了紧挨着的流程框和表，漏了这句。
+4. **`test-svg2raster.sh` 在一台从没跑过降级链的机器上照样全绿。** `skip()` 既不计 PASS 也不计 FAIL、脚本从不 exit 2；没有 rsvg 也没有 magick 的机器上两条真降级断言被跳过，`check.sh` 照打 ✓ 和「全部通过」。**这正是 D14 要防的假绿**——D14 只把 SKIPPED 语义给了 `test-diagram-e2e.sh`，按它自己的道理这个脚本也该有。**这条是计划缺陷**：基线表只写了"缺后端的机器上会少几项并打印 ⊘"，没要求 exit 2。已改为记录跳过数并 exit 2。
+5. **`writeback.py` 会把共用同一锚点的两条 insertion 静默颠倒。** 一个小标题下放两张图是正常需求，而这个文件自己的哲学就是不容忍静默错序（"插错位置比没插更难发现——产物看起来是成功的"）。原测试的多图用例用了**三个不同的锚点**，所以它在正确与错误实现下都会通过。已加原始索引做 tie-break，并补了同锚点断言 + 变异自证。
+6. **「只用标准库」这条约束，沙箱并没有在守它。** `test-svg2raster.sh` 的 `env -i` 透传了 `HOME`，`/usr/bin/python3` 会自动加载 `~/Library/Python/3.9/.../site-packages`，所以沙箱里 `import yaml` 成功——有人加一句 `import asset_lib` 也会全绿。已加 `PYTHONNOUSERSITE=1`（三处 `env -i` 全部），并加了一条"沙箱里第三方 import 确实失败"的断言把它钉死。
+
+**修复波自己引入的一条回归（值得单独记）**：给 diagram 加回写步骤时写了 `OUT="${SOURCE%.wechat.md}.illustrated.md"`，并在注释里断言"SOURCE 已经是 `.illustrated.md` 时 OUT 和 SOURCE 相同"。**那句断言是假的**：bash 的 `%` 后缀剥离只在真以该后缀结尾时生效，`SOURCE` 已是 `.illustrated.md` 时剥离不生效，产出 `name.illustrated.md.illustrated.md`——而那恰恰是这条修法专门要支持的场景（visuals 已回写过、diagram 再往同一篇里插）。更难查的是：这个错误命名的文件**仍然匹配 `*.illustrated.md`**，于是下游 article 会看到两个候选、触发多匹配问询，链路不断、只是错。已改成 `case` 三分支并用 bash 3.2 实跑三种输入验证过。教训：**修复引入的缺陷与原缺陷同源**——都是"注释/文档在断言一件代码没做的事"。
+
+**一条被推翻的评审归因（记下来，因为它关乎该信谁）**：整支评审给第 5 条的归因是"`sorted` 带 `reverse=True` 不保持相同键的原顺序"。**这是事实错误**——Python 的排序是稳定的，官方文档明文保证 `reverse` 参数仍维持稳定性。真正的颠倒来自插入循环本身（在同一 offset 处从后往前插两条会把它们翻过来）。修复者验证后指出了这一点，照样应用了建议的修法代码（修法是对的），并把注释改成描述真实机制；定向复审独立复验，判定**修复者对、评审错**。值得记的不是这个具体知识点，而是：**评审的结论可能对而理由是错的**，照着错理由去改代码会改出别的问题。实现者验证归因、而不是只照抄修法，是对的。
+
+**口径重申一遍（最容易被下一个人说漏，值得在评审结果旁边再钉一次）**：上面"完成判据三分版"已经把三层说清楚了——`check.sh` 十二项全绿（末尾措辞现在是「全部通过（12 项）。」）≠ 端到端验证过；`diagram` 端到端真跑过 ≠ 另外两条线也跑过；付费 smoke 欠款是两次（`cover` + `visuals`）不是一次。整支评审的六条发现，正是在 `check.sh` 全绿的前提下抓出来的——**十二项全绿从来不等于没有跨组件问题**，这正是本节要证明的事，别把两者混成一句话说。
+
+**评审指出的一个可复用模式**：第 1、2、3 条同源——三期都把"正向引用"改对了（这个 skill 交接给那个 skill），漏掉了"反向或否定断言"（上游实际产出什么；其余 skill 不需要什么）。评审建议：下一期的扫尾任务里加一遍针对否定断言的 grep——`不需要` / `其余` / `只有` / `尚未`。
+
+**留给下一期的已知项（都已裁定"可以留到下一期"，不是遗漏）**：
+
+- `svg2raster.py` 的 `rasterize()` 里 `available_backends()` 每个元素调一次（3 次），应提到循环外。`lru_cache` 让它不贵，只是冗余。
+- `artifacts.py` 收到 `--image ""` 时，`Path("").exists()` 解析成 cwd 返回 `True`，绕过「图片不存在」的中文提示，最终在 `image.with_suffix(".json")` 抛未捕获的 `ValueError` traceback。仍是硬失败、不会静默产出错 sidecar，但报错不干净。一行可修（`if not args.image: raise a.AssetError(...)`）。
+- `artifacts.py` 不校验 `--archetype` 是否在 `asset_lib.ARCHETYPES` 里——拼错的非 diagram archetype 配上 preset 会写出一份 archetype 是乱码的 sidecar。既有问题，非三期引入。
+- `writeback.py` 的 `--out` 帮助文案里还留着旧的字面量示例 `<文章目录>/article.illustrated.md`（措辞是"通常是"、不是契约断言，非阻塞）。
+- `test-sync-drift.sh` 的第二个隔离探针在文件本就缺失时会空转通过（与第一个探针同形，既有模式）。
+- `writeback.py` 里 tie-break 那处注释说"同 offset 两项的处理顺序不受控"，用词偏了——实际是确定的，只是那个确定的顺序仍会让文档里颠倒。
 
 **一期故意没做、别当成遗漏的**：`bilibili.yaml`（同上）、vendor 脚本、`imagegen/`、`costs.yaml`。清单见 `skills/_shared/README.md` 末节。
 
@@ -383,12 +409,13 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
    `grep` 的关键词要用**那句话的说法**（如"记的路径"、"单 commit"、"九处"），
    不是被改的标识符名——正是措辞不同才让它们躲过了前面八次逐任务评审。
 
-**给三期的一条方法论**：二期 A 的八个任务全部通过了各自的评审，最终整支评审仍然
+**给三期的一条方法论（三期已验证成立）**：二期 A 的八个任务全部通过了各自的评审，最终整支评审仍然
 抓出 1 个 Critical + 6 个 Important，全部是**跨组件**的（顺序依赖、四处 provider 名单
 不同步、文档里两套路径无法在同一个 cwd 下成立、sidecar 记录的 provider 与引擎实际
 选的不是一回事）。二期 B 换了一批任务、换了一批评审者，结果**同样**是逐任务全绿、
-整支评审再抓 4 个 Important。**连续两期复现，这已经不是偶然：逐任务评审不能替代一次
-整支评审。三期照做，别省。**
+整支评审再抓 4 个 Important。三期又换了一批任务，逐任务评审同样全绿，最终整支评审
+抓出 **0 Critical + 6 Important**，同样全部跨组件（六条详情见第六节「三期」小节）。
+**连续三期复现，这已经不是偶然：逐任务评审不能替代一次整支评审，下一期照做，别省。**
 
 **三期（三条，全部是计划自带的代码快照被原样抄进实现，快照本身就是错的）**
 
@@ -422,5 +449,21 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
     两次（一次给实现抄、一次给测试断言抄），两次必须来自同一处来源，否则漏改必然
     只改对一半。**
 
-三期的整支评审是 T9（本任务）之后的独立步骤，尚未执行——按 §7 的方法论，逐任务
-评审全绿不能替代它，结果留给那次评审后再补进本节。
+**三期整支评审阶段的两条元教训（不是计划缺陷，是关于评审本身怎么用的教训）**
+
+13. **修复引入的缺陷可能与原缺陷同源。** 给 diagram 加回写步骤时的
+    `OUT="${SOURCE%.wechat.md}.illustrated.md"` 一行，连同它注释里"SOURCE 已是
+    `.illustrated.md` 时 OUT 和 SOURCE 相同"这句假断言，犯的是和被修的评审发现同一种
+    错：注释/文档在断言一件代码没做的事。已改成 `case` 三分支并实跑验证。详见第六节
+    「三期」小节"修复波自己引入的一条回归"。
+14. **评审的结论可能对、理由却是错的。** 整支评审把 `writeback.py` 插入顺序颠倒
+    归因于"`sorted(reverse=True)` 不保持稳定"——这是事实错误，Python 排序稳定性有
+    官方文档背书；真正原因是插入循环本身在同一 offset 从后往前插时会颠倒。修复者
+    验证了归因、采用了建议的修法代码（修法本身是对的）、把注释改成写实际机制，定向
+    复审独立复验判定"修复者对、评审错"。**教训：照抄评审给的修法代码可以，但归因要
+    自己验证一遍**，不然下次会照着错的理由去改别的代码，改出新问题。详见第六节
+    「三期」小节。
+
+三期整支评审的六条发现（0 Critical + 6 Important，全部跨组件）详见第六节「三期」
+小节，不在此处重复；六条里第 1、2、3 条同源——都是漏掉了"否定/反向断言"，可复用
+的应对方式（扫尾时加一遍针对否定断言的 grep）也记在该小节末尾。
