@@ -68,7 +68,7 @@ else
 fi
 
 for f in scripts/svg2raster.py scripts/artifacts.py scripts/compress.py platforms/wechat.yaml \
-         scripts/fixtures/diagram-sample.svg; do
+         scripts/writeback.py scripts/fixtures/diagram-sample.svg; do
   [[ -e "skills/md2publish-diagram/shared/${f}" ]] || missing="${missing} diagram:${f}"
 done
 for f in scripts/writeback.py scripts/compose_prompt.py scripts/imagegen/main.ts presets/INDEX.md; do

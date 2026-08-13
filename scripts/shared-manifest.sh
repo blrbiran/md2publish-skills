@@ -28,9 +28,13 @@ scripts/writeback.py scripts/imagegen"
       # asset_lib.py 仍要带——artifacts.py 硬 import 它，且画幅要从 platform profile 取。
       # scripts/fixtures/diagram-sample.svg 也要带：SKILL.md 步骤 3 把它当样例引用，
       # 且它同时是 test-svg2raster.sh 的 fixture，vendor 里没有这个文件就是死链接。
+      # scripts/writeback.py 也要带：diagram 的图要插进正文时，回写门必须是本 skill
+      # 能独立跑的东西，而不是要求 agent 跨去 visuals 目录、顺带跑一遍它的付费流水线。
+      # writeback.py 只硬 import artifacts / asset_lib，两者都已经在这份清单里，
+      # 不必因此带上 imagegen/presets/costs.yaml/config.py 这些付费专属资产。
       echo "platforms \
 scripts/asset_lib.py scripts/artifacts.py scripts/compress.py scripts/svg2raster.py \
-scripts/fixtures/diagram-sample.svg"
+scripts/writeback.py scripts/fixtures/diagram-sample.svg"
       ;;
     *)
       echo "未知 skill: $1" >&2

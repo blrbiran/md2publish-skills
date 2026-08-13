@@ -361,7 +361,9 @@ template: |
 步骤 4  光栅化                  svg2raster.py --svg ... --out ... --aspect ...（降级链见 §14.3）
 步骤 5  压缩（多半用不上）      光栅化产物通常远低于上限；真超限时更该降低宽度重新光栅化
 步骤 6  写 sidecar              provider 记实际用的光栅化后端名，preset 等字段全为 null（见 §5.3）
-步骤 7  交接                    要插正文 → 必须在 md2publish-article 转 HTML 之前插入 Markdown；
+步骤 7  交接                    要插正文 → 用本 skill 自己 vendor 的 writeback.py 回写
+                                （机制与 visuals 步骤 9 相同，各自 vendor 一份，互不依赖）；
+                               必须在 md2publish-article 转 HTML 之前完成；
                                只是单独导出一张图 → 与流水线无耦合
 ```
 
@@ -381,18 +383,22 @@ template: |
 
 因此 `md2publish-visuals` 收到多平台参数时，**必须拆成两次独立执行**：各自选 preset、各自写 brief、各自过成本门。不允许一次确认覆盖两个平台的花费。
 
-**`series` 不回写 Markdown。** 卡片系列的产物是内容本身、不进正文——§3.1 论证 series 与 illustration 的差别用的就是这一点。`visuals` 处理 `series` 时到写完 sidecar（步骤 8）就结束，不产生 `article.illustrated.md`，也没有步骤 9 的回写门；回写门只在 `illustration` / `infographic` 要插进正文、以及 `diagram` 的产物要插进正文时触发。
+**`series` 不回写 Markdown。** 卡片系列的产物是内容本身、不进正文——§3.1 论证 series 与 illustration 的差别用的就是这一点。`visuals` 处理 `series` 时到写完 sidecar（步骤 8）就结束，不产生 `<name>.illustrated.md`，也没有步骤 9 的回写门；回写门只在 `illustration` / `infographic` 要插进正文、以及 `diagram` 的产物要插进正文时触发。**回写门是同一份 `writeback.py` 机制**，`visuals` 与 `diagram` 各自从 `_shared/` vendor 了一份、各跑各的——`diagram` 触发回写时不经过 `visuals` 的凭证门/成本门/生成步骤（那三步 diagram 完全不需要），直接在自己的 skill 目录里把 vendored 的 `writeback.py` 当独立脚本调用即可。
 
 ### 7.3 产物布局与重跑行为
 
 ```
 <article-dir>/
-├─ article.wechat.md
-├─ article.illustrated.md          ← visuals 的回写产物（另存，不改原文）
+├─ <name>.wechat.md
+├─ <name>.illustrated.md           ← visuals 的回写产物（另存，不改原文）
 ├─ briefs/<platform>/NN-<role>.md
 ├─ prompts/<platform>/NN-<role>.md
 └─ assets/<platform>/NN-<role>.png + NN-<role>.json
 ```
+
+`<name>` 是 `wechat-finetune` 写出 `<name>.wechat.md` 时用的用户原始文件名——
+不是字面量 `article`，本文档下面用 `article.*` 只是示意图里方便指代的占位符，
+命名推导规则见 §8。
 
 `<role>` 取 `cover` / `illustration` / `infographic` / `series` / `diagram`；`NN` 从 `00` 起。按平台分目录，因此 `--platform wechat,xiaohongshu` 的两张封面不会同名相撞。
 
@@ -404,14 +410,14 @@ template: |
 
 ## 8. 流水线次序
 
-`visuals` 会回写 Markdown，因此它在 `md2publish-article` 的**上游**，不是并行分支。这一点必须体现在 `skills/README.md` 的流程图里，否则实施者会画成三个并行框，然后 `article.illustrated.md` 静默地永远不被转换。
+`visuals` 会回写 Markdown，因此它在 `md2publish-article` 的**上游**，不是并行分支。这一点必须体现在 `skills/README.md` 的流程图里，否则实施者会画成三个并行框，然后带图版本静默地永远不被转换。
 
 ```
-wechat-finetune → article.wechat.md
+wechat-finetune → <name>.wechat.md
                        │
-                       ├──→ md2publish-visuals ──→ article.illustrated.md ──┐
-                       │    （回写图片引用，另存）                            │
-                       │                                                    ▼
+                       ├──→ md2publish-visuals ──→ <name>.illustrated.md ──┐
+                       │    （回写图片引用，另存）                           │
+                       │                                                   ▼
                        └────────────────────────────────→ md2publish-article ──→ .html
                                                                               │
    md2publish-cover ────→ assets/<platform>/00-cover.png ─────────────────────┤
@@ -419,9 +425,15 @@ wechat-finetune → article.wechat.md
                                                                     md2publish-draft
 ```
 
-- **`visuals` 串在 `article` 上游**：有配图时，`article` 的输入是 `article.illustrated.md` 而不是 `article.wechat.md`。默认规则：`md2publish-article` 步骤 1 发现同目录存在 `article.illustrated.md` 时**默认用它**，并告知用户选了哪一份、不带图的原文叫什么（通常是 `article.wechat.md`）；用户显式给了路径则以用户给的为准。每次都问会退化成 §3.2 明确反对的多轮问答；静默改默认又会让用户不知道自己转的是哪一份——两者都不要。
+**文件名推导规则（本节唯一的权威定义，其余文档照这条来）**：`wechat-finetune`
+产出的是 `<name>.wechat.md`，`<name>` 是用户原始文件名，仓库里**没有**"每篇
+文章一个目录"这样的强约定能保证它就是 `article`——`wechat-finetune` 只是把
+产物写在用户原文件旁边。`md2publish-visuals` 回写时把 `.wechat.md` 换成
+`.illustrated.md`，同目录另存为 `<name>.illustrated.md`，`<name>` 不变。
+
+- **`visuals` 串在 `article` 上游**：有配图时，`article` 的输入是 `<name>.illustrated.md` 而不是 `<name>.wechat.md`。默认规则：`md2publish-article` 步骤 1 在同目录按 `*.illustrated.md` **模式匹配**（不是字面量 `article.illustrated.md`——上游并不保证文件名是 `article`）；恰好一个匹配就默认用它，并告知用户选了哪一份、不带图的原文叫什么；匹配到多个时把候选列给用户，问清楚要哪一份，不擅自挑。用户显式给了路径则以用户给的为准。每次都问会退化成 §3.2 明确反对的多轮问答；静默改默认又会让用户不知道自己转的是哪一份——两者都不要。
 - **`cover` 并行**：封面不进正文，只在 draft 阶段作为 `--cover` 使用。
-- **`diagram` 视用途而定**：若示意图要插进正文，它的产物必须在 `md2publish-article` 之前被引用进 Markdown（插入动作由用户或 `visuals` 完成）；若只是单独导出一张图，它与流水线无耦合。
+- **`diagram` 视用途而定**：若示意图要插进正文，它的产物必须在 `md2publish-article` 之前被引用进 Markdown（插入动作由用户或 `visuals` 完成，机制见 §7 diagram 步骤 7 的独立回写门）；若只是单独导出一张图，它与流水线无耦合。
 
 ## 9. 副作用、确认边界与成本控制
 

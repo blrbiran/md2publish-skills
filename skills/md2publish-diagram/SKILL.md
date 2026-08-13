@@ -148,12 +148,56 @@ python3 shared/scripts/artifacts.py sidecar \
 支路会硬失败并点名。那不是 bug，是防止照抄 cover 的命令写出一份声称走过 preset
 链路、实际没有的 sidecar。
 
-### 步骤 7：交接
+### 步骤 7：回写门（要插进正文时才做，本 skill 自带，零成本）
 
-- **要插进正文**：把 `${FINAL}` 的**文件名**（sidecar 的 `image` 字段）交给
-  `md2publish-visuals` 的回写门，或用户自己插。**必须在 `md2publish-article`
-  转 HTML 之前插进 Markdown**，否则示意图不会出现在正文里（spec §8）。
-- **只是单独导出一张图**：直接把 `${FINAL}` 给用户，与流水线无耦合。
+本 skill vendor 了自己的一份 `writeback.py`——与 `md2publish-visuals` 用的是
+同一份机制脚本（都从 `_shared/` 同步来），但**不需要、也不要去调 visuals 的
+目录或走它步骤 5–8 那条凭证门 + 成本门 + 真 provider 调用的付费流水线**：
+直接在本 skill 目录里把它当独立脚本跑，全程零成本。
+
+先定下 `$SOURCE` / `$OUT`（推导规则与 visuals 一致，见其 SKILL.md「工作目录与
+路径约定」）：`wechat-finetune` 产出的是 `<name>.wechat.md`（`<name>` 是用户
+原始文件名，不是字面量 `article`），回写产物是同目录下把 `.wechat.md` 换成
+`.illustrated.md` 的 `<name>.illustrated.md`。**这篇文章如果 `md2publish-visuals`
+已经跑过回写**（同目录已存在 `<name>.illustrated.md`），`$SOURCE` 就用那份
+已有产物、`$OUT` 写同一个路径并加 `--force`——这是往已经插过图的正文里继续
+累加插入，不是误覆盖；反之 `$SOURCE` 用 `<name>.wechat.md` 起头，`$OUT` 是
+新产出的 `<name>.illustrated.md`：
+
+```bash
+SOURCE=<按上面规则选出的 .wechat.md 或 .illustrated.md 绝对路径>
+OUT="${SOURCE%.wechat.md}.illustrated.md"   # SOURCE 已经是 .illustrated.md 时，OUT 和 SOURCE 相同，回写要带 --force
+
+# 7a 写 insertions（语义层）。image 一律抄 sidecar 的 image 字段
+cat > "$ART/insertions.json" <<'JSON'
+[
+  {"anchor": "## 架构总览", "position": "after",
+   "image": "00-diagram.png", "alt": "架构总览示意图"}
+]
+JSON
+
+# 7b 预览 diff，给用户看（此时还没写任何文件）
+python3 shared/scripts/writeback.py \
+  --source "$SOURCE" --insertions "$ART/insertions.json" \
+  --assets-dir "$ART/assets/${PLATFORM}" --out "$OUT" --dry-run
+
+# 7c 用户确认后才真写（OUT 已存在时——即 SOURCE 就是 illustrated.md 那种情况——要加 --force）
+python3 shared/scripts/writeback.py \
+  --source "$SOURCE" --insertions "$ART/insertions.json" \
+  --assets-dir "$ART/assets/${PLATFORM}" --out "$OUT" [--force]
+```
+
+`insertions.json` 的 schema、锚点唯一命中的规则、`--dry-run` 预览、`--force`
+行为，与 `md2publish-visuals` SKILL.md 步骤 9 完全一致——机制是同一份脚本，
+只是两个 skill 各自 vendor 了一份。
+
+**必须在 `md2publish-article` 转 HTML 之前完成这一步**，否则示意图不会出现在
+正文里（spec §8）。
+
+### 步骤 8：交接
+
+- **只是单独导出一张图，不插进正文**：跳过步骤 7，直接把 `${FINAL}` 给用户，
+  与流水线无耦合。
 - 两种情况都要告诉用户：`.svg` 源文件留在 `$ART/diagrams/` 下，**要改图就改它
   再重跑步骤 4**，不要去 P 图。
 
