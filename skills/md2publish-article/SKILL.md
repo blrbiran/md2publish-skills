@@ -13,8 +13,8 @@ allowed-tools: Read, Write, Bash, AskUserQuestion
 - 本 skill 产物是**本地 HTML 文件**，零副作用：不联网上传、不建草稿。
 - 用户要"推草稿箱 / 发布 / 上传"时，转换完成后交接给 `md2publish-draft` skill。
 - 用户要封面图时，交接给 `md2publish-cover` skill。
-- 用户要正文配图 / 信息图 / 示意图时，如实说 `md2publish-visuals`（配图、信息图、卡片系列）
-  与 `md2publish-diagram`（架构图、流程图）**三期才建、现在还没有**，别用封面流程凑合。
+- 用户要正文配图 / 信息图 / 卡片系列时，交接给 `md2publish-visuals`；要架构图 / 流程图时，交接给 `md2publish-diagram`。
+  **配图要在本 skill 之前做完**——它回写出的 `article.illustrated.md` 才是本 skill 该转的那一份。
 
 ## 执行流程
 
@@ -22,9 +22,12 @@ allowed-tools: Read, Write, Bash, AskUserQuestion
 
 | 场景 | 处理 |
 |---|---|
-| 用户给了文件路径 | 直接使用 |
+| 同目录存在 `article.illustrated.md` | **默认用它**——那是 `md2publish-visuals` 的回写产物，正文里已经插好了配图。**要告诉用户你选了哪一份**，以及不带图的原文叫什么（通常是 `article.wechat.md`）。用户明确要不带图的版本时才改用原文 |
+| 用户给了文件路径 | 直接使用（显式指定优先于上面的默认） |
 | 用户粘贴了 Markdown | 先 Write 保存为 `.md` 文件再继续 |
 | 只说"转换文章"没给内容 | 询问文件路径或让用户粘贴 |
+
+`md2publish-visuals` 在本 skill 的**上游**，不是并行分支（spec §8）。它另存 `article.illustrated.md` 而不改原文，所以两份会并存；不认这个文件的话，用户花钱生成的配图会静默地永远不进 HTML。
 
 ### 步骤 2：检查元数据和限制
 
@@ -85,9 +88,9 @@ md2wechat inspect <article.md> --mode ai --theme <theme> --json
 转换完成后报告：输出文件路径、使用的主题、元数据检查结果（含超限警告）。然后问用户下一步：
 
 - 需要封面图 → `md2publish-cover`（与本 skill 并行，封面不进正文）
-- 需要正文配图 / 信息图 / 示意图 → `md2publish-visuals` / `md2publish-diagram`，
-  **三期，尚未实现**，如实说。三期落地后 `visuals` 要跑在本 skill **之前**——
-  它回写出的 `article.illustrated.md` 才是本 skill 的输入
+- 需要正文配图 / 信息图 / 卡片系列 → `md2publish-visuals`；需要架构图 / 流程图 → `md2publish-diagram`。
+  `visuals` 要跑在本 skill **之前**——它回写出的 `article.illustrated.md` 才是本 skill 的输入；
+  `diagram` 的示意图要插进正文时，同样要在本 skill 之前完成引用
 - 要推草稿箱 → `md2publish-draft`
 - 只要 HTML → 结束
 

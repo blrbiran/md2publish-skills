@@ -91,7 +91,6 @@ python3 compose_prompt.py \
 
 - **`bilibili.yaml`** —— B 站的画幅与文字约定属未验证的外部知识，
   需先分别确认视频封面与专栏头图的规格，不猜。
-- **`presets/dimensions/layouts/` 只有一个值** —— `infographic` / `series`
-  真正用起来（三期）时再补。
+- **`presets/dimensions/layouts/` 只有一个值** —— `infographic` / `series` 现在都在用
+  `_shared/`（`md2publish-visuals`），但两者共用同一个 `bento-grid`，尚未按品类分化出更多布局，需要时再补。
 - **`costs.yaml` 全是 `unknown`** —— 真实单价同属外部知识，用户实测后自己填。
-- **`md2publish-visuals` / `md2publish-diagram`** —— 三期。
