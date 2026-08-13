@@ -1,0 +1,17 @@
+name: inline-warm
+archetype: illustration
+description: 正文插图，暖色水粉
+primary_use_case: 长文中段落之间的呼吸性插图，不承载信息密度
+version: 1.0.0
+palette: warm-earth
+rendering: soft-gouache
+layout: null
+incompatible_platforms: [xiaohongshu]
+metadata:
+  author: md2publish-skills
+  provenance: 改编自 baoyu-article-illustrator 的 Type × Style × Palette 体系
+template: |
+  {{PLATFORM_FRAME}}
+  {{PALETTE}}
+  {{RENDERING}}
+  {{CONTENT}}

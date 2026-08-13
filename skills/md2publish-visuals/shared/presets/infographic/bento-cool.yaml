@@ -1,0 +1,18 @@
+name: bento-cool
+archetype: infographic
+description: 便当格信息图，冷色调
+primary_use_case: 需要并列展示 4–8 个要点的技术类内容
+version: 1.0.0
+palette: cool-slate
+rendering: flat-vector
+layout: bento-grid
+incompatible_platforms: []
+metadata:
+  author: md2publish-skills
+  provenance: 改编自 md2wechat infographic-bento
+template: |
+  {{PLATFORM_FRAME}}
+  {{PALETTE}}
+  {{RENDERING}}
+  {{LAYOUT}}
+  {{CONTENT}}

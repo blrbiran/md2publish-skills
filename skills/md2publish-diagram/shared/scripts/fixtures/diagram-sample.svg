@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
+  <rect x="0" y="0" width="1600" height="900" fill="#F7F5F2"/>
+  <g font-family="&quot;PingFang SC&quot;, &quot;Noto Sans CJK SC&quot;, &quot;Microsoft YaHei&quot;, sans-serif"
+     font-size="36" fill="#2B2B2B" text-anchor="middle">
+    <rect x="120" y="380" width="320" height="140" rx="12" fill="#FFFFFF" stroke="#8C6A4F" stroke-width="3"/>
+    <text x="280" y="458">客户端</text>
+    <rect x="640" y="380" width="320" height="140" rx="12" fill="#FFFFFF" stroke="#8C6A4F" stroke-width="3"/>
+    <text x="800" y="458">缓存层</text>
+    <rect x="1160" y="380" width="320" height="140" rx="12" fill="#FFFFFF" stroke="#8C6A4F" stroke-width="3"/>
+    <text x="1320" y="458">数据库</text>
+    <line x1="440" y1="450" x2="640" y2="450" stroke="#8C6A4F" stroke-width="3"/>
+    <line x1="960" y1="450" x2="1160" y2="450" stroke="#8C6A4F" stroke-width="3"/>
+  </g>
+</svg>

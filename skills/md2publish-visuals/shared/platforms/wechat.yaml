@@ -1,0 +1,35 @@
+name: wechat
+display_name: 微信公众号
+archetypes:
+  cover:
+    aspect: "16:9"
+    max_bytes: 2097152
+    crop_warning: 头条按 2.35:1 裁，次条按 1:1 裁，重要视觉元素放画面中央
+    text_on_image:
+      title: false
+      subtitle: false
+      notes: 标题由草稿 title 字段承载，图上再放一次就是重复标题
+  illustration:
+    aspect: ["16:9", "4:3"]
+    count_range: [3, 8]
+    max_bytes: 10485760
+    text_on_image:
+      title: false
+      subtitle: false
+      notes: 正文插图不承载标题，避免与小标题重复
+  infographic:
+    aspect: "4:3"
+    max_bytes: 10485760
+    text_on_image:
+      title: true
+      subtitle: true
+      notes: 信息图的文字是内容本体，必须清晰可读
+  series: unsupported
+  diagram:
+    aspect: ["16:9", "4:3"]
+    max_bytes: 10485760
+    raster_format: png
+    text_on_image:
+      title: false
+      subtitle: false
+      notes: 示意图的文字是节点与连线标签，不是标题

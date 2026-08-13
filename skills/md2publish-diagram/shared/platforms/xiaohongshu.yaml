@@ -1,0 +1,36 @@
+name: xiaohongshu
+display_name: 小红书
+archetypes:
+  cover:
+    aspect: "3:4"
+    max_bytes: 20971520
+    safe_area: 上下各留 12%，标题置于上 1/3
+    text_on_image:
+      title: true
+      subtitle: true
+      notes: 首图不放大字标题基本没人点
+  illustration: unsupported
+  infographic:
+    aspect: "3:4"
+    max_bytes: 20971520
+    text_on_image:
+      title: true
+      subtitle: true
+      notes: 信息图的文字是内容本体，必须清晰可读
+  series:
+    aspect: "3:4"
+    count_range: [1, 18]
+    first_is_cover: true
+    max_bytes: 20971520
+    text_on_image:
+      title: true
+      subtitle: true
+      notes: 第 1 张承载标题，第 2..N 张各承载一个分点
+  diagram:
+    aspect: "3:4"
+    max_bytes: 20971520
+    raster_format: png
+    text_on_image:
+      title: false
+      subtitle: false
+      notes: 示意图的文字是节点与连线标签，不是标题

@@ -24,13 +24,19 @@ DEST=skills/md2publish-cover/shared
 REAL_PROBE="$REPO/$DEST/scripts/compress.py"
 REAL_BEFORE=$(cksum < "$REAL_PROBE" 2>/dev/null || echo "缺失")
 
+REAL_PROBE2="$REPO/skills/md2publish-diagram/shared/scripts/svg2raster.py"
+REAL_BEFORE2=$(cksum < "$REAL_PROBE2" 2>/dev/null || echo "缺失")
+
 SANDBOX=$(mktemp -d)
 trap 'rm -rf "$SANDBOX"' EXIT INT TERM
 
 mkdir -p "$SANDBOX/skills"
 \cp -Rf "$REPO/scripts" "$SANDBOX/scripts"
 \cp -Rf "$REPO/skills/_shared" "$SANDBOX/skills/_shared"
-\cp -Rf "$REPO/skills/md2publish-cover" "$SANDBOX/skills/md2publish-cover"
+source "$REPO/scripts/shared-manifest.sh"
+for s in "${SHARED_SKILLS[@]}"; do
+  \cp -Rf "$REPO/skills/${s}" "$SANDBOX/skills/${s}"
+done
 cd "$SANDBOX"
 
 echo "== sync =="
@@ -52,6 +58,22 @@ done
 
 [[ ! -e "$DEST/scripts/test-compose-prompt.sh" ]] \
   && ok "测试脚本不进 vendor（测试留在 _shared）" || bad "把测试也拷过去了" ""
+
+missing=""
+# diagram 的清单必须**更小**：它不调 AI，带上 imagegen 就是白白多 vendor 一个引擎。
+if [[ ! -e "skills/md2publish-diagram/shared/scripts/imagegen" ]]; then
+  ok "diagram 的 vendor 副本里没有 imagegen（它不调 AI）"
+else
+  bad "diagram 带上了 imagegen（多 vendor 一整个引擎）" ""
+fi
+
+for f in scripts/svg2raster.py scripts/artifacts.py scripts/compress.py platforms/wechat.yaml; do
+  [[ -e "skills/md2publish-diagram/shared/${f}" ]] || missing="${missing} diagram:${f}"
+done
+for f in scripts/writeback.py scripts/compose_prompt.py scripts/imagegen/main.ts; do
+  [[ -e "skills/md2publish-visuals/shared/${f}" ]] || missing="${missing} visuals:${f}"
+done
+[[ -z "${missing}" ]] && ok "两个新 skill 的清单都到位" || bad "新 skill 的 vendor 缺文件" "${missing}"
 
 echo
 echo "== vendor 出来的副本能独立跑 =="
@@ -93,6 +115,13 @@ if [[ "$REAL_BEFORE" == "$REAL_AFTER" ]]; then
   ok "真实工作区的 vendor 副本全程未被改动（漂移探针只落在沙箱里）"
 else
   bad "本测试改到了真实工作区" "before=${REAL_BEFORE} after=${REAL_AFTER}"
+fi
+
+REAL_AFTER2=$(cksum < "$REAL_PROBE2" 2>/dev/null || echo "缺失")
+if [[ "$REAL_BEFORE2" == "$REAL_AFTER2" ]]; then
+  ok "diagram 的 vendor 副本也全程未被改动"
+else
+  bad "本测试改到了 diagram 的真实 vendor 副本" "before=${REAL_BEFORE2} after=${REAL_AFTER2}"
 fi
 
 echo

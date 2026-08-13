@@ -1,0 +1,32 @@
+# provider × model 的单张估价，服务于生成前的成本门（spec §9）。
+#
+# 首版全部是 unknown，这是**有意的**：真实单价属外部知识，本仓库不猜。
+# 成本门取不到价目时必须明说"该 provider 无价目表"，不许编一个数字出来。
+#
+# 自己填：把 unknown 换成一个正数（单位见 currency），跑一遍
+# scripts/test-asset-schema.sh 确认没写坏。
+version: 1
+currency: CNY
+providers:
+  agnes:
+    agnes-image: unknown
+  azure:
+    gpt-image-2: unknown
+  dashscope:
+    qwen-image-2.0-pro: unknown
+  google:
+    gemini-3-pro-image: unknown
+  jimeng:
+    jimeng_t2i_v40: unknown
+  minimax:
+    image-01: unknown
+  openai:
+    gpt-image-2: unknown
+  openrouter:
+    google/gemini-3.1-flash-image: unknown
+  replicate:
+    google/nano-banana-2: unknown
+  seedream:
+    doubao-seedream-5-0-260128: unknown
+  zai:
+    glm-image: unknown
