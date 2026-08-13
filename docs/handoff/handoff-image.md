@@ -11,7 +11,7 @@
 3. **手动付费 smoke 现在欠两次，不是一次**：`cover`（二期起欠）与 `visuals`（三期新欠）各有一次"真调 provider 生一张图"的 smoke 从未跑过——本机没有任何 provider 凭证。`diagram` 是唯一的例外，它零成本，端到端**已经真跑过**。三者不要混着说，完整口径见第六节。
 4. **下一步**：`bilibili.yaml` 仍然故意未做（B 站画幅属未验证的外部知识，见第六节末尾）；配好凭证后补跑两次付费 smoke；除此之外 spec 定义的三期范围已经做完，没有排定中的下一期。
 5. 动手前先跑第二节的 `./scripts/check.sh`，全绿（或按 SKIPPED 语义部分跳过）才继续。
-6. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。三期**没有留下已知未修缺陷**——两个真 bug（见第八节）都在收尾前修掉并重新验证过。三期整支评审之后另外裁定了 5 项"可以留到下一期"的已知项（非缺陷，是评审时明确决定不在本期修的边角情况），清单见第六节「三期」小节末尾。
+6. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。三期**没有留下已知未修缺陷**——两个真 bug（见第八节）都在收尾前修掉并重新验证过。三期整支评审之后另外裁定了 **6 项**"可以留到下一期"的已知项（非缺陷，是评审时明确决定不在本期修的边角情况），清单见第六节「三期」小节末尾。
 7. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
 8. 设计与计划不在本文里，见**第零节**的文档地图——**不要**在本文重复它们的内容。
 
@@ -29,6 +29,8 @@
 | `skills/_shared/presets/INDEX.md` | preset 与 dimensions 的**唯一发现入口**。选 preset 一律读它，别背名单 |
 | 本文 | 跨会话的状态、教训、环境事实 |
 | `docs/handoff/handoff.md` | 另一条线（主题库 / HTML 生成），与本文无交集 |
+
+三期执行期间的 SDD 工作区（`.superpowers/sdd/2026-08-11-image-phase3/`，含 ledger、九份任务报告、各轮评审包）**已在收尾时按流程删除**。别去找它——本文第六节与第八节就是从那批材料里提炼出来的持久记录，git 历史是另一半。`.superpowers/` 本身是 git 忽略的临时区，同级还留着别的计划的目录，那些不属于这条线。
 
 ## 一、一期做完了什么
 
@@ -74,17 +76,31 @@ git log --oneline origin/main..main                # 还没推上去的
   ```bash
   git log --oneline -- \
     skills/_shared skills/md2publish-cover skills/md2publish-draft \
+    skills/md2publish-visuals skills/md2publish-diagram \
     skills/md2publish-article/SKILL.md skills/wechat-finetune skills/README.md \
     skills/md2publish-images scripts \
     docs/handoff/handoff-image.md docs/handoff/handoff.md \
     docs/superpowers/specs/2026-08-09-md2publish-image-skills-design.md \
-    docs/superpowers/plans/2026-08-11-image-phase2b.md
+    docs/superpowers/plans/2026-08-11-image-phase2b.md \
+    docs/superpowers/plans/2026-08-11-image-phase3.md
   ```
-  只看**二期 B**时，给同一串路径加上 range（二期 B 的任务 commit 没有共同 message
-  前缀，`--grep` 抓不全，只能用 range；`$P2B` 见上面那段）：
+  **这串路径每加一期就要回头补一次。** 三期新增的
+  `skills/md2publish-visuals` / `skills/md2publish-diagram` 与三期的计划文件就是这次补的——
+  上一版清单停在二期 B 的 footprint 上，用它算三期会漏掉两个新 skill 的全部 commit。
+  第八节第 9 条记的就是这个模式，它在三期又复发了一次。
+
+  只看**某一期**时，给同一串路径加上 range。锚点用**那一期的计划文件**去查（别用写死的
+  SHA，也别用 `--grep`——各期的任务 commit 没有共同 message 前缀）：
   ```bash
-  git log --oneline "$P2B^..HEAD" -- <上面那串路径>
+  P2B=$(git log --format=%H -- docs/superpowers/plans/2026-08-11-image-phase2b.md | tail -1)
+  P3=$(git log --format=%H -- docs/superpowers/plans/2026-08-11-image-phase3.md | tail -1)
+
+  git log --oneline "$P2B^..$P3^" -- <上面那串路径>   # 只看二期 B
+  git log --oneline "$P3^..HEAD"   -- <上面那串路径>   # 只看三期
   ```
+  三期这一段捞出来的是三十条上下（九个任务 commit + 各任务的评审修复 + 整支评审的
+  修复波 + 本文自己的若干次修订），中间夹着另一条线的 commit，按上面的方法过滤。
+  **这个数字每改一次本文就会涨**，别把它当校验值用。
   这条会带出三行**不属于图片线**的 commit，别当成本线的产出：`6b4cea6`（另一条线的
   计划 commit，我们的删除被它卷走了，来历见第六节）、`4877c04` 与 `bd34df4`（另一条线
   自己改 `docs/handoff/handoff.md`）。剩下的就是二期 B 的计划 commit 加本期全部
@@ -185,7 +201,7 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # 期望：ok：0 
 
 **二期 A（已完成，纯新增，无破坏性）**
 - 从 `baoyu-skills/skills/baoyu-image-gen/` 搬入 `imagegen/`（11 个 provider，`codex-cli` 按 D1 剔除；零第三方依赖，纯 `node:` + fetch）。`bun test` 实测 **97 pass / 0 fail，12 个文件**。
-- 写好 `compress.py`（sips → magick，见 D3）、`preflight.py`、`config.py`、`artifacts.py`、`costs.yaml`。实测（**含最终评审七项修复后的数字**）：资产 schema + costs **18 项**、压缩不超限 **8 项**、preflight + config **21 项**、产物落盘规则 **10 项**，全绿——这是二期 A 收尾时测到的数字。**二期 B 的 T1 又把它从 10 项改成了 12 项**（加了 `image` 字段的两条断言，见下面「二期 B」那块），当前基线是 12 项，见第二节。
+- 写好 `compress.py`（sips → magick，见 D3）、`preflight.py`、`config.py`、`artifacts.py`、`costs.yaml`。实测（**含最终评审七项修复后的数字**）：资产 schema + costs **18 项**、压缩不超限 **8 项**、preflight + config **21 项**、产物落盘规则 **10 项**，全绿——这是二期 A 收尾时测到的数字。**二期 B 的 T1 又把它从 10 项改成了 12 项**（加了 `image` 字段的两条断言，见下面「二期 B」那块），**三期 T1 再从 12 项改成 18 项**（diagram 支路的 6 条断言）。**当前基线是 18 项，以第二节为准**——本节记的是各期收尾当时的数字，是历史快照，不是现状。
 - 建成 `md2publish-cover`；`shared-manifest.sh` / `sync-shared.sh` / `check-shared-drift.sh` / `scripts/check.sh` 全部写好并跑通，vendor 同步与漂移实测 **9 项**全绿。
 - **`md2publish-images` 原地保留**，两者并存，本期未改它一个字。
 - 完成判据两条分开看：spec §13 五项全绿——**已验证**（`./scripts/check.sh` 当时九项全 ✓，现在是十二项，见第二节）；端到端产出一张微信封面并压到 2MB 内的**手动付费 smoke——未做**。本机 `preflight.py` 实测「一个 provider 凭证都没配置」，无法真调用付费 API，这一步只能留给配好凭证的会话去跑，步骤见 spec §7 / `md2publish-cover/SKILL.md`。**check.sh 全绿不等于端到端验证过——没跑就是没跑，别混着说。**
