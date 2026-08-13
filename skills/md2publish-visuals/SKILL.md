@@ -223,9 +223,16 @@ BATCH=$(bun shared/scripts/imagegen/main.ts \
 ```
 
 **必须带 `--json`**：批量模式的 stdout 是 `{mode, total, succeeded, failed, results}`，
-`results[]` 每项含 `id` / `provider` / `model` / `outputPath` / `success` / `error`。
-逐张的 `provider` / `model` 只准从这里取，不准填步骤 5 里的预告值——省略
-`--provider` / `--model` 时引擎会自己挑，猜错的 sidecar 比没有更坏。
+`results[]` 每项含 `id` / `provider` / `model` / `outputPath` / `success` / `attempts` /
+`error`。逐张的 `provider` / `model` 只准从这里取，不准填步骤 5 里的预告值——省略
+`--provider` / `--model` 时引擎会自己挑，猜错的 sidecar 比没有更坏。按 `id` 取某一张
+的 `provider` / `model`（`id` 是字符串，与 batch.json 里写的 `"00"` 一致）：
+
+```bash
+python3 -c "import json,sys; d=json.loads(sys.argv[1]); r=next(x for x in d['results'] if str(x['id'])=='${NN}'); print(r['provider'], r['model'])" "${BATCH}"
+```
+
+步骤 8 的 sidecar 就用这条命令逐张查。
 
 **部分失败不整体回滚**（spec §10）：10 张成 7 张就保留 7 张，用 `results[]` 里
 `success:false` 的项报告失败的是哪几张、原因是什么，允许只对失败的那几张重新写
@@ -248,34 +255,43 @@ BATCH=$(bun shared/scripts/imagegen/main.ts \
 
 ```bash
 MAXB=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; print(a.archetype_slot(a.load_platform('${PLATFORM}'),'${ARCHETYPE}')['max_bytes'])")
-for NN in 00 01 ...; do
-  RAW="$ART/assets/<platform>/${NN}-<role>.png"
-  FINAL_${NN}=$(python3 shared/scripts/compress.py --image "${RAW}" --max-bytes "${MAXB}")
-done
 ```
 
 **压缩不是替换，是新增。** 压完之后 `NN-<role>.png`（超限的原图）和
 `NN-<role>.jpg`（压缩产物）**两个文件同时存在**。从这一步起，每张图的最终产物是
-它各自的 `${FINAL_NN}`，**任何地方都不许硬编 `NN-<role>.png`**。
+压缩脚本吐出的那个路径，**任何地方都不许硬编 `NN-<role>.png`**。
 
-### 步骤 8：逐张 sidecar
+**压缩和步骤 8 的 sidecar 要在同一个循环体里、对每一张图连着做完，再处理下一张
+图**——`bash` 没有"动态变量名"这回事，`FINAL_${NN}=...` 不会创建一个叫
+`FINAL_00`、`FINAL_01` 的变量，它会被展开成一整行普通命令去执行，而步骤 8 里的
+`${FINAL_NN}` 也只是字面意义上一个从未赋值过的变量，永远是空字符串。要跨"压缩"
+和"写 sidecar"这两个动作传值，唯一稳妥的办法是**不跨循环传**：每张图进一次循环，
+`FINAL` 在这次循环里赋值、在这次循环里用完，下一张图重新赋值，见步骤 8 的代码块。
+
+### 步骤 8：逐张压缩 + 写 sidecar（同一循环内完成，紧接着步骤 7）
 
 ```bash
 for NN in 00 01 ...; do
+  RAW="$ART/assets/<platform>/${NN}-<role>.png"
+  FINAL=$(python3 shared/scripts/compress.py --image "${RAW}" --max-bytes "${MAXB}")
+
+  read -r PROVIDER MODEL <<<"$(python3 -c "import json,sys; d=json.loads(sys.argv[1]); r=next(x for x in d['results'] if str(x['id'])=='${NN}'); print(r['provider'], r['model'])" "${BATCH}")"
+
   python3 shared/scripts/artifacts.py sidecar \
-    --image "${FINAL_NN}" \
+    --image "${FINAL}" \
     --platform <platform> --archetype <ARCHETYPE> --preset <preset> \
-    --provider "<该 NN 对应的 provider>" --model "<该 NN 对应的 model>" \
+    --provider "${PROVIDER}" --model "${MODEL}" \
     --prompt-file "$ART/prompts/<platform>/${NN}-<role>.md" \
     --brief-file "$ART/briefs/<platform>/${NN}-<role>.md" \
-    --alt-text "<该 brief 里那句 alt>" \
+    --alt-text "<该 NN 张 brief 里那句 alt>" \
     [--override palette=<value>]
 done
 ```
 
 sidecar 写在各自最终产物旁边、与它同名。**最终产物一律以 sidecar 的 `image`
 字段为准**——`.png` 和 `.jpg` 算出来是同一个 `.json`，文件名区分不了，只有这个
-字段能。`--provider` / `--model` 取步骤 6 那份 `--json` 输出里对应 `id` 的值。
+字段能。`${PROVIDER}` / `${MODEL}` 取步骤 6 那份 `--json` 输出里对应 `id` 的值，
+不是步骤 5 的预告值。
 
 ### 步骤 9：回写门（本 skill 独有）
 
