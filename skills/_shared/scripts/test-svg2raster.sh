@@ -22,9 +22,14 @@ trap 'rm -rf "$TMP"' EXIT INT TERM
 
 PASS=0
 FAIL=0
+SKIPPED=0
 ok()   { echo "  ✅ $1"; PASS=$((PASS+1)); }
 bad()  { echo "  ❌ $1"; echo "     $2"; FAIL=$((FAIL+1)); }
-skip() { echo "  ⊘ $1（本机没有该后端，跳过）"; }
+# 跳过的断言需要真实后端（rsvg-convert / magick）才能跑，本机没装就验证不了
+# 降级链的那一级。跳过不等于通过——记进 SKIPPED，脚本末尾据此 exit 2，
+# 让 check.sh 把这一项标成 SKIPPED 而不是悄悄算作全绿（I4：这是 D14 的
+# SKIPPED 语义本该覆盖但漏掉的一个脚本）。
+skip() { echo "  ⊘ $1（本机没有该后端，跳过）"; SKIPPED=$((SKIPPED+1)); }
 
 SVG=fixtures/diagram-sample.svg
 CHROME_APP="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -69,7 +74,7 @@ else
 fi
 
 echo
-echo "== 降级链：逐级遮蔽 PATH =="
+echo "== 降级链：先定义遮蔽 PATH 的沙箱 =="
 
 # 沙箱 bin 里只放要暴露的后端；PATH 只留它 + 系统目录（用 /usr/bin/python3 跑）
 run_masked() {   # $1=要暴露的后端（空=一个都不暴露） $2=输出文件 $3=chrome 路径或空
@@ -77,9 +82,31 @@ run_masked() {   # $1=要暴露的后端（空=一个都不暴露） $2=输出�
   local bin="$TMP/bin-${expose:-none}"
   rm -rf "${bin}"; mkdir -p "${bin}"
   [[ -n "${expose}" ]] && ln -sf "$(command -v "${expose}")" "${bin}/${expose}"
-  env -i PATH="${bin}:/usr/bin:/bin" HOME="$HOME" SVG2RASTER_CHROME="${chrome}" \
+  # PYTHONNOUSERSITE=1：不加这个，/usr/bin/python3 会自动把
+  # ~/Library/Python/3.9/lib/python/site-packages 塞进 sys.path（HOME 透传导致），
+  # 这套"只用标准库"的隔离沙箱就形同虚设——见下面「沙箱纯净性」那组断言（I6）。
+  env -i PATH="${bin}:/usr/bin:/bin" HOME="$HOME" PYTHONNOUSERSITE=1 SVG2RASTER_CHROME="${chrome}" \
     /usr/bin/python3 svg2raster.py --svg "$PWD/$SVG" --out "${out}" --aspect 16:9 --width 800 --json 2>&1
 }
+
+echo
+echo "== 沙箱纯净性：确实没有第三方包（I6：只用标准库这条约束要有牙） =="
+# svg2raster.py 自己声明"只用标准库"，理由就是要能在这套遮蔽 PATH 的沙箱里用
+# /usr/bin/python3 跑。但 env -i 透传了 HOME，/usr/bin/python3 会因此把
+# ~/Library/Python/3.9/lib/python/site-packages 自动加进 sys.path——如果这台机器
+# 装过 PyYAML 之类的包，沙箱里 import 第三方库照样成功，上面 run_masked() 里的
+# PYTHONNOUSERSITE=1 就形同虚设、没人会发现。这里直接验证隔离本身：沙箱里
+# import 一个常见第三方包必须失败，这样将来有人手滑删掉 PYTHONNOUSERSITE=1，
+# 这条断言会先翻红，而不是留到 svg2raster.py 被人加一行 `import xxx` 才发现。
+out=$(env -i PATH="/usr/bin:/bin" HOME="$HOME" PYTHONNOUSERSITE=1 /usr/bin/python3 -c "import yaml" 2>&1)
+if [[ $? -ne 0 ]] && grep -q "No module named 'yaml'" <<<"$out"; then
+  ok "PYTHONNOUSERSITE=1 时，沙箱里 import 第三方包（yaml）确实失败——隔离是真的"
+else
+  bad "沙箱里 import yaml 没有失败——'只用标准库'这条约束没有测试真的守着" "$out"
+fi
+
+echo
+echo "== 降级链：逐级遮蔽 PATH =="
 
 if command -v rsvg-convert >/dev/null; then
   out=$(run_masked rsvg-convert "$TMP/a.png" "")
@@ -164,7 +191,7 @@ run_fake_magick_check() {   # $1=magick -list format 应打印的文本
   local bin="$TMP/bin-fakemagick"
   rm -rf "${bin}"
   make_fake_magick "${bin}" "${text}"
-  env -i PATH="${bin}:/usr/bin:/bin" HOME="$HOME" SVG2RASTER_CHROME="/nonexistent/chrome" \
+  env -i PATH="${bin}:/usr/bin:/bin" HOME="$HOME" PYTHONNOUSERSITE=1 SVG2RASTER_CHROME="/nonexistent/chrome" \
     /usr/bin/python3 svg2raster.py --check --json 2>&1
 }
 
@@ -214,5 +241,12 @@ else
 fi
 
 echo
-echo "通过 $PASS 项，失败 $FAIL 项"
-[[ $FAIL -eq 0 ]]
+echo "通过 $PASS 项，失败 $FAIL 项，跳过 $SKIPPED 项"
+if [[ $FAIL -gt 0 ]]; then
+  exit 1
+elif [[ $SKIPPED -gt 0 ]]; then
+  echo "跳过的项没有真的验证过降级链的那一级——不算通过。装齐 rsvg-convert / magick 后重跑。"
+  exit 2
+else
+  exit 0
+fi
