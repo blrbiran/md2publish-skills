@@ -13,7 +13,8 @@
 - 正文墨褐：`#3a3226`
 - 青瓷绿（主强调）：`#2c6e63`
 - 朱红（印色，少用）：`#a63d2f`
-- 次级褐灰：`#7c7365`
+- 次级褐灰：`#6f665a`
+> 次级褐灰的明度是被对比度铁律钉住的：在引用/代码底 `#efe8d5` 上 4.61:1、卡片 `#fbf7ec` 上 5.27:1。**`#efe8d5` 那一处就是它的下限**——2026-08 为此压深过一档（压之前 3.82:1，差 0.68 不达 AA），不要调回去（规则 11）。
 - 边线：`#d8cfb8`
 - 引用/代码底：`#efe8d5`
 
@@ -33,11 +34,11 @@
 - 段落：`font-size: 16px; line-height: 1.9; color: #3a3226; margin: 0 0 20px; text-align: left`
 - strong：`color: #2c6e63; font-weight: 600`
 - em：`color: #a63d2f`（朱红是钤印，每屏不超过 2 处）
-- 诗词、古文引文：居中排，`color: #7c7365; letter-spacing: 2px`
+- 诗词、古文引文：居中排，`color: #6f665a; letter-spacing: 2px`
 
 ## 引用 / 代码 / 列表 / 表格
 
-- 引用块：`background-color: #efe8d5; border-left: 3px solid #2c6e63; padding: 16px 20px; margin: 0 0 20px; color: #7c7365; font-size: 15px; line-height: 1.85; text-align: left`
+- 引用块：`background-color: #efe8d5; border-left: 3px solid #2c6e63; padding: 16px 20px; margin: 0 0 20px; color: #6f665a; font-size: 15px; line-height: 1.85; text-align: left`
 - 代码块：`<pre>` 底 `#efe8d5`、文字 `#4a4234`、`border: 1px solid #d8cfb8; padding: 15px 17px; font-size: 13px`；行内 code：底 `#efe8d5`、文字 `#2c6e63`
 - 列表前缀 `·&nbsp;&nbsp;`（间隔号，句读感）
 - 表格：表头底 `#e5dcc4`、单元格 `border: 1px solid #d8cfb8; padding: 10px 12px; font-size: 14px`

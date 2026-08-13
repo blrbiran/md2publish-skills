@@ -14,7 +14,8 @@
 - 正文暖纸色：`#e3d9c8`
 - 琥珀光（主强调）：`#d9a05b`
 - 深琥珀：`#b57f3c`
-- 次级暖灰：`#96897a`
+- 次级暖灰：`#ada397`
+> 次级暖灰的明度是被对比度铁律钉住的：在行内 code / 边线底 `#42382e` 上 4.61:1、引用底 `#251f19` 上 6.57:1、代码底 `#191512` 上 7.31:1。**`#42382e` 那一处就是它的下限**——2026-08 为此**提亮**过一档（提之前 3.35:1，差 1.15 不达 AA），不要往暗里调回去（规则 11）。暗色主题上分层靠往亮里走，往暗里走会一起糊进背景（规则 7）。
 - 边线：`#42382e`
 
 ## 容器与布局
@@ -32,11 +33,11 @@
 
 - 段落：`font-size: 16px; line-height: 1.95; color: #e3d9c8; margin: 0 0 20px; text-align: left`——行高全主题最大，夜读节奏慢
 - strong：`color: #d9a05b; font-weight: 600`
-- em / 心理描写、旁白：`color: #96897a`
+- em / 心理描写、旁白：`color: #ada397`
 
 ## 引用 / 代码 / 列表 / 表格
 
-- 引用块（对白、信件、回忆）：`background-color: #251f19; border-left: 2px solid #b57f3c; padding: 16px 20px; margin: 0 0 20px; color: #96897a; font-size: 15px; line-height: 1.9; text-align: left`，衬线字族
+- 引用块（对白、信件、回忆）：`background-color: #251f19; border-left: 2px solid #b57f3c; padding: 16px 20px; margin: 0 0 20px; color: #ada397; font-size: 15px; line-height: 1.9; text-align: left`，衬线字族
 - 代码块：`<pre>` 底 `#191512`、文字 `#e3d9c8`、`border: 1px solid #42382e; border-radius: 8px; padding: 15px 17px; font-size: 13px`；行内 code：底 `#191512`、文字 `#d9a05b`
 - 列表前缀 `·&nbsp;&nbsp;`
 - 表格：表头底 `#191512`、文字 `#d9a05b`，单元格 `border: 1px solid #42382e; padding: 9px 11px; font-size: 14px; color: #e3d9c8`

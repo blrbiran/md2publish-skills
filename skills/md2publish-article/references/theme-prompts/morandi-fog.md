@@ -16,7 +16,8 @@
 - 雾蓝（辅强调）：`#4e6774`
 
 > 雾蓝的明度是被对比度铁律钉住的：在卡片 `#f7f5f3` 上 5.49:1、主容器 `#eeecea` 上 5.07:1、引用底 `#e6e1de` 上 4.60:1。**最紧的是引用底那一处，它就是这支蓝的下限**——2026-08 为它压深过一档（压之前 4.41:1，差 0.09 不达 AA）。**不要为了莫兰迪的「明度微差」把它调浅**——再浅的一档在卡片上只有 2.4 左右，h3 标题实测不可读。低饱和是这个主题的手段，降对比度不是。
-- 次级灰：`#8c8884`
+- 次级灰：`#66635f`
+> 次级灰的明度同样是被对比度铁律钉住的：在引用/代码底 `#e6e1de` 上 4.61:1、卡片 `#f7f5f3` 上 5.49:1。**引用底那一处就是它的下限**——2026-08 为此压深过一档（压之前 2.71:1，差 1.79 不达 AA），不要调回去（规则 11）。和雾蓝同一个道理：莫兰迪的明度微差是手段，不是让引用块正文停在 2.71:1 的理由。
 - 引用底：`#e6e1de`
 
 ## 容器与布局
@@ -38,7 +39,7 @@
 
 ## 引用 / 代码 / 列表 / 表格
 
-- 引用块：`background-color: #e6e1de; border-radius: 10px; padding: 16px 20px; margin: 0 0 18px; color: #8c8884; font-size: 14.5px; line-height: 1.8; text-align: left`
+- 引用块：`background-color: #e6e1de; border-radius: 10px; padding: 16px 20px; margin: 0 0 18px; color: #66635f; font-size: 14.5px; line-height: 1.8; text-align: left`
 - 代码块：`<pre>` 底 `#e6e1de`、文字 `#55514e`、`border-radius: 10px; padding: 15px 17px; font-size: 13px`（无边框，靠色差）；行内 code：底 `#e6e1de`、文字 `#b08e8a`
 - 列表前缀 `—&nbsp;&nbsp;`（破折号，轻于圆点）
 - 表格：表头底 `#e6e1de`、单元格 `border: 1px solid #ddd8d4; padding: 9px 12px; font-size: 14px`

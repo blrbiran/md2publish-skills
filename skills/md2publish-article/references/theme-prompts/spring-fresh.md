@@ -38,7 +38,8 @@
 ## 引用 / 代码 / 列表 / 表格
 
 - 引用块：`background-color: #e8f0e8; border-left: 5px solid #6b9b7a; box-shadow: inset 0 0 12px rgba(107,155,122,0.1); padding: 16px 20px; margin: 0 0 16px; color: #5c6a5c; font-size: 15px; line-height: 1.8; text-align: left`
-- 代码块：`<pre>` 底 `#eef4ee`、文字 `#3d4a3d`、`border: 1px solid rgba(107,155,122,0.2); border-radius: 12px; padding: 16px 18px; font-size: 13.5px`；**代码内注释用 `#8fa08f`、字符串/值用 `#447550` 做轻量高亮**（其余保持默认色，一行不超过 2 类上色——本主题面向入门教程，代码块要友好不要炫技）；行内 code：底 `#e8f0e8`、文字 `#447550`、`padding: 2px 6px; border-radius: 4px`
+- 代码块：`<pre>` 底 `#eef4ee`、文字 `#3d4a3d`、`border: 1px solid rgba(107,155,122,0.2); border-radius: 12px; padding: 16px 18px; font-size: 13.5px`；**代码内注释用 `#617261`、字符串/值用 `#447550` 做轻量高亮**（其余保持默认色，一行不超过 2 类上色——本主题面向入门教程，代码块要友好不要炫技）；行内 code：底 `#e8f0e8`、文字 `#447550`、`padding: 2px 6px; border-radius: 4px`
+> 注释这支淡绿灰的明度是被对比度铁律钉住的：在代码块底 `#eef4ee` 上 4.60:1。2026-08 为此压深过一档（压之前 2.48:1，差 2.02 不达 AA），不要往浅里调回去（规则 11）。它与代码正文 `#3d4a3d` 的分层从此主要靠色相，不靠明度——浅到读不清的注释等于没写。
 - 列表前缀 `•&nbsp;&nbsp;`（嫩绿 span：`<span style="color: #6b9b7a;">•</span>&nbsp;&nbsp;`）
 - 表格：表头底 `#e8f0e8`、文字 `#447550`，单元格 `border: 1px solid rgba(107,155,122,0.18); padding: 9px 12px; font-size: 14px`
 - 卡内分隔（如需要）：`height: 1px; border: none; background-image: linear-gradient(90deg, transparent, rgba(107,155,122,0.3), transparent); margin: 24px 0`

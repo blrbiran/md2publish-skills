@@ -37,7 +37,8 @@
 
 - 引用块：`background-color: #efede7; padding: 18px 22px; margin: 0 0 20px; color: #6e6a63; font-size: 15px; line-height: 1.85; text-align: left`，无边框无圆角——一块安静的灰
 - 代码块：`<pre>` 底 `#efede7`、文字 `#3d3a34`、`border-left: 2px solid #d9d5cc; padding: 16px 18px; font-size: 13px`
-- **代码块内的墨阶高亮**（不用朱砂，代码块留白留素）：注释 `#8c887e` + 斜体、字符串/值 `#5a564d`、关键字 `#2b2b28` + `font-weight: 600`、其余 `#3d3a34`
+- **代码块内的墨阶高亮**（不用朱砂，代码块留白留素）：注释 `#6d6a61` + 斜体、字符串/值 `#5a564d`、关键字 `#2b2b28` + `font-weight: 600`、其余 `#3d3a34`
+> 注释这支墨灰的明度是被对比度铁律钉住的：在引用/代码底 `#efede7` 上 4.62:1。2026-08 为此压深过一档（压之前 3.02:1，差 1.48 不达 AA），不要调回去（规则 11）。「留白留素」在这一行靠的是斜体和墨阶的先后，不靠把注释的墨调淡到读不清。
 - 行内 code：`background-color: #efede7; color: #3d3a34; padding: 2px 5px; font-size: 14px`。**行内 code 一律不用朱砂**——技术文里它有一两百处，朱砂上去整页就是红斑，与"朱砂点睛、频率极低"的定位正好相反
 - 列表前缀用 `·&nbsp;&nbsp;`（间隔号，比实心圆点轻）
 - 表格：表头底 `#efede7`、单元格 `border: 1px solid #d9d5cc; padding: 10px 12px; font-size: 14px`

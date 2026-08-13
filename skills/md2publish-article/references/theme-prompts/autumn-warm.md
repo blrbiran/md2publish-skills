@@ -35,7 +35,8 @@
 ## 引用 / 代码 / 列表 / 表格
 
 - 引用块：`background-color: #fef4e7; border-left: 5px solid #d97758; box-shadow: inset 0 0 12px rgba(217,119,88,0.08); padding: 16px 20px; margin: 0 0 16px; color: #6b5f57; font-size: 15px; line-height: 1.8; text-align: left`
-- 代码块：`<pre>` 底 `#fdf8f2`、文字 `#4a413d`、`border: 1px solid rgba(217,119,88,0.22); border-radius: 12px; padding: 16px 18px; font-size: 13.5px`；**代码内注释用 `#a08876`、字符串/值用 `#c06b4d` 做轻量高亮**（其余保持默认色，一行不超过 2 类上色——本主题的代码块是配角，不追求编辑器级高亮）；行内 code：底 `#fef4e7`、文字 `#c06b4d`、`padding: 2px 6px; border-radius: 4px`
+- 代码块：`<pre>` 底 `#fdf8f2`、文字 `#4a413d`、`border: 1px solid rgba(217,119,88,0.22); border-radius: 12px; padding: 16px 18px; font-size: 13.5px`；**代码内注释用 `#846d5b`、字符串/值用 `#c06b4d` 做轻量高亮**（其余保持默认色，一行不超过 2 类上色——本主题的代码块是配角，不追求编辑器级高亮）；行内 code：底 `#fef4e7`、文字 `#c06b4d`、`padding: 2px 6px; border-radius: 4px`
+> 注释这支浅褐的明度是被对比度铁律钉住的：在代码块底 `#fdf8f2` 上 4.60:1。2026-08 为此压深过一档（压之前 3.17:1，差 1.33 不达 AA），不要调回去（规则 11）。代码块在本主题里是配角，但配角也要读得清。
 - 列表前缀 `•&nbsp;&nbsp;`（暖橙 span：`<span style="color: #d97758;">•</span>&nbsp;&nbsp;`）
 - 表格：表头底 `#fef4e7`、文字 `#c06b4d`，单元格 `border: 1px solid rgba(217,119,88,0.2); padding: 9px 12px; font-size: 14px`
 - 卡内分隔（如需要）：`height: 1px; border: none; background-image: linear-gradient(90deg, transparent, rgba(217,119,88,0.25), transparent); margin: 24px 0`

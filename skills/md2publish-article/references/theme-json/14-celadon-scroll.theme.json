@@ -11,7 +11,7 @@
   "h3_prefix_html": "<span style=\"color: #a63d2f; letter-spacing: 0;\">◉&nbsp;</span>",
   "strong": "color: #2c6e63; font-weight: 600",
   "em": "color: #a63d2f",
-  "blockquote": "background-color: #efe8d5; border-left: 3px solid #2c6e63; padding: 16px 20px; margin: 0 0 20px; color: #7c7365; font-size: 15px; line-height: 1.85; text-align: left",
+  "blockquote": "background-color: #efe8d5; border-left: 3px solid #2c6e63; padding: 16px 20px; margin: 0 0 20px; color: #6f665a; font-size: 15px; line-height: 1.85; text-align: left",
   "pre": "background-color: #efe8d5; border: 1px solid #d8cfb8; padding: 15px 17px; margin: 0 0 20px",
   "code": "color: #4a4234; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
   "inline_code": "background-color: #efe8d5; color: #2c6e63; padding: 1px 5px; border-radius: 3px; font-size: 14px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
@@ -24,7 +24,7 @@
   "footer": "text-align: right; color: #a63d2f; margin: 36px 0 0",
   "footer_html": "<span style=\"display: inline-block; border: 1px solid #a63d2f; color: #a63d2f; font-size: 13px; padding: 3px 6px; letter-spacing: 2px;\">掩卷</span>",
   "highlight": {
-    "comment": "#7c7365",
+    "comment": "#6f665a",
     "string": "#a63d2f",
     "key": "#a63d2f",
     "keyword": "#2c6e63",

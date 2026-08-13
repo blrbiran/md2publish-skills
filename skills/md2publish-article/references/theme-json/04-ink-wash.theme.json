@@ -21,7 +21,7 @@
   "footer": "text-align: center; color: #b5432a; font-size: 18px; margin: 40px 0 0",
   "footer_html": "□",
   "highlight": {
-    "comment": "color: #8c887e; font-style: italic;",
+    "comment": "color: #6d6a61; font-style: italic;",
     "string": "#5a564d",
     "keyword": "color: #2b2b28; font-weight: 600;"
   }

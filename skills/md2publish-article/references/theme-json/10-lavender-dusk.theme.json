@@ -9,7 +9,7 @@
   "h3_prefix_html": "<span style=\"color: #7f6a9e;\">✦&nbsp;</span>",
   "strong": "color: #5d4b7c; font-weight: 600",
   "em": "color: #7f6a9e",
-  "blockquote": "background-color: #eee9f5; border-radius: 12px; padding: 16px 20px; margin: 0 0 18px; color: #8d8497; font-size: 14.5px; line-height: 1.85",
+  "blockquote": "background-color: #eee9f5; border-radius: 12px; padding: 16px 20px; margin: 0 0 18px; color: #6e6578; font-size: 14.5px; line-height: 1.85",
   "pre": "background-color: #eee9f5; border-radius: 12px; padding: 15px 17px",
   "code": "color: #4d475a; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
   "inline_code": "background-color: #eee9f5; color: #7f6a9e; padding: 2px 6px; border-radius: 4px; font-size: 13px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
@@ -21,7 +21,7 @@
   "footer": "text-align: center; margin: 36px 0 0; font-size: 14px; color: #5d4b7c",
   "footer_html": "<span style=\"color: #5d4b7c;\">✦</span>&nbsp;<span style=\"color: #7f6a9e;\">✦</span>&nbsp;<span style=\"color: #b9a7d8;\">✦</span>",
   "highlight": {
-    "comment": "#8d8497",
+    "comment": "#6e6578",
     "keyword": "#7f6a9e",
     "string": "#5d4b7c",
     "key": "#5d4b7c",

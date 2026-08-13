@@ -23,7 +23,7 @@
   "th": "background-color: #1d5a8a; color: #f5f8fb; font-weight: 700; border: 1px solid #c9d9e8; padding: 9px 11px; font-size: 14px",
   "td": "border: 1px solid #c9d9e8; padding: 9px 11px; font-size: 14px; color: #23405c",
   "highlight": {
-    "comment": "#7189a0",
+    "comment": "#576d83",
     "string": "#b26a1b",
     "key": "#b26a1b",
     "keyword": "#1d5a8a"

@@ -41,7 +41,8 @@
 
 ## 引用 / 代码 / 列表 / 表格
 
-- 引用块（经验之谈、温馨提示）：`background-color: #fce8ee; border-radius: 14px; padding: 15px 18px; margin: 0 0 16px; color: #a3766f; font-size: 14.5px; line-height: 1.8; text-align: left`，首行可加 `<span style="color: #d96687; font-weight: 700;">💡 </span>` 类引导（emoji 限提示引导处，正文不撒）
+- 引用块（经验之谈、温馨提示）：`background-color: #fce8ee; border-radius: 14px; padding: 15px 18px; margin: 0 0 16px; color: #8b5f59; font-size: 14.5px; line-height: 1.8; text-align: left`，首行可加 `<span style="color: #d96687; font-weight: 700;">💡 </span>` 类引导（emoji 限提示引导处，正文不撒）
+> 引用块这支褐粉的明度是被对比度铁律钉住的：在引用底 `#fce8ee` 上 4.62:1、代码底 `#faf0e8` 上 4.82:1（它同时是代码块的注释色）。**引用底那一处就是它的下限**——2026-08 为此压深过一档（压之前 3.33:1，差 1.17 不达 AA），不要调回去（规则 11）。糖果色的甜是靠饱和度和圆角撑起来的，不靠把引用块正文调浅。
 - 代码块：`<pre>` 底 `#faf0e8`、文字 `#5a4a42`、`border: 1px solid #f0e2d8; border-radius: 12px; padding: 14px 16px; font-size: 13px`；行内 code：底 `#fce8ee`、文字 `#d96687`
 - 列表前缀粉蓝轮换：`<span style="color: #f28ba8;">●</span>&nbsp;&nbsp;` 与 `<span style="color: #7fb5d5;">●</span>&nbsp;&nbsp;` 交替
 - 表格：表头底 `#fce8ee`、文字 `#d96687`，单元格 `border: 1px solid #f0e2d8; padding: 9px 11px; font-size: 14px`

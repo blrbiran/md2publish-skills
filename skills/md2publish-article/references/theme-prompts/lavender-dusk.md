@@ -15,7 +15,8 @@
 - 深暮紫（正文主强调，h2 与 strong）：`#5d4b7c`——散文面 73 处，这支才是读者在正文里看到的紫
 - 浅紫线/装饰：`#b9a7d8`
 - 引用/代码底：`#eee9f5`
-- 次级灰紫：`#8d8497`
+- 次级灰紫：`#6e6578`
+> 次级灰紫的明度是被对比度铁律钉住的：在引用/代码底 `#eee9f5` 上 4.64:1、白卡上 5.53:1。**`#eee9f5` 那一处就是它的下限**——2026-08 为此压深过一档（压之前 2.99:1，差 1.51 不达 AA），不要调回去（规则 11）。
 
 ## 容器与布局
 
@@ -35,7 +36,7 @@
 
 ## 引用 / 代码 / 列表 / 表格
 
-- 引用块：`background-color: #eee9f5; border-radius: 12px; padding: 16px 20px; margin: 0 0 18px; color: #8d8497; font-size: 14.5px; line-height: 1.85; text-align: left`——诗句、歌词类引用居中排（`text-align: center`）也允许
+- 引用块：`background-color: #eee9f5; border-radius: 12px; padding: 16px 20px; margin: 0 0 18px; color: #6e6578; font-size: 14.5px; line-height: 1.85; text-align: left`——诗句、歌词类引用居中排（`text-align: center`）也允许
 - 代码块：`<pre>` 底 `#eee9f5`、文字 `#4d475a`、`border-radius: 12px; padding: 15px 17px; font-size: 13px`；行内 code：底 `#eee9f5`、文字 `#7f6a9e`
 - 列表前缀 `✦&nbsp;&nbsp;`（四角星 span：`<span style="color: #b9a7d8;">✦</span>&nbsp;&nbsp;`）
 - 表格：表头底 `#eee9f5`、单元格 `border: 1px solid #ded5ec; padding: 9px 12px; font-size: 14px`

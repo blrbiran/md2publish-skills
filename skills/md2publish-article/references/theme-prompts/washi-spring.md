@@ -14,7 +14,8 @@
 - 深樱（主强调，文字色）：`#b56b7d`——strong、h3、徽章文字，这是读者真正看得见的强调
 - 灰樱粉（线色，不作文字色）：`#d98e9f`——h2 上下双细线、边框、底纹。标注成"线色"是有意的：它太淡，当文字色读不清，而一个只当细线用的颜色不能算主强调，否则整篇会看不出强调在哪
 - 抹茶绿（副强调）：`#8a9b6e`
-- 次级鼠灰：`#8f8781`
+- 次级鼠灰：`#6e6762`
+> 次级鼠灰的明度是被对比度铁律钉住的：在樱粉引用底 `#f3e9e7` 上 4.66:1、代码底 `#f1ebe4` 上 4.69:1。**樱粉底那一处就是它的下限**——2026-08 为此压深过一档（压之前 2.96:1，差 1.54 不达 AA），不要调回去（规则 11）。和纸的安静靠低饱和，不靠低对比。
 - 樱粉底：`#f3e9e7`
 - 边线：`#e5dcd4`
 
@@ -36,7 +37,7 @@
 
 ## 引用 / 代码 / 列表 / 表格
 
-- 引用块：`background-color: #f3e9e7; padding: 16px 20px; margin: 0 0 20px; color: #8f8781; font-size: 14.5px; line-height: 1.9; text-align: left`（无边框无圆角——一块安静的樱色）
+- 引用块：`background-color: #f3e9e7; padding: 16px 20px; margin: 0 0 20px; color: #6e6762; font-size: 14.5px; line-height: 1.9; text-align: left`（无边框无圆角——一块安静的樱色）
 - 代码块：`<pre>` 底 `#f1ebe4`、文字 `#4a4340`、`border: 1px solid #e5dcd4; padding: 14px 16px; font-size: 13px`；行内 code：底 `#f3e9e7`、文字 `#b56b7d`
 - 列表前缀 `・&nbsp;&nbsp;`（日式中点）
 - 表格：表头底 `#f3e9e7`、文字 `#b56b7d; font-weight: 600`，单元格 `border: 1px solid #e5dcd4; padding: 10px 12px; font-size: 14px`

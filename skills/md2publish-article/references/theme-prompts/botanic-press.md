@@ -13,7 +13,8 @@
 - 正文墨绿灰：`#2e3a2a`
 - 标本绿（主强调）：`#3f6b3f`
 - 干花褐（副强调）：`#7e6447`
-- 次级灰绿：`#77816d`
+- 次级灰绿：`#636b5b`
+> 次级灰绿的明度是被对比度铁律钉住的：在浅绿米块 `#e9ecdf` 上 4.63:1、卡片/标本卡底 `#fbfcf7` 上 5.38:1。**浅绿米块那一处就是它的下限**——2026-08 为此压深过一档（压之前 3.41:1，差 1.09 不达 AA），不要调回去（规则 11）。它靠比正文墨绿 `#2e3a2a` 浅来表达「次级」，不靠掉到阅读门槛以下。
 - 浅绿米块：`#e9ecdf`
 - 边线：`#d5d9c8`
 
@@ -27,7 +28,7 @@
 ## 标题体系
 
 - 标题衬线字族：`Georgia, 'Songti SC', 'Noto Serif SC', serif`
-- h2：`font-size: 20px; font-weight: 600; color: #3f6b3f; text-align: left; margin: 0 0 18px; padding-bottom: 8px; border-bottom: 1px solid #d5d9c8`，尾缀一枚小叶饰 `<span style="color: #77816d;">&nbsp;❦</span>`
+- h2：`font-size: 20px; font-weight: 600; color: #3f6b3f; text-align: left; margin: 0 0 18px; padding-bottom: 8px; border-bottom: 1px solid #d5d9c8`，尾缀一枚小叶饰 `<span style="color: #636b5b;">&nbsp;❦</span>`
 - h3：`font-size: 16px; font-weight: 600; color: #2e3a2a; text-align: left; margin: 26px 0 12px`，前缀 `<span style="color: #3f6b3f;">❧&nbsp;</span>`
 
 ## 正文与强调
@@ -38,7 +39,7 @@
 
 ## 引用 / 代码 / 列表 / 表格
 
-- 引用块（标本标签样式）：`background-color: #fbfcf7; border: 1px solid #d5d9c8; border-left: 4px solid #3f6b3f; padding: 14px 18px; margin: 0 0 18px; color: #77816d; font-size: 14px; line-height: 1.8; text-align: left`，衬线字族——像贴在标本旁的说明卡
+- 引用块（标本标签样式）：`background-color: #fbfcf7; border: 1px solid #d5d9c8; border-left: 4px solid #3f6b3f; padding: 14px 18px; margin: 0 0 18px; color: #636b5b; font-size: 14px; line-height: 1.8; text-align: left`，衬线字族——像贴在标本旁的说明卡
 - 代码块：`<pre>` 底 `#e9ecdf`、文字 `#2e3a2a`、`border: 1px solid #d5d9c8; padding: 14px 16px; font-size: 13px`；行内 code：底 `#e9ecdf`、文字 `#3f6b3f`
 - 列表前缀 `·&nbsp;&nbsp;`
 - 有序列表序号：**判断层的手工可选项，不是机械规范，`theme.json` 里刻意不配 `list_prefix_ol_html`**。只有物种清单、标本条目这类内容，手写路径才把序号写成褐色 `<span style="color: #7e6447; font-weight: 700;">No.1</span>&nbsp;&nbsp;`；机械路径一律退回纯文本 `N.`。原因是 `list_prefix_ol_html` 是全局字段，配上去会给每篇文章的每个有序列表都套上 `No.`，而「这个列表是不是物种/条目清单」属于内容语义，机械层判不了（规则 14 的判例）

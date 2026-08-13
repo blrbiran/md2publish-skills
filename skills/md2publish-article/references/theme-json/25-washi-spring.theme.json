@@ -8,7 +8,7 @@
   "h3_prefix_html": "<span style=\"color: #8a9b6e;\">◦&nbsp;</span>",
   "strong": "color: #b56b7d; font-weight: 600",
   "em": "color: #8a9b6e",
-  "blockquote": "background-color: #f3e9e7; padding: 16px 20px; margin: 0 0 20px; color: #8f8781; font-size: 14.5px; line-height: 1.9; text-align: left",
+  "blockquote": "background-color: #f3e9e7; padding: 16px 20px; margin: 0 0 20px; color: #6e6762; font-size: 14.5px; line-height: 1.9; text-align: left",
   "pre": "background-color: #f1ebe4; border: 1px solid #e5dcd4; padding: 14px 16px",
   "code": "color: #4a4340; font-size: 13px; line-height: 1.7; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
   "inline_code": "background-color: #f3e9e7; color: #b56b7d; padding: 2px 5px; font-size: 14px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
@@ -21,7 +21,7 @@
   "footer": "text-align: center; color: #b56b7d; margin: 40px 0 0",
   "footer_html": "<span style=\"display: inline-block; border: 1px solid #d98e9f; color: #b56b7d; font-size: 13px; padding: 3px 8px; letter-spacing: 2px;\">終</span>",
   "highlight": {
-    "comment": "#8f8781",
+    "comment": "#6e6762",
     "string": "#8a9b6e",
     "key": "#8a9b6e",
     "keyword": "#b56b7d"

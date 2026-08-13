@@ -12,7 +12,8 @@
 - 纯白底：`#ffffff`（主容器）
 - 正文炭灰：`#2c2c2e`
 - 正红（主强调）：`#d71a1b`
-- 次级灰：`#8a8a8e`
+- 次级灰：`#6e6e72`
+> 次级灰的明度是被对比度铁律钉住的：在浅灰底 `#f4f4f6` 上 4.62:1、白底上 5.08:1。**浅灰底那一处就是它的下限**——2026-08 为此压深过一档（压之前 3.13:1，差 1.37 不达 AA），不要调回去（规则 11）。
 - 浅灰底：`#f4f4f6`
 - 边线：`#e3e3e6`
 
@@ -30,8 +31,8 @@
 
 - 段落：`font-size: 15.5px; line-height: 1.75; color: #2c2c2e; margin: 0 0 16px; text-align: left`
 - strong：`color: #d71a1b; font-weight: 600`
-- em / 型号参数：`color: #8a8a8e`
-- 优缺点小结用符号对：`<span style="color: #d71a1b; font-weight: 700;">＋</span>` / `<span style="color: #8a8a8e; font-weight: 700;">－</span>` 开头的模拟列表行
+- em / 型号参数：`color: #6e6e72`
+- 优缺点小结用符号对：`<span style="color: #d71a1b; font-weight: 700;">＋</span>` / `<span style="color: #6e6e72; font-weight: 700;">－</span>` 开头的模拟列表行
 
 ## 引用 / 代码 / 列表 / 表格
 

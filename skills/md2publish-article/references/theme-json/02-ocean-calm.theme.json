@@ -19,7 +19,7 @@
   "td": "border: 1px solid rgba(74,124,155,0.18); padding: 9px 12px; font-size: 14px; color: #3a4150",
   "hr_gap": 64,
   "highlight": {
-    "comment": "#8a95a5",
+    "comment": "#626e7f",
     "key": "#3d6a8a",
     "keyword": "#3d6a8a"
   }

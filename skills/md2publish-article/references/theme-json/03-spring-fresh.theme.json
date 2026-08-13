@@ -20,7 +20,7 @@
   "th": "background-color: #e8f0e8; color: #447550; font-weight: 600; border: 1px solid rgba(107,155,122,0.18); padding: 9px 12px; font-size: 14px",
   "td": "border: 1px solid rgba(107,155,122,0.18); padding: 9px 12px; font-size: 14px; color: #3d4a3d",
   "highlight": {
-    "comment": "#8fa08f",
+    "comment": "#617261",
     "string": "#447550"
   }
 }

@@ -8,7 +8,7 @@
   "h3": "font-size: 16px; font-weight: 600; color: #4e6774; text-align: left; margin: 26px 0 12px; padding-left: 10px; border-left: 3px solid #4e6774",
   "strong": "color: #b08e8a; font-weight: 600",
   "em": "color: #4e6774",
-  "blockquote": "background-color: #e6e1de; border-radius: 10px; padding: 16px 20px; margin: 0 0 18px; color: #8c8884; font-size: 14.5px; line-height: 1.8; text-align: left",
+  "blockquote": "background-color: #e6e1de; border-radius: 10px; padding: 16px 20px; margin: 0 0 18px; color: #66635f; font-size: 14.5px; line-height: 1.8; text-align: left",
   "pre": "background-color: #e6e1de; border-radius: 10px; padding: 15px 17px; margin: 0 0 18px",
   "code": "color: #55514e; font-size: 13px; line-height: 1.6; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
   "inline_code": "background-color: #e6e1de; color: #b08e8a; padding: 2px 6px; border-radius: 4px; font-size: 13px; letter-spacing: 0; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
@@ -18,7 +18,7 @@
   "th": "background-color: #e6e1de; color: #4a4846; font-weight: 600; border: 1px solid #ddd8d4; padding: 9px 12px; font-size: 14px",
   "td": "border: 1px solid #ddd8d4; padding: 9px 12px; font-size: 14px; color: #4a4846",
   "highlight": {
-    "comment": "#8c8884",
+    "comment": "#66635f",
     "string": "#4e6774",
     "key": "#4e6774",
     "keyword": "#b08e8a",
