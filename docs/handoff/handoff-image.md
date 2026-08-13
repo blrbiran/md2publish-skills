@@ -1,18 +1,19 @@
 # Handoff：图片能力线（cover / visuals / diagram）
 
-最后更新：2026-08-11
+最后更新：2026-08-13
 
 本文只管**图片这条线**。主题库与 HTML 生成那条线在 `docs/handoff/handoff.md`，两者互不重叠，别读错。
 
 ## 快速接手入口
 
-1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。
-2. **二期 A、二期 B 均已完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎（11 个 provider，D1 剔除了 codex-cli）、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover` skill、`scripts/check.sh` 一条命令串起九项检查（第 6 项现在是 12 项）。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`，并已跑完整支评审（抓出 4 个 Important、已全部关闭，教训见第八节第 9 条）。**手动付费 smoke 仍未做**——见第六节。
-3. 下一步是**三期**（`md2publish-visuals` + `md2publish-diagram`）。它的实施计划**尚未编写**。
-4. 动手前先跑第二节的 `./scripts/check.sh`，全绿才继续。
-5. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。除此之外任务循环里没有别的未决项：另外三条 Minor 已由最终整支评审的修复波关掉。
-6. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
-7. 设计与计划不在本文里，见**第零节**的文档地图——**不要**在本文重复它们的内容。
+1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。**三期做完之后，这个目标已经达成**——三个 skill 全部建成。
+2. **一期、二期 A、二期 B、三期全部完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover`。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。三期建成 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链），并把 `visuals` 接进 `md2publish-article` 的上游；`scripts/check.sh` 从二期的 9 项长大到**当前的 12 项**。每一期都跑过整支评审，教训见第八节。
+3. **手动付费 smoke 现在欠两次，不是一次**：`cover`（二期起欠）与 `visuals`（三期新欠）各有一次"真调 provider 生一张图"的 smoke 从未跑过——本机没有任何 provider 凭证。`diagram` 是唯一的例外，它零成本，端到端**已经真跑过**。三者不要混着说，完整口径见第六节。
+4. **下一步**：`bilibili.yaml` 仍然故意未做（B 站画幅属未验证的外部知识，见第六节末尾）；配好凭证后补跑两次付费 smoke；除此之外 spec 定义的三期范围已经做完，没有排定中的下一期。
+5. 动手前先跑第二节的 `./scripts/check.sh`，全绿（或按 SKIPPED 语义部分跳过）才继续。
+6. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。三期**没有留下已知未修缺陷**——两个真 bug（见第八节）都在收尾前修掉并重新验证过。
+7. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
+8. 设计与计划不在本文里，见**第零节**的文档地图——**不要**在本文重复它们的内容。
 
 ## 零、文档地图
 
@@ -22,6 +23,7 @@
 | `docs/superpowers/plans/2026-08-09-shared-image-assets-phase1.md` | 一期的逐步实施计划（已执行完） |
 | `docs/superpowers/plans/2026-08-10-image-phase2a.md` | 二期 A 的逐步实施计划（已执行完）。开头有 D1–D4 偏离表与 Global Constraints，写三期的计划时把这套约束照抄过去 |
 | `docs/superpowers/plans/2026-08-11-image-phase2b.md` | 二期 B 的逐步实施计划（已执行完）。开头有 D5–D10 偏离表与 Global Constraints——两份计划里更新的一份，写三期的计划时该照抄这份，不是二期 A 那份 |
+| `docs/superpowers/plans/2026-08-11-image-phase3.md` | 三期的逐步实施计划（已执行完）。开头有 D11–D17 偏离表与 Global Constraints，已全部折回 spec |
 | `skills/_shared/scripts/imagegen/VENDOR.md` | vendor 来源、排除清单、与上游只差的两行、重新同步步骤 |
 | `skills/_shared/README.md` | `_shared/` 怎么用、怎么跑测试、哪些是故意没做的（末节「还没做的事」，二期做完后现在指向三期） |
 | `skills/_shared/presets/INDEX.md` | preset 与 dimensions 的**唯一发现入口**。选 preset 一律读它，别背名单 |
@@ -99,22 +101,27 @@ git log --oneline origin/main..main                # 还没推上去的
 ./scripts/check.sh
 ```
 
-一条命令跑九项检查，期望全部 ✓、末尾打印「全部通过。」：
+一条命令跑**十二项**检查（二期时是九项，三期又加了三项），期望全部 ✓、末尾打印「全部通过。」：
 
 1. 资产 schema + `costs.yaml`（18 项，含 provider 名单四处一致的交叉校验）
 2. 渲染器 + 占位符白名单（11 项）
 3. 平台 × archetype × preset 矩阵（8 组合）
 4. 压缩不超限（8 项）
 5. preflight + config 自检（21 项）
-6. 产物落盘规则：重跑保护 + sidecar（12 项）
-7. imagegen 引擎（`bun test`，97 pass / 0 fail / 12 files）
-8. shared 漂移检查（`md2publish-cover/shared/` 与 `_shared/` 是否一致）
-9. vendor 同步与漂移（9 项）
+6. 产物落盘规则：重跑保护 + sidecar（18 项——三期 T1 加了 diagram 支路的 6 项断言，从 12 变 18）
+7. **Markdown 回写门**（13 项，三期新增，对应 `test-writeback.sh`；覆盖单图与多图 back-to-front 插入顺序）
+8. **SVG→位图降级链**（11 项，三期新增，对应 `test-svg2raster.sh`；本机 `rsvg-convert` / `magick` / Chrome 三后端齐全时的数字，缺后端的机器上会少几项）
+9. imagegen 引擎（`bun test`，97 pass / 0 fail / 12 files）
+10. **diagram 端到端（零成本）**（7 项，三期新增，对应 `scripts/test-diagram-e2e.sh`；本机三后端齐全时真跑并全绿，三者都缺时整项 **SKIPPED**，见下）
+11. shared 漂移检查（`md2publish-cover/shared/`、`md2publish-visuals/shared/`、`md2publish-diagram/shared/` 与 `_shared/` 是否一致，三期起从 1 个 skill 扩到 3 个）
+12. vendor 同步与漂移（12 项，三期从 9 变 12，T6 给两个新 skill 加了清单断言）
 
-**第 8、9 项的先后顺序是有意的，别调换。** 第 9 项开头就跑一遍 `sync-shared.sh`；
+**第 11、12 项的先后顺序是有意的，别调换。** 第 12 项开头就跑一遍 `sync-shared.sh`；
 它如今在临时沙箱副本里跑、不碰工作区，但只要有谁把它改回原地跑，真实漂移就会在
-第 8 项看见它之前被冲掉，第 8 项从此永远不可能失败。design §4.3 明说漂移是
+第 11 项看见它之前被冲掉，第 11 项从此永远不可能失败。design §4.3 明说漂移是
 vendoring 唯一的真实失败模式，且**绝不能靠 re-sync 解决**。
+
+**SKIPPED 是第三态，不是失败也不是通过。** `check.sh` 的 `run()` 除了 ✓ / ✗，子进程退出码为 2 时会打印 `⊘ SKIPPED`——目前只有第 10 项（diagram 端到端）会触发，机器上 `rsvg-convert` / `magick` / Chrome 一个都没装时如实报 SKIPPED，而不是把只想改主题库、没装光栅化工具的人也硬拦住。**SKIPPED 不算通过**：末尾摘要区分「全部通过。」（零跳过）与「全部通过（N 项跳过：……）。」（有跳过），后者紧跟一句「跳过的项没有跑过，不等于通过」。
 
 外加确认没碰坏另一条线（`check.sh` 不包含这一项，得单跑）：
 
@@ -150,6 +157,12 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # 期望：ok：0 
 | D3 | §4/§11：压缩降级链 `sips → cwebp → ImageMagick` | 改成 `sips → magick`，`cwebp` 需显式 `--allow-webp` 才启用 | `cwebp` 只产出 WebP，目标平台是否接受属未核实的外部知识；默认产出 JPEG，不静默交付可能用不了的格式 |
 | D4 | §4.3 vendor 清单没列 `asset_lib.py` | 清单里加上 `scripts/asset_lib.py` | 它是 `compose_prompt.py` / `artifacts.py` 的硬 import 依赖，不带上跑不起来 |
 
+**sidecar 的 `image` 字段是「下游该消费哪个文件」的唯一真相源，被两方消费。** 二期 B 让 `md2publish-draft` 读它取封面文件名；三期让 `writeback.py` 的 `insertions.json` 也读它取正文插图文件名——两处都不许硬编 `.png`，因为压缩是新增不是替换，超限时 `.png` 与 `.jpg` 并存，文件名本身分不出该用哪个。spec §5.3 是这条契约唯一的定义处，改契约先改那里。
+
+**`diagram` 不走 preset / prompt，这是它与另两个 skill 唯一的结构性差异。** `artifacts.py sidecar --archetype diagram` 不接受 `--preset` / `--model` / `--prompt-file` / `--brief-file`，传了就硬失败；`compose_prompt.py` 也不会被 diagram 调用。它的语义层产物直接是 SVG 本身（agent 手写），机械层只有光栅化（`svg2raster.py`）。别把另两个 skill 步骤 4「渲染 prompt」的心智模型套到它头上。
+
+**`svg2raster.py` 只用标准库，不 import `yaml`、不 import `asset_lib`。** 理由：它的降级链测试要在 PATH 遮蔽沙箱里用 `/usr/bin/python3` 跑（见第四节），任何第三方 import 都会让那组测试无法进行，逼着往生产代码里塞"假装某后端不存在"的测试后门。**但这道护栏本身有个洞，记在第四节末尾——沙箱没有真正屏蔽住第三方包。**
+
 ## 四、环境事实（都是实测的，会咬人）
 
 - **Python 是 3.9.13**（anaconda3）。`dict | None` 这类 PEP 604 注解在 3.9 上 import 即 `TypeError`，所有脚本靠 `from __future__ import annotations` 工作。**新增脚本别漏这行。**
@@ -157,7 +170,9 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # 期望：ok：0 
 - **`mv` 在这台机器上是交互式的**（覆盖时会停下来等 y/n，在自动化里表现为卡死）。脚本里用 `\cp -f`，别用 `mv`。
 - **本仓库没有 CI、没有 git hooks、没有 `.github/`。** 所有测试靠手跑。`skills/_shared/README.md` 里那句"改完必须跑一遍"是**文档约束，不是自动闸门**——不要在任何文档里把它写成强制。
 - **可能有另一个 agent 同时在这个仓库里工作**（一期执行期间就有，它在做主题普查那条线）。因此：只用显式路径 `git add`，**绝不 `git add -A` / `git commit -a`**；切分支前先看 `git status`；算"本次改了什么"时不要拿 `main` 当基线，用本次第一个 commit 的父提交。
-- **这台机器的 bash 是 GNU bash 3.2.57。** `$var` 后面紧跟全角标点（`）`、`：`等）会破坏变量名解析，在 `set -u` 下直接报错。二期 A 已踩过两次。写含中文提示的脚本时一律用 `${var}`，别用裸 `$var`。
+- **这台机器的 bash 是 GNU bash 3.2.57。** `$var` 后面紧跟全角标点（`）`、`：`等）会破坏变量名解析，在 `set -u` 下直接报错。二期 A 已踩过两次，三期又踩了第三次：`scripts/check.sh` 的 `run()` 里 SKIPPED 分支最初写的是裸 `echo "  ⊘ $label：SKIPPED"`，只有真的产生一次跳过（三个光栅化后端都不可用）才会触发 `line 21: label�: unbound variable`，本机三后端齐全，第一次没跑出这条路径，是专门造了一次"三后端全缺"的场景才炸出来的。写含中文提示的脚本时一律用 `${var}`，别用裸 `$var`；**光靠本机常规跑测试测不出这类 bug，得刻意触发那条平时不走的分支**。
+- **`/usr/bin/python3` 是 3.9.6，`svg2raster.py` 的 PATH 遮蔽沙箱测试（`test-svg2raster.sh`）靠它验证"只用标准库"这条约束。** 但这道护栏有个洞：沙箱只清空了 `PATH`（`env -i PATH=... HOME=...`），**没有清空用户级 site-packages**——本机 `~/Library/Python/3.9/lib/python/site-packages` 装着 PyYAML 6.0.1，Python 按保留下来的 `HOME` 仍会把它加进 `sys.path`。实测验证：临时给 `svg2raster.py` 加一行 `import yaml` 后用 `/usr/bin/python3 --check` 跑，**不会崩，正常返回 exit 0**。也就是说"只用标准库"这条约束目前**不受这组沙箱测试保护**——现在的代码确实没有第三方 import（读代码可确认），但如果哪天有人加了一行 `import yaml`，这组测试不会报错，因为本机 `/usr/bin/python3` 实际找得到那个包。要让沙箱真正防住，两处 `env -i` 都需要加 `PYTHONNOUSERSITE=1`；本条只记录发现，未动代码（本任务只改文档）。
+- **`git commit` 的 `--` 必须排在 `-m` / `-F` 之后。** `git commit -- <路径> -m "msg"` 会把 `-m` 当成 pathspec 报错，正确形式是 `git commit -F <消息文件> -- <路径>`。三期计划的 Global Constraints 提前点出了这个坑并把九个任务的提交步骤都按正确形式写好，本期因此没有一次真的踩雷——记在这里是防止这条护栏因为"从没人踩过"在下一期被漏抄。
 - **vendor 进来的 `imagegen/` 与上游只差两行**，都在 `main.ts`：`loadProviderModule()` 里 `codex-cli` 分支改成硬失败（D1），`MAX_ATTEMPTS` 从 `3` 改成 `2`（D2）。除这两处外逐字与上游一致，可直接 `diff`。细节与重新同步步骤见 `skills/_shared/scripts/imagegen/VENDOR.md`。
 
 ## 五、语言约定（新规则，优先级高）
@@ -173,7 +188,7 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # 期望：ok：0 
 - 写好 `compress.py`（sips → magick，见 D3）、`preflight.py`、`config.py`、`artifacts.py`、`costs.yaml`。实测（**含最终评审七项修复后的数字**）：资产 schema + costs **18 项**、压缩不超限 **8 项**、preflight + config **21 项**、产物落盘规则 **10 项**，全绿——这是二期 A 收尾时测到的数字。**二期 B 的 T1 又把它从 10 项改成了 12 项**（加了 `image` 字段的两条断言，见下面「二期 B」那块），当前基线是 12 项，见第二节。
 - 建成 `md2publish-cover`；`shared-manifest.sh` / `sync-shared.sh` / `check-shared-drift.sh` / `scripts/check.sh` 全部写好并跑通，vendor 同步与漂移实测 **9 项**全绿。
 - **`md2publish-images` 原地保留**，两者并存，本期未改它一个字。
-- 完成判据两条分开看：spec §13 五项全绿——**已验证**（`./scripts/check.sh` 九项全 ✓，见第二节）；端到端产出一张微信封面并压到 2MB 内的**手动付费 smoke——未做**。本机 `preflight.py` 实测「一个 provider 凭证都没配置」，无法真调用付费 API，这一步只能留给配好凭证的会话去跑，步骤见 spec §7 / `md2publish-cover/SKILL.md`。**九项检查全绿不等于端到端验证过——没跑就是没跑，别混着说。**
+- 完成判据两条分开看：spec §13 五项全绿——**已验证**（`./scripts/check.sh` 当时九项全 ✓，现在是十二项，见第二节）；端到端产出一张微信封面并压到 2MB 内的**手动付费 smoke——未做**。本机 `preflight.py` 实测「一个 provider 凭证都没配置」，无法真调用付费 API，这一步只能留给配好凭证的会话去跑，步骤见 spec §7 / `md2publish-cover/SKILL.md`。**check.sh 全绿不等于端到端验证过——没跑就是没跑，别混着说。**
 - 已引入 TypeScript 运行时依赖（bun），README 前置已写明。
 
 **收尾时补修的一处（已修，记在这里是因为它是个容易再犯的类型错误）**
@@ -279,27 +294,48 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 写"读 sidecar 里记的路径"，而 `artifacts.py` 写出的 sidecar 曾经根本没有路径字段——一条
 契约被反复引用不等于它被实现过。二是上面那条整支评审的发现。完整版见第八节。
 
-**三期**
-- `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链）。
-- **`visuals` 在 `md2publish-article` 的上游**，不是并行分支（spec §8）。它产出 `article.illustrated.md`，`md2publish-article` 的步骤 1 输入表必须认这个文件，否则它永远不被转换。
+**三期（九个任务已完成并逐任务过了评审，最后一期；跑成了逐任务 commit T1–T9，不是单 commit；整支评审尚未执行，见下）**
 
-**一期故意没做、别当成遗漏的**：`bilibili.yaml`（B 站画幅与文字约定属未验证的外部知识，需先确认视频封面与专栏头图分别是什么规格，不猜）、vendor 脚本、`imagegen/`、`costs.yaml`。清单见 `skills/_shared/README.md` 末节。
+- 建成 `md2publish-visuals`（含 Markdown 回写门，`writeback.py` 新脚本）与 `md2publish-diagram`（含 SVG→PNG 降级链，`svg2raster.py` 新脚本）；`artifacts.py` 加了 diagram 支路（`source_file` 字段 + 确定性 archetype 分支）；`scripts/check.sh` 从 9 项接入到 **12 项**（新增 Markdown 回写门 13 项、SVG→位图降级链 11 项、diagram 端到端 7 项）；`shared-manifest.sh` / `test-sync-drift.sh` 从只认 1 个 skill 扩到 3 个；把 `visuals` 接进 `md2publish-article` 的上游，`article` 步骤 1 输入表默认认 `article.illustrated.md`。
+- **`visuals` 在 `md2publish-article` 的上游**，不是并行分支（spec §8）。它产出 `article.illustrated.md`，`md2publish-article` 的步骤 1 输入表必须认这个文件，否则它永远不被转换。
+- **完成判据三分版，别混着说**（这是本条最重要的口径，spec §15 已同步）：
+  - **自动化**：`check.sh` 12 项全绿——**已验证**（见第二节，本报告"验证"一节有实跑输出）。
+  - **本机零成本端到端**：`diagram` 链路真跑通了——写 SVG → 光栅化（本机 `rsvg-convert` 可用）→ 压缩判断 → 写 sidecar，`test-diagram-e2e.sh` 覆盖，且**压缩产物真正串进了 sidecar**（`image` 字段指向 `.jpg` 而非未压缩的 `.png`，这是执行中修的一个真 bug，见下）。**`diagram` 是三个 skill 里唯一被端到端真跑过的一个。**
+  - **手动付费挂账，现在欠两次，不是一次**：真调 provider 生一张图的最小 smoke，`cover`（二期起欠）与 `visuals`（三期新欠，小红书 5 张卡片系列要花钱）**均未跑**——本机 `preflight.py` 实测一个 provider 凭证都没配置。**`diagram` 不欠这笔账**，它零成本、不需要 provider。三条线索不要混着说：check.sh 全绿 ≠ 端到端验证过；`diagram` 端到端真跑过 ≠ 另外两条线也跑过；欠款是两次不是一次。
+
+**三期执行中记下的、计划里没有的几件事（都是评审抓出来、有实证的）**
+
+1. **一条 commit message 的措辞与实测不符，未改写历史。** commit `54fd0b8`（"test(shared): make the diagram --preset assertion discriminate"）的正文写着"Supplying the three AI-only flags makes the old code succeed"，但实测：旧实现（`9fd2481`）在补齐 `--model x --prompt-file x --brief-file x` 三个 dummy 参数后**并不会**成功（RC=0）——它压根不认识三期新加的 `--source-file` 参数，以 `unrecognized arguments: --source-file 00-diagram.svg` 报错，RC=2；而**这条报错走的是顶层 parser 的 usage 横幅，不含 `--preset` 字符串**，所以 `grep -q -- '--preset'` 不命中，断言仍然判失败——不是"succeed"。修复前的旧断言之所以是假绿，是因为**不给三个 dummy 参数时**旧代码报的是子命令级"缺少必填参数"的 usage（会完整列出 `--preset PRESET` 等全部已知 flag 名），grep 碰巧命中；补上三个 dummy 参数后触发的是完全不同的"不认识的参数"错误路径，两条路径都不产生 RC=0，只是触发 grep 命中与否的原因不同。**结论（消除巧合通过、断言现在只因目标行为而红/绿）成立，commit message 对机制的描述有误。** 本仓库并发共享工作区、不改写历史，此处记下正确机制供以后查阅。已用 `git show 9fd2481:...` 取出旧版 `artifacts.py` 实跑复现，输出见本任务的验证记录。
+2. **本期连续四个任务被评审抓到"没有区分能力的断言"——RED 阶段是假的，它在正确与错误实现下都会通过。** 四次的形态都不一样，值得当一类教训记：
+   - **T1**：断言靠 argparse 的 usage 横幅碰巧回显了 `--preset` 这个 flag 名而"命中"，与被测的 diagram 分支逻辑毫无关系（即上一条）。
+   - **T2**：断言的"真值"本身是调被测代码（`magick_has_rsvg()`）自己算出来的，于是不管被测逻辑对不对，断言都会自洽地"通过"。
+   - **T3**：主用法（`visuals` 一次插多张图）一条断言都没覆盖，12 条断言全部只给单条 insertion，`writeback.py` 里"从后往前插入"防止行号漂移的那段行号数学从未被真正跑过，插反了也测不出来——而多图恰恰是 `visuals` 的常态用法（一篇插 2–4 张）。
+   - **T6**：`scripts/fixtures/diagram-sample.svg` 被本任务自己点名为硬要求的文件，`test-sync-drift.sh` 的断言循环却唯独没检查它——manifest 里虽然列了它，但没有断言钉住，将来被删掉不会被任何测试发现。
+   
+   **有效的对策，本期后半程每个任务都做了：变异自证**——写完断言之后，临时在生产代码里制造对应缺陷（删一行校验、写松一个条件、从清单里拿掉一项……），确认目标断言**确实翻红**、且红的是它而不是别的（其余断言仍绿），再把生产代码改回去。这一步在三期抓出了 T1/T2/T3/T6 以上四条，是本期最有效的单一手段。
+3. **两个只有真跑才会暴露的 bug，都在"写了但从没走过"的代码路径上：**
+   - `scripts/check.sh` 的 `run()` SKIPPED 分支写的是裸 `$label` 紧跟全角冒号（`echo "  ⊘ $label：SKIPPED"`），bash 3.2.57 + `set -u` 下会把变量名解析坏、报假的 `unbound variable`。本机三个光栅化后端齐全，日常跑测试永远走不到这条分支，只有专门造一次"三后端全缺"的场景才会触发（T7）。
+   - `scripts/test-diagram-e2e.sh` 最初写的压缩阈值 `SMALL=20000`，比本机实际光栅化出的原始 PNG（18914 字节）还大，导致 `compress.py` 的"未超限"分支直接生效、返回 `action: "none"`，"强制压缩"那条断言名义上跑了，实际压缩代码路径从未被走到——这同时也是 Important 1（压缩产物没有真正喂给 sidecar）能够藏住的原因：两个假象叠在一起，直到把压缩产物真正串进下游消费（sidecar 的 `image` 字段）才同时暴露（T7）。两处都已修：前者改 `${label}`；后者改用光栅化产物实际字节数的 90% 作为阈值，并补了断言确认压缩代码路径真的被走到。
+4. **`bilibili.yaml` 仍然故意未做**：B 站画幅与文字约定属未验证的外部知识（一期就已留白），三期不猜，需要先分别确认视频封面与专栏头图各自的规格。
+
+**一期故意没做、别当成遗漏的**：`bilibili.yaml`（同上）、vendor 脚本、`imagegen/`、`costs.yaml`。清单见 `skills/_shared/README.md` 末节。
 
 ## 七、建议调用的 skills
 
 | 场景 | skill |
 |---|---|
-| 开始三期前 | `superpowers:writing-plans`（三期的实施计划尚未编写。输入是 spec §15 的三期范围，加 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链）各自的要求；Global Constraints 照抄 `docs/superpowers/plans/2026-08-11-image-phase2b.md` 开头那套——就像那份计划当初照抄二期 A 的一样） |
+| 开始新一期前（三期已完成，spec §15 定义的四期到此为止；本行留作下次再拆新一期时的参考） | `superpowers:writing-plans`（三期就是这么写出来的：输入是 spec §15 的范围，Global Constraints 照抄上一期计划开头那套——避免每期都重新踩一遍并发提交、bash 3.2.57 之类的老坑） |
 | 执行计划 | `superpowers:subagent-driven-development`（二期 A 就是这么跑完 8 个任务的，在有并发 agent 的情况下也没出事——关键是每个任务只用显式路径 `git add`）或 `superpowers:executing-plans`（内联） |
 | 动任何设计决策前 | `superpowers:brainstorming`（本设计的两版都是这么产出的） |
 | 每一期收尾 | `superpowers:requesting-code-review`。**必须做一次整支评审，逐任务评审替代不了它**——理由见第八节末尾。也顺带做事实核查：一期的 spec 复审抓出 6 处事实错误，其中"悬空引用四处"实为九处 |
 | 排查测试失败 | `superpowers:systematic-debugging` |
 | 收尾分支 | `superpowers:finishing-a-development-branch` |
 
-## 八、执行中修掉的计划缺陷（写三期的计划前先读这节）
+## 八、执行中修掉的计划缺陷（写下一份计划前先读这节）
 
-全都属于同一族：**计划看着对、跑起来错**。一期三条、二期 A 四条、二期 B 两条；二期 A
-那四条里有三条、二期 B 那两条全部，是单个任务的评审看不出来、只有跨任务视角才暴露的。
+全都属于同一族：**计划看着对、跑起来错**。一期三条、二期 A 四条、二期 B 两条、三期三条；
+二期 A 那四条里有三条、二期 B 那两条全部、三期那三条全部，是单个任务的评审看不出来、
+只有跨任务视角才暴露的。
 
 **一期（三条）**
 
@@ -353,3 +389,38 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 选的不是一回事）。二期 B 换了一批任务、换了一批评审者，结果**同样**是逐任务全绿、
 整支评审再抓 4 个 Important。**连续两期复现，这已经不是偶然：逐任务评审不能替代一次
 整支评审。三期照做，别省。**
+
+**三期（三条，全部是计划自带的代码快照被原样抄进实现，快照本身就是错的）**
+
+10. **计划给的断言快照没有区分能力，抄进实现就把假绿一起抄了。** Task 1 Step 2 给的
+    "diagram 传 `--preset` 应硬失败"断言快照，只补了 `--source-file`，没有同时补
+    `--model` / `--prompt-file` / `--brief-file` 三个旧实现本就必填的参数——于是断言
+    在旧实现（补丁前）下也会"通过"：argparse 因缺这三个参数报错，其 usage 横幅碰巧
+    完整列出了包括 `--preset` 在内的全部已知 flag 名，`grep -q -- '--preset'` 命中的是
+    这个巧合，不是"diagram 分支正确拒绝了 preset"这件事本身。commit `54fd0b8` 同时
+    改了实现里的测试脚本和计划本身的同一段代码快照（缺陷源头），详见第六节"三期执行中
+    记下的几件事"第 1、2 条。**教训：计划里给的断言代码块要按"能不能在旧实现下失败"
+    的标准审一遍，不是审"语法对不对"。**
+11. **计划把 SVG→PNG 降级链的三级都当成同等可信的渲染器，实际第二级（`magick`）的
+    可信度取决于一个必须运行时探测的编译期 delegate。** Task 2 深入排查后发现：本机
+    `magick`（Homebrew 版）没有 RSVG delegate，渲染带引号 `font-family` 的 CJK SVG 时
+    会直接报错硬失败（安全但吵）；一度怀疑是 fixture 的 `font-family` 加了引号导致的
+    兼容性问题，去掉引号后重新验证，结果更糟——**去引号后 magick 变成 exit 0、产出合法
+    PNG，但图上所有中文文字被静默丢光**，比硬失败更危险。结论：问题不在引号写法，在
+    "无条件信任 magick 的退出码"这个假设本身站不住。最终没有改 fixture 的字体写法
+    （字体 fallback 链保持带引号，见 `md2publish-diagram/SKILL.md` 步骤 3 的硬约束），
+    而是给 `svg2raster.py` 加了 D17 的能力闸——magick 是否可信必须先探测，不能假定。
+    **教训：降级链的每一级"能用"，本身可能是需要验证的假设，而不是设计时就能断言的
+    事实；排查这类问题时，目视检查产物（而不是只看退出码）能发现比报错更隐蔽的故障。**
+12. **计划里两处独立的代码快照都漏抄了同一个文件，因为它们是分开写的，没有一个共同
+    定义处。** Task 6 的 Step 4（diagram 的 vendor case）与 Step 2b（漂移测试的断言
+    循环）各自单独列出 diagram 需要 vendor 的文件清单，两处都漏了
+    `scripts/fixtures/diagram-sample.svg`——这个文件在 Task 2 里已经被点名为硬要求
+    （测试与端到端共用的 fixture），但因为两份快照各自维护自己的清单，没有一处是
+    单一真相源，漏改一处不会被另一处发现。计划与 `scripts/shared-manifest.sh`、
+    `scripts/test-sync-drift.sh` 一并修正。**教训：同一份文件清单如果在计划里被写了
+    两次（一次给实现抄、一次给测试断言抄），两次必须来自同一处来源，否则漏改必然
+    只改对一半。**
+
+三期的整支评审是 T9（本任务）之后的独立步骤，尚未执行——按 §7 的方法论，逐任务
+评审全绿不能替代它，结果留给那次评审后再补进本节。

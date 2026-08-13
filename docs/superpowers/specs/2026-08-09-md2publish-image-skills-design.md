@@ -1,9 +1,9 @@
 # 设计：图片能力重构为 cover / visuals / diagram 三个 skill
 
 日期：2026-08-09
-状态：待实施
-取代：`skills/md2publish-images/`（本次拆除）
-修订：2026-08-09 第二版，按事实核查与架构复审结果修订（见文末修订记录）
+状态：已实施（一期、二期 A、二期 B、三期全部完成，见 §15 与 `docs/handoff/handoff-image.md`）
+取代：`skills/md2publish-images/`（已拆除）
+修订：2026-08-11 第四版，三期收尾把 D11–D17 折回正文（见文末修订记录）
 
 ## 1. 背景
 
@@ -276,6 +276,7 @@ template: |
   "model": "gpt-image-2",
   "prompt_file": "prompts/wechat/00-cover.md",
   "brief_file": "briefs/wechat/00-cover.md",
+  "source_file": null,
   "alt_text": "暖色调的编辑风封面，主体是一支钢笔与散落的稿纸",
   "image": "00-cover.jpg",
   "bytes": 1843200,
@@ -289,6 +290,8 @@ template: |
 
 它同时解决三件事：preset 演进后能查出某张图是哪个版本产的（主题库刚经历过 27 → 26 的删改，preset 也会）；§7 的重跑跳过判断有依据；`alt_text` 有地方存——旧 skill 有这个字段，新设计里一度丢了，Markdown 回写需要它。
 
+**`diagram` 支路**：`archetype: diagram` 不调 AI、不走 preset，因此 `preset`、`preset_version`、`model`、`prompt_file`、`brief_file` 一律记 `null`；新增字段 `source_file` 记它唯一的复现记录——SVG 的**文件名**（不是路径），其余 archetype 一律 `null`。`provider` 字段的语义随之改变：对 AI 生图是 provider 名（`openai` 等），对 `diagram` 是**光栅化后端名**（`rsvg-convert` / `magick` / `chrome`）——同一份 SVG 在装了 `rsvg-convert` 和只装了 Chrome 的两台机器上会产出不同的位图，`provider` 不记就无从追溯是哪个后端渲染的。
+
 ## 6. 职责分层：机械层与语义层
 
 这是本设计最容易被实施者猜错的地方，因此单列一节。`md2publish-article/SKILL.md:69` 对同一问题有明确回答（"生成用 `scripts/md2html.py` 做机械层……你只写主题配置和做语义判断"），本设计沿用同样的切法。
@@ -299,6 +302,8 @@ template: |
 | **机械层** | `compose-prompt.py` | platform + preset + 维度覆盖 + brief 文件 | 渲染后的 prompt 文件 |
 
 `compose-prompt.py` 是**纯模板渲染器**：读 YAML、填占位符、写文件。它不读文章、不做内容抽取、不调模型。
+
+**`diagram` 不落在这条切法里。** 它的语义层产物就是 SVG 本身——agent 直接手写 SVG，不经过 `compose-prompt.py`，也没有 prompt 这道机械层：维度词表（`soft-gouache`、`flat-vector`）是写给 AI 生图 prompt 消费的，SVG 不消费它们，硬套只会多产出一份没有任何消费者的中间文件。SVG 源文件本身就是复现记录——改它重跑，结果是确定的，比改 prompt 重新生图更强。
 
 这条边界带来三个后果，都是有意的：
 
@@ -337,6 +342,29 @@ template: |
 步骤 8  落盘 + 回写/交接         见 7.3
 ```
 
+**`visuals` 在步骤 8 之后再加一步（本 skill 独有）：**
+
+```
+步骤 9  回写门                  写 insertions.json（语义层：哪张图插哪、alt 文本）
+                               → 展示插入位置与 diff → 确认 → writeback.py 另存
+                                 article.illustrated.md，原文不动
+        └ series 不回写：卡片系列是内容本身，不进正文，走到步骤 8 就收工（见 7.2）
+```
+
+**`diagram` 的链路不套用上面这条**：它不调 AI、不走 preset / prompt，没有「═══ 以下开始计费 ═══」那条线，全程零成本，因此也不需要凭证门。
+
+```
+步骤 1  查后端（零成本）        svg2raster.py --check 报告本机可用的光栅化后端
+步骤 2  定平台                  取 archetypes.diagram 的画幅（aspect）与体积上限（max_bytes）
+步骤 3  写 SVG（语义层，本 skill 的核心） agent 直接手写 SVG，落 diagrams/<platform>/NN-diagram.svg；
+                               SVG 源文件本身就是复现记录，不经过 compose-prompt.py（见 §6）
+步骤 4  光栅化                  svg2raster.py --svg ... --out ... --aspect ...（降级链见 §14.3）
+步骤 5  压缩（多半用不上）      光栅化产物通常远低于上限；真超限时更该降低宽度重新光栅化
+步骤 6  写 sidecar              provider 记实际用的光栅化后端名，preset 等字段全为 null（见 §5.3）
+步骤 7  交接                    要插正文 → 必须在 md2publish-article 转 HTML 之前插入 Markdown；
+                               只是单独导出一张图 → 与流水线无耦合
+```
+
 ### 7.1 凭证门放在步骤 5 而不是流程开头
 
 步骤 1–4 全部零成本，而 `prompts/<platform>/NN-*.md` **恰好就是**旧计划模式的产物。把门设在步骤 5，没配 provider 的用户仍然拿得到 prompt 去即梦 / Midjourney 自己生，而"要生成必须先配"这条硬要求一点没松。
@@ -352,6 +380,8 @@ template: |
 **对 `visuals` 不成立。** 按 §1.1，微信要的是 3–8 张装点长文的插图，小红书要的是整个卡片系列——那是**不同内容、不同张数、不同源材料**，不是不同画幅。§5.1 已在结构上编码了这一点（`wechat.archetypes.series: unsupported`、`xiaohongshu.archetypes.illustration: unsupported`）。
 
 因此 `md2publish-visuals` 收到多平台参数时，**必须拆成两次独立执行**：各自选 preset、各自写 brief、各自过成本门。不允许一次确认覆盖两个平台的花费。
+
+**`series` 不回写 Markdown。** 卡片系列的产物是内容本身、不进正文——§3.1 论证 series 与 illustration 的差别用的就是这一点。`visuals` 处理 `series` 时到写完 sidecar（步骤 8）就结束，不产生 `article.illustrated.md`，也没有步骤 9 的回写门；回写门只在 `illustration` / `infographic` 要插进正文、以及 `diagram` 的产物要插进正文时触发。
 
 ### 7.3 产物布局与重跑行为
 
@@ -389,7 +419,7 @@ wechat-finetune → article.wechat.md
                                                                     md2publish-draft
 ```
 
-- **`visuals` 串在 `article` 上游**：有配图时，`article` 的输入是 `article.illustrated.md` 而不是 `article.wechat.md`。
+- **`visuals` 串在 `article` 上游**：有配图时，`article` 的输入是 `article.illustrated.md` 而不是 `article.wechat.md`。默认规则：`md2publish-article` 步骤 1 发现同目录存在 `article.illustrated.md` 时**默认用它**，并告知用户选了哪一份、不带图的原文叫什么（通常是 `article.wechat.md`）；用户显式给了路径则以用户给的为准。每次都问会退化成 §3.2 明确反对的多轮问答；静默改默认又会让用户不知道自己转的是哪一份——两者都不要。
 - **`cover` 并行**：封面不进正文，只在 draft 阶段作为 `--cover` 使用。
 - **`diagram` 视用途而定**：若示意图要插进正文，它的产物必须在 `md2publish-article` 之前被引用进 Markdown（插入动作由用户或 `visuals` 完成）；若只是单独导出一张图，它与流水线无耦合。
 
@@ -482,13 +512,21 @@ sips --version || cwebp -version || convert --version
 
 **执行入口**：本仓库目前**没有 CI、没有 git hooks、没有 `.github/`**，现有测试全靠手跑。因此不能写"进 quality gate"这种没有着落的话。落地方式是新增 `scripts/check.sh` 串起以上五项，并在 `skills/README.md` 写明"改 `_shared/` 或任一 skill 后必须跑一次"。是否再加 pre-commit hook 由实施时决定；在加之前，这是**有文档约束的手工流程**，不是自动闸门——这一点必须诚实写在 README 里，不要让人误以为有强制。
 
-一项不进自动化、手动跑：**真调一次 provider 生一张图的最小 smoke**。它计费。
+**`check.sh` 后来又长大了两次，现在是 12 项，不再是 5 项。** 二期加了 preflight + config 自检、产物落盘规则（sidecar / 重跑保护）、imagegen 引擎测试（`bun test`）、vendor 同步与漂移，把上面五项之外的机械层测试也串了进来；三期又加了三项：Markdown 回写门（`test-writeback.sh`）、SVG→位图降级链（`test-svg2raster.sh`）、diagram 端到端（`test-diagram-e2e.sh`，见下）。当前项数与顺序以 `scripts/check.sh` 自身的 `run` 调用清单为准，不在本文重复罗列——重复只会在下次改动时再漂移一次。
+
+**三态，不是二态。** `check.sh` 的 `run()` 除了 ✓ / ✗，还会打印 `⊘ SKIPPED`（被跑的脚本退出码为 2 时触发）：diagram 端到端依赖机器上装有 `rsvg-convert` / `magick` / Chrome 中至少一个，三者都缺时脚本如实报 SKIPPED，而不是把只想改主题库、机器上没装光栅化工具的人也硬拦在门外。**SKIPPED 不算通过**——`check.sh` 末尾口径显式区分「全部通过。」与「全部通过（N 项跳过：……）。」，后者紧跟一句「跳过的项没有跑过，不等于通过」，防止摘要含糊成假绿。
+
+两项不进自动化、手动跑：**真调一次 provider 生一张图的最小 smoke**，`cover` 与 `visuals` 各欠一次，都计费。`diagram` 是唯一例外——它零成本，端到端**已经进了自动化**（即上面三态里的 diagram 端到端一项），不算在这两项手动挂账里；说端到端验证情况时必须分清是哪一条链，不要把三者混为一谈。
 
 ## 14. 不在本次范围（Known Limitations）
 
 1. **`md2publish-draft` 仍是微信专用。** `doctor` / `upload_image` / `create_draft` 与 `WECHAT_APPID` / `WECHAT_SECRET` 全是微信专属。多平台真正落地时它要分化成 `-draft-wechat` / `-draft-xhs` / `-draft-bilibili`，那是独立的一轮。本次只保证 `_shared/platforms/` 的 schema 能承载它们，不动 draft 本身。
 2. **`md2publish-article` 未多平台化。** `references/wechat-html.md` 的五条铁律是微信编辑器专属。本次**不**在 platform profile 里预留 `html_constraints` 字段——它会是一条指向别的 skill 目录的路径，vendor 之后就成了跨 skill 引用，正好破坏 §4.2 的自包含论证。等 article 真要多平台化时，再决定它是路径还是一个由消费方自行解析的不透明标识符。
-3. **`md2publish-diagram` 的 SVG 需要转位图。** 微信不接受 SVG，因此输出 SVG + PNG 双产物，Markdown 引 PNG。转换降级链：`rsvg-convert` → `ImageMagick convert` → headless Chrome（`--screenshot`）；三者都缺时保留 SVG 并告知用户需自行转换，不静默失败。SVG 必须声明完整字体 fallback 链（`"PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif`）——只写"用系统安全字体"不够，macOS 与 Linux 的 CJK 默认字体不同，正是这个约束要防的渲染分歧。
+3. **`md2publish-diagram` 的 SVG 需要转位图。** 微信不接受 SVG，因此输出 SVG + PNG 双产物，Markdown 引 PNG。转换降级链：`rsvg-convert` → `magick`（**仅当探测到 RSVG delegate 时才计入，见下**）→ headless Chrome（`--screenshot`）；三者都不可用时保留 SVG 并告知用户需自行转换，不静默失败。SVG 必须声明完整字体 fallback 链（`"PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif`）——只写"用系统安全字体"不够，macOS 与 Linux 的 CJK 默认字体不同，正是这个约束要防的渲染分歧。
+
+   **`magick` 这一级不是无条件可用的渲染器，前面加了能力闸。** 没有编译进 RSVG delegate 的 ImageMagick 渲染带中文的 SVG 时会 **exit 0 却把图上所有文字丢光**，只剩图形——本机实测出的真实故障模式，退出码看不出任何异常，比硬失败凶险得多，因为它要到发布之后才会被发现。因此 `svg2raster.py` 在把 `magick` 计入降级链之前，先用 `magick -list format` 探测输出里 SVG 那一行的描述中是否有 `RSVG` 字样；探测不到证据时，`magick` 既不进自动降级链，用户显式传 `--backend magick` 也照样硬失败并给出安装建议（`brew install librsvg`）。**不要把这条链读成"三级都会依次尝试"**——第二级能不能用，取决于一个必须运行时探测的编译期 delegate，不是默认可用的渲染器。
+
+   **画幅由本脚本强制校验，不止是文档里写"应当匹配"。** `--aspect` 与 SVG `viewBox` 算出的比例相差超过 1% 时，`svg2raster.py` 直接硬失败，提示去改 SVG 而不是改 `--aspect`。这是 `diagram` 唯一能机械验证"平台画幅真被用上"的地方——它不经过 `compose-prompt.py`，没有 §13 矩阵测试那样的覆盖；少了这道校验，agent 画一个正方形却声称是 16:9，位图会被拉伸变形，而这件事在缩略图上肉眼看不出来。
 4. **未纳入的 baoyu 能力**：知识漫画（`baoyu-comic`）、幻灯片（`baoyu-slide-deck`）——独立内容形态，不属于文章发布流水线。
 5. **`bilibili.yaml` 的取值待定。** §1.1 的平台规格属外部知识，未从仓库验证。B 站视频封面与专栏头图的文字约定不同，实施时需分别确认后再填 `text_on_image`。
 
@@ -501,7 +539,7 @@ sips --version || cwebp -version || convert --version
 | 一 | `_shared/` 骨架（三个 platform profile + preset schema + dimensions 词表 + INDEX.md）、`compose-prompt.py`、§13 第 1–3 项测试（用 fixture brief） | 矩阵 / 白名单 / schema 三项测试通过 | 无 |
 | 二 A | 搬入 `imagegen/` `compress.py` `preflight.py`，建 `md2publish-cover`，加 `sync-shared.sh` / `check-shared-drift.sh` / `check.sh`（此时才有消费者）。**`md2publish-images` 原地保留** | 端到端产出一张微信封面并压到 2MB 内；手动 smoke 通过；§13 五项全绿 | 无（纯新增，两者并存） |
 | 二 B | 删除 `md2publish-images`，改 §12 的十一处引用 | **范围版**判据：`skills/` 与 `docs/handoff/handoff.md` 里没有活引用（`docs/superpowers/specs/`、`docs/superpowers/plans/`、`docs/handoff/handoff-image.md`、`.superpowers/` 下的提及是故意保留的执行记录，完整版见 `docs/handoff/handoff-image.md` 第六节） | **有**。回滚 = `git checkout 6b4cea6^ -- skills/md2publish-images/`，**不是** `git revert`：删除被并发会话一次不带 pathspec 的 `git commit` 卷进了 `6b4cea6`，而那个 commit 还装着另一条线的计划文件，revert 会连它一起删 |
-| 三 | `md2publish-visuals`（含 Markdown 回写门与 §8 的次序改动）、`md2publish-diagram`（含 SVG→PNG 降级链） | 小红书 5 张卡片系列 + 一张架构图端到端通过；`article.illustrated.md` 确实被 `md2publish-article` 消费 | 改 `md2publish-article` 输入表 |
+| 三 | `md2publish-visuals`（含 Markdown 回写门与 §8 的次序改动）、`md2publish-diagram`（含 SVG→PNG 降级链） | **三分版**判据，三条不能互相代替：自动化——`check.sh` 12 项全绿（矩阵 / 白名单 / schema / 压缩 / preflight+config / 产物落盘规则 / Markdown 回写门 / SVG→位图降级链 / imagegen / diagram 端到端 / shared 漂移 / vendor 同步与漂移），已验证；本机零成本端到端——`diagram` 链路（写 SVG → 光栅化 → 压缩 → 写 sidecar）真跑通，压缩产物真正串进了 sidecar 的 `image` 字段，`test-diagram-e2e.sh` 覆盖，已验证；手动付费挂账——真调 provider 的最小 smoke，`cover`（二期）与 `visuals`（本期）各欠一次，本机无 provider 凭证，**均未跑**。三者不可混为一谈，完整口径见 `docs/handoff/handoff-image.md` 第六节 | 改 `md2publish-article` 输入表，回滚 = `git revert` 那一个 commit（本期照 Global Constraints 用显式路径逐任务提交，未与另一条线的文件同 commit） |
 
 一期不动任何现有 skill，也不写 sync/drift 脚本——那时它们没有消费者，只能对着想象中的目录结构写，二期必然重写。
 
@@ -516,6 +554,18 @@ sips --version || cwebp -version || convert --version
 **结构性修订**：新增 §6（机械层 / 语义层分界）、§8（流水线次序，`visuals` 在 `article` 上游）、§11（TS 运行时前置）；§5.1 platform profile 改为按 archetype 分槽并补 `infographic` / `diagram` 槽，`text_on_image` 由枚举改为结构，`max_bytes` 改整数；§7 凭证门从流程开头移到生成那一步，新增产物布局与重跑跳过规则；§7.2 多平台限定于 cover / diagram；§5.2 `compatible_platforms` 改为 `incompatible_platforms`，补占位符白名单与维度覆盖机制；§5.3 新增产物 sidecar；§9 补成本表与计费尝试上限；§13 把"进 quality gate"落到具体的 `scripts/check.sh` 并诚实说明无自动闸门，§4.3 补漂移恢复程序；§15 二期拆为 A / B；§14 移除 `html_constraints` 预留字段。
 
 第三版（2026-08-11，二期 B 开工前）：§12 悬空引用**从九处更正为十一处**——正文原写"七处"、表格 9 行、§16 原写"从四处更正为九处"，三个数字互相矛盾，现统一以表格为准，并补上二期 A 新建的 `skills/md2publish-cover/SKILL.md` 与 `skills/_shared/README.md` 两处；§12 表格中 `md2publish-draft` 一格由硬编 `00-cover.png` 改为读 sidecar 的 `image` 字段（压缩是新增不是替换，`.png` 与 `.jpg` 并存）；§5.3 sidecar schema 补 `image` 字段——原 schema 里没有这个字段，而 §12 与 `md2publish-cover/SKILL.md` 都已经在断言"下游该消费哪个文件，读 sidecar 就知道"。
+
+第四版（2026-08-11，三期收尾）：三期实施计划（`docs/superpowers/plans/2026-08-11-image-phase3.md`）记录了七条与本 spec 的偏离（D11–D17），本版把它们全部折回正文，spec 恢复为唯一真相源：
+
+- **D11**（§5.3 sidecar schema 假定每张图都有 `preset` / `provider` / `prompt_file` / `brief_file`）：补 `diagram` 支路——`preset` / `preset_version` / `model` / `prompt_file` / `brief_file` 一律记 `null`，新增 `source_file` 字段（SVG 文件名），`provider` 的语义随 archetype 改变，对 `diagram` 是光栅化后端名。
+- **D12**（§6 假定三个 skill 共用同一条链路，步骤 4 一律「渲染 prompt」）：补一段——`diagram` 的语义层产物是 SVG 本身，不经过 `compose-prompt.py`。
+- **D13**（§14.3 原文没有画幅的机械校验点）：补 `svg2raster.py` 强制画幅校验——`--aspect` 与 `viewBox` 比例相差超过 1% 直接硬失败。
+- **D14**（§13 原写"五项必须自动化""一项不进自动化"）：补 `check.sh` 从 5 项长大到 12 项的沿革、SKIPPED 第三态的语义、"一项"改为"两项"手动付费挂账（`cover` 与 `visuals` 各一次），并明说 `diagram` 端到端已进自动化，不算在这两项里。
+- **D15**（§8 只写"必须认 `article.illustrated.md`"，没给默认规则）：§8 补默认规则——同目录存在 `article.illustrated.md` 时默认用它，并告知用户选了哪一份、不带图的原文叫什么；用户显式给了路径则以用户给的为准。每次都问会退化成 §3.2 反对的多轮问答，静默改默认又会让用户不知道自己转的是哪一份。
+- **D16**（§3.1 / §7.2 未说明 `series` 是否回写）：§7 新增 `visuals` 的步骤 9（回写门）与 `diagram` 的独立七步链路；§7.2 补一句——`series` 不回写 Markdown，卡片系列是内容本身、不进正文，处理到写完 sidecar 就结束。
+- **D17**（§14.3 原写降级链 `rsvg-convert → magick → headless Chrome` 三级都是可用渲染器）：补 `magick` 的能力闸——`magick -list format` 探测不到 RSVG delegate 证据时，`magick` 既不进自动降级链，显式指定也硬失败。原因是本机实测：没有 RSVG delegate 的 `magick` 渲染带中文的 SVG 会 exit 0 却把图上所有文字丢光，只剩图形，比硬失败更危险——它要到发布之后才会被发现。
+
+另有 §15 三期那一行的完成判据改为三分版（自动化 / 本机零成本端到端 / 手动付费挂账），并补上破坏性一栏的回滚方式（改 `md2publish-article` 输入表，回滚 = `git revert` 那一个 commit）。
 
 ## 17. 参考
 
