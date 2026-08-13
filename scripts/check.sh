@@ -60,4 +60,8 @@ fi
 
 echo "失败 ${#FAILED[@]} 项："
 printf '  - %s\n' "${FAILED[@]}"
+if [[ ${#SKIPPED[@]} -gt 0 ]]; then
+  echo
+  echo "另有 ${#SKIPPED[@]} 项跳过（没有真正跑过，不算通过也不算失败）：$(IFS=、; echo "${SKIPPED[*]}")"
+fi
 exit 1

@@ -1912,7 +1912,8 @@ git commit -F /tmp/t6.txt -- scripts/shared-manifest.sh scripts/test-sync-drift.
 
 ```bash
 #!/usr/bin/env bash
-# diagram 的零成本端到端：写好的 SVG → 光栅化 → 压缩 → sidecar。
+# diagram 的零成本端到端：写好的 SVG → 光栅化 → sidecar → 人为触发压缩 → sidecar
+# 用压缩产物覆盖同一份，证明下游真的会读到压缩后的文件而不是超限的原图。
 #
 # **退出码 2 表示 SKIPPED**（一个光栅化后端都没有）。check.sh 靠它区分
 # "跑过并通过"和"根本没跑"——把没跑过的项算成通过，就是二期 A 教训 4 的假绿。
@@ -1941,6 +1942,7 @@ ART="$TMP/article"
 mkdir -p "$ART/diagrams/wechat" "$ART/assets/wechat"
 SVG="$ART/diagrams/wechat/00-diagram.svg"
 PNG="$ART/assets/wechat/00-diagram.png"
+SIDE="$ART/assets/wechat/00-diagram.json"
 \cp -f "$S/fixtures/diagram-sample.svg" "$SVG"
 
 ASPECT=$(python3 -c "import sys; sys.path.insert(0,'${S}'); import asset_lib as a; s=a.archetype_slot(a.load_platform('wechat'),'diagram'); print(s['aspect'][0] if isinstance(s['aspect'],list) else s['aspect'])")
@@ -1959,33 +1961,13 @@ else
 fi
 
 echo
-echo "== 压缩 =="
+echo "== sidecar（未压缩产物）=="
 
-BYTES=$(wc -c < "$PNG" | tr -d ' ')
-if [[ ${BYTES} -le ${MAXB} ]]; then
-  ok "未超平台上限（${BYTES} ≤ ${MAXB}），按流程跳过压缩"
-else
-  bad "光栅化产物超限，流程要求此处压缩" "bytes=${BYTES} max=${MAXB}"
-fi
-
-# 上一条大概率走"不压缩"分支，所以再用一个人为的小上限把压缩这条路也真跑一遍
-SMALL=20000
-OUT=$(python3 "$S/compress.py" --image "$PNG" --max-bytes "${SMALL}" 2>&1)
-if [[ $? -eq 0 && -f "${OUT}" ]] && [[ "$(wc -c < "${OUT}" | tr -d ' ')" -le ${SMALL} ]]; then
-  ok "人为压到 ${SMALL} 字节以内也成立（压缩这条分支真跑过）"
-else
-  bad "压缩分支失败" "$OUT"
-fi
-[[ -f "$PNG" ]] && ok "压缩没有动原始 PNG（它是新增不是替换）" || bad "原始 PNG 不见了" ""
-
-echo
-echo "== sidecar =="
-
-python3 "$S/artifacts.py" sidecar --image "$PNG" \
+SIDE_OUT1=$(python3 "$S/artifacts.py" sidecar --image "$PNG" \
   --platform wechat --archetype diagram --provider "${BACKEND}" \
-  --source-file "$(basename "$SVG")" --alt-text "三层缓存架构示意图" >/dev/null 2>&1
-SIDE="$ART/assets/wechat/00-diagram.json"
-if [[ -f "${SIDE}" ]]; then
+  --source-file "$(basename "$SVG")" --alt-text "三层缓存架构示意图" 2>&1)
+side1_rc=$?
+if [[ $side1_rc -eq 0 && -f "${SIDE}" ]]; then
   got=$(python3 -c "import json;d=json.load(open('${SIDE}'));print(d['image'],d['source_file'],d['provider'],d['preset'])")
   if [[ "${got}" == "00-diagram.png 00-diagram.svg ${BACKEND} None" ]]; then
     ok "sidecar 四个关键字段都对（image / source_file / provider / preset=null）"
@@ -1993,7 +1975,69 @@ if [[ -f "${SIDE}" ]]; then
     bad "sidecar 字段不对" "got=${got}"
   fi
 else
-  bad "sidecar 没写出来" ""
+  bad "sidecar 没写出来" "rc=${side1_rc} out=${SIDE_OUT1}"
+fi
+
+echo
+echo "== 压缩 =="
+
+BYTES=$(wc -c < "$PNG" | tr -d ' ')
+if [[ ${BYTES} -le ${MAXB} ]]; then
+  ok "光栅化产物在平台预算内（${BYTES} ≤ ${MAXB} 字节，预算来自 wechat/diagram 槽位的真实配置，不是硬编码）"
+else
+  bad "光栅化产物超出平台预算" "bytes=${BYTES} max=${MAXB}"
+fi
+
+# 是否触发压缩这件事本身没有代码分支——只活在 SKILL.md 的散文里，由 agent 执行。
+# 所以下面不测"该不该压"，而是用一个人为的小上限，把压缩这条代码路径真跑一遍，
+# 并验证它的产物真的被写回同一份 sidecar（这才是这条链名副其实的地方）。
+#
+# 上限必须**严格小于**光栅化产物的实际字节数，否则 compress.py 会走
+# action=none 的空转分支、原样返回原图路径——那样 $OUT 会等于 $PNG，
+# 下面整段"压缩产物覆盖 sidecar"的验证就是在自欺（这台机器上真实踩过：
+# 固定 20000 曾经比 18914 字节的原图还大）。用实际字节数的 90% 保证既严格
+# 更小，又比压缩阶梯能压到的下限（本机实测约为原图的 75%）宽松，不会把
+# 压缩本身逼到失败。
+PNG_CKSUM_BEFORE=$(cksum < "$PNG")
+SMALL=$(( BYTES * 9 / 10 ))
+OUT=$(python3 "$S/compress.py" --image "$PNG" --max-bytes "${SMALL}" 2>&1)
+comp_rc=$?
+if [[ $comp_rc -eq 0 && -f "${OUT}" ]] && [[ "$(wc -c < "${OUT}" | tr -d ' ')" -le ${SMALL} ]]; then
+  ok "人为压到 ${SMALL} 字节以内也成立（压缩这条分支真跑过）"
+else
+  bad "压缩分支失败" "rc=${comp_rc} out=${OUT}"
+fi
+
+PNG_CKSUM_AFTER=$(cksum < "$PNG")
+if [[ -f "$PNG" && "${PNG_CKSUM_BEFORE}" == "${PNG_CKSUM_AFTER}" ]]; then
+  ok "压缩没有动原始 PNG（压缩前后 cksum 一致，不只是文件还在）"
+else
+  bad "原始 PNG 被动过或丢失" "before=${PNG_CKSUM_BEFORE} after=${PNG_CKSUM_AFTER}"
+fi
+
+echo
+echo "== sidecar（压缩产物覆盖同一份）=="
+
+SIDE_OUT2=$(python3 "$S/artifacts.py" sidecar --image "${OUT}" \
+  --platform wechat --archetype diagram --provider "${BACKEND}" \
+  --source-file "$(basename "$SVG")" --alt-text "三层缓存架构示意图" 2>&1)
+side2_rc=$?
+if [[ $side2_rc -eq 0 && -f "${SIDE}" ]]; then
+  got2=$(python3 -c "import json;d=json.load(open('${SIDE}'));print(d['image'])")
+  if [[ "${got2}" == "$(basename "${OUT}")" ]]; then
+    ok "压缩后重写 sidecar，image 字段指向压缩产物（${got2}），不是超限的原始 PNG"
+  else
+    bad "sidecar 的 image 字段没有跟着压缩产物走" "got=${got2}"
+  fi
+else
+  bad "压缩后写 sidecar 失败" "rc=${side2_rc} out=${SIDE_OUT2}"
+fi
+
+n_json=$(find "$ART/assets/wechat" -maxdepth 1 -name '*.json' | wc -l | tr -d ' ')
+if [[ "${n_json}" == "1" ]]; then
+  ok "压缩前后写的是同一份 sidecar（没有多出第二份 .json）"
+else
+  bad "sidecar 文件数不对，压缩前后应该始终只有一份" "count=${n_json}"
 fi
 
 echo
@@ -2007,7 +2051,9 @@ echo "通过 $PASS 项，失败 $FAIL 项"
 bash scripts/test-diagram-e2e.sh; echo "exit=$?"
 ```
 
-预期（本机三后端齐全）：「通过 5 项，失败 0 项」，`exit=0`。
+预期（本机三后端齐全）：「通过 7 项，失败 0 项」，`exit=0`。（首版写的是 5 项；
+评审发现压缩产物从没被送进 sidecar，那条链其实是断的，补上「压缩产物覆盖同一份
+sidecar」的验证后变成 7 项——见 task-7-report.md 的评审修复记录。）
 
 - [ ] **Step 4: 验证 SKIPPED 分支真的会走到**
 
@@ -2037,7 +2083,7 @@ run() {
   if [[ $rc -eq 0 ]]; then
     echo "  ✓ $label"
   elif [[ $rc -eq 2 ]]; then
-    echo "  ⊘ $label：SKIPPED"
+    echo "  ⊘ ${label}：SKIPPED"
     SKIPPED+=("$label")
   else
     echo "  ✗ $label"
@@ -2045,6 +2091,11 @@ run() {
   fi
 }
 ```
+
+（注：SKIPPED 分支必须写 `${label}` 而不是裸 `$label`——它后面紧跟着全角冒号
+「：」，在这台机器的 bash 3.2 + `set -u` 下裸 `$var` 加非 ASCII 字节会把变量名
+解析坏、报假的 `unbound variable`。这是实跑「末尾口径的 SKIPPED 分支真验证」
+那一步时真的炸出来的，不是纸上谈兵。）
 
 三个新项插进去（**位置有讲究**，见 Global Constraints：全部排在「shared 漂移检查」之前）：
 
@@ -2073,7 +2124,19 @@ if [[ ${#FAILED[@]} -eq 0 ]]; then
   echo "见 docs/handoff/handoff-image.md。"
   exit 0
 fi
+
+echo "失败 ${#FAILED[@]} 项："
+printf '  - %s\n' "${FAILED[@]}"
+if [[ ${#SKIPPED[@]} -gt 0 ]]; then
+  echo
+  echo "另有 ${#SKIPPED[@]} 项跳过（没有真正跑过，不算通过也不算失败）：$(IFS=、; echo "${SKIPPED[*]}")"
+fi
+exit 1
 ```
+
+（注：失败分支原本只报失败、完全不提跳过项——评审指出这也是 fail-loud 的
+缺口：一次失败的运行里「还有一项压根没跑过」会被悄悄吞掉。补了上面
+`${#SKIPPED[@]} -gt 0` 那一段，失败与跳过同时发生时两者都点名报出。）
 
 - [ ] **Step 6: 跑全量，确认 12 项**
 
