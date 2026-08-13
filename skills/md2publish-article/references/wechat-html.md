@@ -131,6 +131,30 @@ if no_align:
 no_color = [p for p in paras if 'color' not in p]
 if no_color:
     fails.append(f'{len(no_color)} 个 <p> 缺少显式 color')
+# 以下三条防的是同一类事故：产物看着正常、错在元数据和首段，肉眼扫不出来。
+# 上游 wechat-finetune 的产物必带 frontmatter，md2html.py 早先不认它，于是
+# title 从代码块里的 shell 注释抓、frontmatter 三行变成正文首段，一路带到草稿箱。
+body = html[m.end():] if m else html
+leaked = re.findall(r'<p[^>]*>\s*(?:title|author|digest|summary|description)\s*[:：]', body, re.I)
+if leaked:
+    fails.append(f'{len(leaked)} 处 frontmatter 泄漏进正文：源 md 的 --- 元数据块没被剥掉')
+if m:
+    try:
+        t = json.loads(m.group(1)).get('title', '')
+    except json.JSONDecodeError:
+        t = ''
+    # title 只要在任何一个代码块里出现过，就极可能是从 `# 注释` 抓来的
+    if t and any(t in c for c in re.findall(r'<pre[^>]*>(.*?)</pre>', html, re.S)):
+        fails.append(f'元数据 title「{t}」在代码块里出现过：多半是把代码注释当成 H1 抓了，'
+                     f'去核对源 md 的 frontmatter')
+h3s = set(re.findall(r'<h3[^>]*style="([^"]*)"', html))
+first_p = re.search(r'<p[^>]*style="([^"]*)"', body)
+def _key(s):
+    d = dict(x.split(':', 1) for x in (y for y in s.split(';') if ':' in y))
+    return (d.get('font-size', '').strip(), d.get('font-weight', '').strip())
+if first_p and h3s and _key(first_p.group(1)) in {_key(h) for h in h3s} and _key(first_p.group(1))[0]:
+    fails.append('导语段的字号+字重和 h3 完全一致：读者会把第一段当成小标题，'
+                 '把主题的 p_first 调开（导语只加大字号、拉开间距，别加粗）')
 print('FAIL:\n- ' + '\n- '.join(fails) if fails else 'PASS: 全部检查通过')
 EOF
 ```

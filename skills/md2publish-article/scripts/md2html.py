@@ -462,6 +462,49 @@ def verify(md, html):
     return len(src), len(got), bad
 
 
+def split_frontmatter(md):
+    """剥掉开头的 YAML frontmatter，返回 (元数据 dict, 正文)。
+
+    上游 `wechat-finetune` 的产物**必带** frontmatter（它的步骤 5 强制组装
+    title/author/digest），所以这条链路默认就会走到这里。早先这个函数不存在，
+    后果不是报错而是静默走歪：`---` 被渲染成 hr、`title:` 三行变成正文首段、
+    元数据里的 title 从下面那个 H1 兜底逻辑里抓，而它当时连代码块都不排除，
+    于是标题变成了验证小节里的一行 shell 注释「# OpenAI Chat 协议 + GLM」，
+    一路带到草稿箱都没人发现。
+
+    只认最朴素的 `key: value`，够覆盖 title/author/digest；解析不出键值对就
+    当它不是 frontmatter（比如文章真的以一条分隔线开头），原样退回。
+    """
+    if not md.startswith("---"):
+        return {}, md
+    m = re.match(r"^---[ \t]*\n(.*?)\n---[ \t]*(?:\n|$)", md, re.S)
+    if not m:
+        return {}, md
+    meta = {}
+    for line in m.group(1).split("\n"):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        k, sep, v = line.partition(":")
+        if not sep or not k.strip() or k != k.lstrip():   # 缩进行＝嵌套结构，不碰
+            return {}, md
+        meta[k.strip()] = v.strip().strip("'\"")
+    return (meta, md[m.end():]) if meta else ({}, md)
+
+
+def first_h1(md):
+    """取正文第一个 H1 做标题兜底，**跳过围栏代码块**。
+
+    不跳的话，`# 注释` 这种 shell/python 注释会被当成标题——实测踩过一次。
+    """
+    infence = False
+    for line in md.split("\n"):
+        if re.match(r"^```", line):
+            infence = not infence
+        elif not infence and re.match(r"^#\s", line):
+            return line.lstrip("#").strip()
+    return ""
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("markdown"); ap.add_argument("theme")
@@ -471,16 +514,20 @@ def main():
     a = ap.parse_args()
 
     md = Path(a.markdown).read_text(encoding="utf-8")
+    fm, md = split_frontmatter(md)
     if a.verify:
         n_src, n_got, bad = verify(md, Path(a.verify).read_text(encoding="utf-8"))
         print(f"代码块 {n_got}/{n_src}，不一致 {len(bad)} 处" + (f"：#{bad}" if bad else "，全部逐字节保真"))
         return 1 if bad or n_got != n_src else 0
 
     T = json.loads(Path(a.theme).read_text(encoding="utf-8"))
-    title = a.title or next((l.lstrip("#").strip() for l in md.split("\n")
-                             if re.match(r"^#\s", l)), "")
+    # 优先级按 SKILL.md 的声明：显式传参 → frontmatter → 正文 H1（摘要没有 H1 兜底）
+    title = a.title or fm.get("title") or first_h1(md)
+    author = a.author or fm.get("author", "")
+    digest = (a.digest or fm.get("digest") or fm.get("summary")
+              or fm.get("description", ""))
     html = build(md, T, Path(a.markdown).name,
-                 {"title": title, "author": a.author, "digest": a.digest})
+                 {"title": title, "author": author, "digest": digest})
     Path(a.out).write_text(html, encoding="utf-8") if a.out else print(html)
 
     n_src, n_got, bad = verify(md, html)
