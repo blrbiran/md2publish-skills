@@ -10,7 +10,7 @@
   "h3": "font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif; font-size: 16px; font-weight: 600; color: #2e3a2a; text-align: left; margin: 26px 0 12px",
   "h3_prefix_html": "<span style=\"color: #3f6b3f;\">❧&nbsp;</span>",
   "strong": "color: #3f6b3f; font-weight: 700",
-  "em": "color: #8a6d4e; font-style: normal",
+  "em": "color: #7e6447; font-style: normal",
   "blockquote": "font-family: Georgia, 'Songti SC', 'Noto Serif SC', serif; background-color: #fbfcf7; border: 1px solid #d5d9c8; border-left: 4px solid #3f6b3f; padding: 14px 18px; margin: 0 0 18px; color: #77816d; font-size: 14px; line-height: 1.8; text-align: left",
   "pre": "background-color: #e9ecdf; border: 1px solid #d5d9c8; border-radius: 4px; padding: 14px 16px",
   "code": "color: #2e3a2a; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace",
@@ -24,8 +24,8 @@
   "highlight": {
     "comment": "#77816d",
     "keyword": "#3f6b3f",
-    "string": "#8a6d4e",
-    "key": "#8a6d4e",
+    "string": "#7e6447",
+    "key": "#7e6447",
     "number": "#2e3a2a"
   }
 }

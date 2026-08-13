@@ -7,20 +7,20 @@
   "h2": "font-size: 20px; font-weight: 700; text-align: left; margin: 0 0 20px; padding-bottom: 8px; border-bottom: 1px dashed rgba(74,128,88,0.25)",
   "h2_first": "font-size: 20px; font-weight: 700; text-align: left; margin: 0 0 20px; padding-bottom: 8px; border-bottom: 1px dashed rgba(74,128,88,0.25)",
   "h2_prefix_html": "<span style=\"color: #6b9b7a; text-shadow: 0 0 10px rgba(107,155,122,0.4);\">❀&nbsp;</span>",
-  "h2_text_style": "color: #4a8058;",
-  "h3": "font-size: 17px; font-weight: 600; color: #4a8058; text-align: left; margin: 26px 0 12px; padding-bottom: 4px; border-bottom: 2px solid #6b9b7a; display: inline-block",
-  "strong": "color: #4a8058; font-weight: 700",
+  "h2_text_style": "color: #447550;",
+  "h3": "font-size: 17px; font-weight: 600; color: #447550; text-align: left; margin: 26px 0 12px; padding-bottom: 4px; border-bottom: 2px solid #6b9b7a; display: inline-block",
+  "strong": "color: #447550; font-weight: 700",
   "em": "color: #6b9b7a",
   "blockquote": "background-color: #e8f0e8; border-left: 5px solid #6b9b7a; box-shadow: inset 0 0 12px rgba(107,155,122,0.1); padding: 16px 20px; margin: 0 0 16px; color: #5c6a5c; font-size: 15px; line-height: 1.8; text-align: left; overflow-wrap: break-word",
   "pre": "background-color: #eef4ee; border: 1px solid rgba(107,155,122,0.2); border-radius: 12px; padding: 16px 18px",
   "code": "color: #3d4a3d; font-size: 13.5px; line-height: 1.6; font-family: 'SFMono-Regular', Consolas, Menlo, Monaco, monospace",
-  "inline_code": "background-color: #e8f0e8; color: #4a8058; padding: 2px 6px; border-radius: 4px; letter-spacing: 0; font-family: 'SFMono-Regular', Consolas, Menlo, Monaco, monospace",
+  "inline_code": "background-color: #e8f0e8; color: #447550; padding: 2px 6px; border-radius: 4px; letter-spacing: 0; font-family: 'SFMono-Regular', Consolas, Menlo, Monaco, monospace",
   "list_prefix_html": "<span style=\"color: #6b9b7a;\">•</span>&nbsp;&nbsp;",
   "table": "margin: 0 0 16px",
-  "th": "background-color: #e8f0e8; color: #4a8058; font-weight: 600; border: 1px solid rgba(107,155,122,0.18); padding: 9px 12px; font-size: 14px",
+  "th": "background-color: #e8f0e8; color: #447550; font-weight: 600; border: 1px solid rgba(107,155,122,0.18); padding: 9px 12px; font-size: 14px",
   "td": "border: 1px solid rgba(107,155,122,0.18); padding: 9px 12px; font-size: 14px; color: #3d4a3d",
   "highlight": {
     "comment": "#8fa08f",
-    "string": "#4a8058"
+    "string": "#447550"
   }
 }

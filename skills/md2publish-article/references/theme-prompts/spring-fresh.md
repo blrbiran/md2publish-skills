@@ -13,8 +13,11 @@
 - 淡绿背景：`#f5f8f5`（主容器）
 - 主文字（深绿灰）：`#3d4a3d`
 - 春日嫩绿（副强调）：`#6b9b7a`——装饰位的亮色：h2 符号、h3 短线、列表前缀、引用边框、em
-- 草地翠绿（主强调）：`#4a8058`——承担文字的深色：h2/h3 标题文字、strong、行内 code、表头、代码高亮
+- 草地翠绿（主强调）：`#447550`——承担文字的深色：h2/h3 标题文字、strong、行内 code、表头、代码高亮
 - 引用/代码底：`#e8f0e8`
+
+> 草地翠绿的明度是被对比度铁律钉住的：在引用/代码底 `#e8f0e8` 上 4.62:1、代码块底 `#eef4ee` 上 4.82:1、卡片上 4.97:1（卡是白底加淡绿点纹，这里取的是纹理最差点合成后的值）。**`#e8f0e8` 那一处就是它的下限**——2026-08 为此压深过一档（压之前 4.00:1，差 0.50 不达 AA），不要往浅里调回去（规则 11）。这支绿要深到能当文字，亮的那一档是上面的春日嫩绿、只做装饰。
+
 
 ## 容器与布局
 
@@ -23,21 +26,21 @@
 
 ## 标题体系
 
-- h2：两个 `<span>` 构成——`❀` 符号 `<span style="color: #6b9b7a; text-shadow: 0 0 10px rgba(107,155,122,0.4);">❀&nbsp;</span>` + 标题文本 `<span style="color: #4a8058;">`；整体 `font-size: 20px; font-weight: 700; text-align: left; margin: 0 0 20px; padding-bottom: 8px; border-bottom: 1px dashed rgba(74,128,88,0.25)`
-- h3：`font-size: 17px; font-weight: 600; color: #4a8058; text-align: left; margin: 26px 0 12px; padding-bottom: 4px; border-bottom: 2px solid #6b9b7a; display: inline-block`（短实线，无 text-shadow）
+- h2：两个 `<span>` 构成——`❀` 符号 `<span style="color: #6b9b7a; text-shadow: 0 0 10px rgba(107,155,122,0.4);">❀&nbsp;</span>` + 标题文本 `<span style="color: #447550;">`；整体 `font-size: 20px; font-weight: 700; text-align: left; margin: 0 0 20px; padding-bottom: 8px; border-bottom: 1px dashed rgba(74,128,88,0.25)`
+- h3：`font-size: 17px; font-weight: 600; color: #447550; text-align: left; margin: 26px 0 12px; padding-bottom: 4px; border-bottom: 2px solid #6b9b7a; display: inline-block`（短实线，无 text-shadow）
 
 ## 正文与强调
 
 - 段落：`font-size: 16px; line-height: 1.75; color: #3d4a3d; margin: 0 0 16px; text-align: left`
-- strong：`color: #4a8058; font-weight: 700`
+- strong：`color: #447550; font-weight: 700`
 - em：`color: #6b9b7a`
 
 ## 引用 / 代码 / 列表 / 表格
 
 - 引用块：`background-color: #e8f0e8; border-left: 5px solid #6b9b7a; box-shadow: inset 0 0 12px rgba(107,155,122,0.1); padding: 16px 20px; margin: 0 0 16px; color: #5c6a5c; font-size: 15px; line-height: 1.8; text-align: left`
-- 代码块：`<pre>` 底 `#eef4ee`、文字 `#3d4a3d`、`border: 1px solid rgba(107,155,122,0.2); border-radius: 12px; padding: 16px 18px; font-size: 13.5px`；**代码内注释用 `#8fa08f`、字符串/值用 `#4a8058` 做轻量高亮**（其余保持默认色，一行不超过 2 类上色——本主题面向入门教程，代码块要友好不要炫技）；行内 code：底 `#e8f0e8`、文字 `#4a8058`、`padding: 2px 6px; border-radius: 4px`
+- 代码块：`<pre>` 底 `#eef4ee`、文字 `#3d4a3d`、`border: 1px solid rgba(107,155,122,0.2); border-radius: 12px; padding: 16px 18px; font-size: 13.5px`；**代码内注释用 `#8fa08f`、字符串/值用 `#447550` 做轻量高亮**（其余保持默认色，一行不超过 2 类上色——本主题面向入门教程，代码块要友好不要炫技）；行内 code：底 `#e8f0e8`、文字 `#447550`、`padding: 2px 6px; border-radius: 4px`
 - 列表前缀 `•&nbsp;&nbsp;`（嫩绿 span：`<span style="color: #6b9b7a;">•</span>&nbsp;&nbsp;`）
-- 表格：表头底 `#e8f0e8`、文字 `#4a8058`，单元格 `border: 1px solid rgba(107,155,122,0.18); padding: 9px 12px; font-size: 14px`
+- 表格：表头底 `#e8f0e8`、文字 `#447550`，单元格 `border: 1px solid rgba(107,155,122,0.18); padding: 9px 12px; font-size: 14px`
 - 卡内分隔（如需要）：`height: 1px; border: none; background-image: linear-gradient(90deg, transparent, rgba(107,155,122,0.3), transparent); margin: 24px 0`
 
 ## 分寸提醒

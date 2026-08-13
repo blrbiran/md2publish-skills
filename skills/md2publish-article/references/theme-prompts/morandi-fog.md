@@ -13,9 +13,9 @@
 - 卡片：`#f7f5f3`
 - 正文暖灰：`#4a4846`
 - 灰玫（主强调）：`#b08e8a`
-- 雾蓝（辅强调）：`#506a77`
+- 雾蓝（辅强调）：`#4e6774`
 
-> 雾蓝的明度是被对比度铁律钉住的：在卡片 `#f7f5f3` 上 5.26:1、主容器 `#eeecea` 上 4.86:1。**不要为了莫兰迪的「明度微差」把它调浅**——更浅的一档在卡片上只有 2.4 左右，h3 标题实测不可读。低饱和是这个主题的手段，降对比度不是。
+> 雾蓝的明度是被对比度铁律钉住的：在卡片 `#f7f5f3` 上 5.49:1、主容器 `#eeecea` 上 5.07:1、引用底 `#e6e1de` 上 4.60:1。**最紧的是引用底那一处，它就是这支蓝的下限**——2026-08 为它压深过一档（压之前 4.41:1，差 0.09 不达 AA）。**不要为了莫兰迪的「明度微差」把它调浅**——再浅的一档在卡片上只有 2.4 左右，h3 标题实测不可读。低饱和是这个主题的手段，降对比度不是。
 - 次级灰：`#8c8884`
 - 引用底：`#e6e1de`
 
@@ -27,13 +27,13 @@
 ## 标题体系
 
 - h2：荧光笔色带效果——`display: inline-block; font-size: 19px; font-weight: 600; color: #4a4846; margin: 0 0 20px; padding: 0 4px; background-image: linear-gradient(transparent 62%, rgba(176, 142, 138, 0.35) 62%); text-align: left`
-- h3：`font-size: 16px; font-weight: 600; color: #506a77; text-align: left; margin: 26px 0 12px; padding-left: 10px; border-left: 3px solid #506a77`（雾蓝做文字 + 细条，与 h2 灰玫区分层级）
+- h3：`font-size: 16px; font-weight: 600; color: #4e6774; text-align: left; margin: 26px 0 12px; padding-left: 10px; border-left: 3px solid #4e6774`（雾蓝做文字 + 细条，与 h2 灰玫区分层级）
 
 ## 正文与强调
 
 - 段落：`font-size: 15.5px; line-height: 1.85; color: #4a4846; margin: 0 0 18px; text-align: left`
 - strong：`color: #b08e8a; font-weight: 600`
-- em：`color: #506a77`
+- em：`color: #4e6774`
 - 雾蓝的文字落点不能只有斜体——中文文章里斜体可能整篇为零，那样它就只剩 h3 那根 3px 细条，读者感觉不到这个颜色存在。**h3 的标题文字就是它的保底落点**，不要把 h3 文字改回正文暖灰
 
 ## 引用 / 代码 / 列表 / 表格

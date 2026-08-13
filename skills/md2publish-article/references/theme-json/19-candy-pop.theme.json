@@ -8,7 +8,7 @@
   "h3": "font-size: 16px; font-weight: 700; color: #5a4a42; text-align: left; margin: 24px 0 12px",
   "h3_prefix_html": "<span style=\"color: #7fb5d5;\">◦</span><span style=\"color: #f28ba8;\">◦&nbsp;</span>",
   "strong": "color: #d96687; font-weight: 700",
-  "em": "background-color: #e8f2f9; padding: 1px 5px; border-radius: 4px; color: #4a7a9b",
+  "em": "background-color: #e8f2f9; padding: 1px 5px; border-radius: 4px; color: #457190",
   "blockquote": "background-color: #fce8ee; border-radius: 14px; padding: 15px 18px; margin: 0 0 16px; color: #a3766f; font-size: 14.5px; line-height: 1.8; text-align: left",
   "pre": "background-color: #faf0e8; border: 1px solid #f0e2d8; border-radius: 12px; padding: 14px 16px; margin: 0 0 16px; overflow-x: auto",
   "code": "color: #5a4a42; font-size: 13px; line-height: 1.6; font-family: Menlo, Consolas, Monaco, 'Courier New', monospace; letter-spacing: 0",
