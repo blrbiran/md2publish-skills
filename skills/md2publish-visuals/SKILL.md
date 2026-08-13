@@ -20,20 +20,30 @@ allowed-tools: Read, Write, Bash, AskUserQuestion
 本文里的两类路径**基准不同**，混用必错：
 
 - **脚本路径**（`shared/scripts/...`）相对**本 skill 目录**；
-- **产物路径**（brief / prompt / 图 / sidecar / `article.illustrated.md`）一律用
+- **产物路径**（brief / prompt / 图 / sidecar / 回写产物）一律用
   **文章目录的绝对路径**。
 
 所以约定是固定的一条：**在本 skill 目录里执行命令，把产物写到文章目录的绝对路径下。**
-开工先把这两个变量定下来，后面每条命令都直接用它们：
+开工先把这三个变量定下来，后面每条命令都直接用它们：
 
 ```bash
 cd <本 skill 目录的绝对路径>        # 例如 .../skills/md2publish-visuals
 ART=<文章目录的绝对路径>            # 例如 /Users/me/posts/2026-08-10-cache-invalidation
+SOURCE=<要配图的 .wechat.md 绝对路径>   # 例如 $ART/2026-08-10-cache-invalidation.wechat.md
 mkdir -p "$ART/briefs" "$ART/prompts" "$ART/assets"
 ```
 
 `ART` 取文章 Markdown 所在的那个目录。**绝不要用相对路径写产物**——那会把 brief、
 prompt、图和 sidecar 全部落在 skill 目录里：脱离了文章，还脏了本仓库的工作区。
+
+**文件名推导规则**（下游 `md2publish-article` 靠它找带图版本，务必按这条来，
+不要自己另起文件名）：`wechat-finetune` 产出的是 `<name>.wechat.md`——`<name>`
+是用户原始文件名，**不是**字面量 `article`；本 skill 回写时把 `.wechat.md`
+换成 `.illustrated.md`，同目录另存为 `<name>.illustrated.md`，其余不变：
+
+```bash
+OUT="${SOURCE%.wechat.md}.illustrated.md"
+```
 
 ## 职责边界
 
@@ -296,7 +306,7 @@ sidecar 写在各自最终产物旁边、与它同名。**最终产物一律以 
 ### 步骤 9：回写门（本 skill 独有）
 
 **小红书 `series` 不回写，走到步骤 8 就结束。** 卡片系列是内容本身，不进正文；
-`article.illustrated.md` 只在微信 `illustration` / `infographic` 时产生。
+`$OUT`（`<name>.illustrated.md`）只在微信 `illustration` / `infographic` 时产生。
 
 回写三步走：
 
@@ -313,13 +323,13 @@ JSON
 
 # 9b 预览 diff，给用户看（此时还没写任何文件）
 python3 shared/scripts/writeback.py \
-  --source "$ART/article.wechat.md" --insertions "$ART/insertions.json" \
-  --assets-dir "$ART/assets/${PLATFORM}" --out "$ART/article.illustrated.md" --dry-run
+  --source "$SOURCE" --insertions "$ART/insertions.json" \
+  --assets-dir "$ART/assets/${PLATFORM}" --out "$OUT" --dry-run
 
 # 9c 用户确认后才真写
 python3 shared/scripts/writeback.py \
-  --source "$ART/article.wechat.md" --insertions "$ART/insertions.json" \
-  --assets-dir "$ART/assets/${PLATFORM}" --out "$ART/article.illustrated.md"
+  --source "$SOURCE" --insertions "$ART/insertions.json" \
+  --assets-dir "$ART/assets/${PLATFORM}" --out "$OUT"
 ```
 
 `insertions.json` 是一个数组，每项**恰好四个键、一个都不能多不能少**：`anchor`
@@ -329,23 +339,24 @@ python3 shared/scripts/writeback.py \
 
 **9b 与用户确认这一步不许跳过**（spec §9：改源文件的门）。锚点命中 0 次或多次时
 脚本会硬失败并把锚点打回来——**改锚点，别去改原文来迁就它**。源文件只读，永不
-修改；`--out` 已存在时脚本会拦住，除非 `--force`。
+修改；`--out`（即 `$OUT`）已存在时脚本会拦住，除非 `--force`。
 
 ### 步骤 10：交接
 
-告诉用户产出了 `article.illustrated.md`（**原文 `article.wechat.md` 一字未改**），
-接下来 `md2publish-article` 会**默认**用这份带图的版本转 HTML。部分失败时要说清楚
-少了哪几张、原计划插在哪，让用户决定是重跑还是先带着缺口往下走。
+告诉用户产出了 `$OUT`（`<name>.illustrated.md`；**原文 `$SOURCE` 一字未改**），
+接下来 `md2publish-article` 会**默认**用同目录下这份 `*.illustrated.md` 转 HTML。
+部分失败时要说清楚少了哪几张、原计划插在哪，让用户决定是重跑还是先带着缺口往下走。
 
-`series` 走完步骤 8 就收工：告诉用户张卡片系列已生成在 `$ART/assets/<platform>/`
-下，第 1 张兼作封面，本仓库**还没有**小红书的发布 skill，产物需要用户自己上传。
+`series` 走完步骤 8 就收工：告诉用户 N 张（步骤 3 定下的张数）卡片系列已生成在
+`$ART/assets/<platform>/` 下，第 1 张兼作封面，本仓库**还没有**小红书的发布
+skill，产物需要用户自己上传。
 
 ## 产物布局
 
 ```
 $ART/
-├─ article.wechat.md                     ← 原文，本 skill 永不修改
-├─ article.illustrated.md                ← 回写产物（series 不产生这个）
+├─ <name>.wechat.md                      ← 原文（wechat-finetune 产出），本 skill 永不修改
+├─ <name>.illustrated.md                 ← 回写产物（series 不产生这个）
 ├─ insertions.json                       ← 插入计划，复现记录（series 不产生这个）
 ├─ briefs/<platform>/NN-<role>.md
 ├─ prompts/<platform>/NN-<role>.md
