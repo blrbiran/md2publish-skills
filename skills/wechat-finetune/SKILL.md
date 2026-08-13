@@ -3,7 +3,7 @@ name: wechat-finetune
 description: |
   把已经写好的 Markdown 稿子改造成适合微信公众号发布的版本：从公众号定位和目标读者出发重拟标题（出多个候选让用户选）、砍掉难懂和与本号读者无关的内容、开篇换成钩子、长段切短适配手机、补齐 frontmatter 元数据（title/author/digest），默认原文不动、另存 `<name>.wechat.md`；只有技术事实确实过时（模型 ID、版本号、端点地址）且核实过时，才经作者确认回改原文。
   触发场景：用户说 公众号化 / 适配公众号 / 这篇发公众号 / 帮我起个标题 / 标题不够吸引人 / 太长了没人看完 / 发之前精炼一下；或者在准备把文章转 HTML、推草稿箱之前提到公众号读者、打开率、完读率。
-  和邻居 skill 的分工别搞混：`tech-writer` 管读者懂不懂，`tech-writer-deslop` 管读起来像不像 AI 写的，本 skill 管的是**平台适配**——同一篇稿子发博客和发公众号该长什么样根本不一样。只要意图是让一篇稿子更适合在公众号里被读完，就用这个 skill，哪怕用户没提 skill 名字。
+  和邻居 skill 的分工别搞混：`tech-writer` 管读者懂不懂，`tech-writer-deslop` 管读起来像不像 AI 写的，`tech-writer-voice` 管读起来像不像人在说话（生硬 / 像说明书 / 太正式都归它），本 skill 管的是**平台适配**——同一篇稿子发博客和发公众号该长什么样根本不一样。只要意图是让一篇稿子更适合在公众号里被读完，就用这个 skill，哪怕用户没提 skill 名字。
 allowed-tools: Read, Write, Bash, AskUserQuestion
 ---
 
@@ -19,7 +19,9 @@ allowed-tools: Read, Write, Bash, AskUserQuestion
 
 同一篇稿子，读者的处境完全不同。所以「写清楚」（`tech-writer`）和「不像 AI 写的」（`tech-writer-deslop`）都做到了，稿子照样可能在公众号里没人看完——那是第三个问题，这个 skill 管这个。
 
-推荐的完整链路：`tech-writer` → `tech-writer-deslop` → **`wechat-finetune`** → `md2publish-article` → `md2publish-draft`。封面走 `md2publish-cover`，与 `md2publish-article` 并行、不进正文。（三期的 `md2publish-visuals` 会把正文配图回写进 Markdown，届时它串在 `md2publish-article` **之前**，不是并行分支。）
+推荐的完整链路：`tech-writer` → `tech-writer-deslop` → `tech-writer-voice` → **`wechat-finetune`** → `md2publish-article` → `md2publish-draft`。
+
+`tech-writer-voice` 管**语体**——同样一句话，「以厂商文档为准」和「你看厂商自己的文档」哪个像人说的。它排在本 skill 之前，因为它要求原文和派生版一起改：只改公众号版，下次基于原文重新生成就退回旧口气了。稿子已经发过一轮、作者才回头抱怨「太生硬 / 看不下去」时也是找它，不是找本 skill。封面走 `md2publish-cover`，与 `md2publish-article` 并行、不进正文。（三期的 `md2publish-visuals` 会把正文配图回写进 Markdown，届时它串在 `md2publish-article` **之前**，不是并行分支。）
 
 ## 唯一的判据
 

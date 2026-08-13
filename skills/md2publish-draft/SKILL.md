@@ -20,6 +20,7 @@ md2wechat doctor --json
 
 - 看 `wechat.config`：必须 PASS。缺 `WECHAT_APPID` / `WECHAT_SECRET` 时，引导用户按 [references/credentials.md](references/credentials.md) 配置，配置完成前停止。
 - `api.config` FAIL 和 `format_api: false` 在免费路径下是**预期状态，直接忽略**，不要向用户报为问题。
+- **`doctor` 看不见 IP 白名单，别把它的全绿当成「能推了」。** 它只查配置里有没有凭证，`readiness.draft: true` 的意思是「字段齐了」，不是「微信会放行」。实测踩过一次：`wechat.config` PASS、`readiness.draft: true`，紧接着 `upload_image` 就炸在 `errcode=40164 invalid ip ... not in whitelist`。白名单是这条链路最常见的失败原因，而它只有真发一次请求才暴露得出来——所以前置检查过了也要跟用户说清楚「白名单这一关要到上传那一步才知道」，别让他以为万事俱备。
 - 配置里若用了命名账号（`wechat.accounts`）或 `wechat.proxy_url`：这两者会强制校验 `MD2WECHAT_API_KEY`，属于付费能力。告知用户免费路径需要扁平配置（顶层 `wechat.appid` / `wechat.secret`），让用户自己改配置，不要代改。
 
 ### 步骤 2：收集发布材料
@@ -32,6 +33,8 @@ md2wechat doctor --json
 | 标题/作者/摘要 | HTML 头部 `<!-- md2publish {...} -->` 注释 → 源 md frontmatter → 询问用户 |
 | 封面图 | 用户指定 → `md2publish-cover` 产物（**路径读 sidecar，见表下**）→ 询问用户 |
 | 正文本地图片清单 | 扫描 HTML 中非 `mmbiz.qpic.cn` 的 `<img src>` |
+
+**封面是必需品，不是可选项。** `create_draft` 的 `thumb_media_id` 是微信侧的必填字段，没有封面这一步根本发不出去。所以跳过了 `md2publish-cover` 的流程（用户说那个 skill 还没调好、或者本次不做封面）**不等于可以不要封面**——那只是意味着封面得从别处来，你必须停下来问用户要一张图，而不是硬着头皮往下走到 `create_draft` 才发现缺字段。正文一张图都没有的文章同样要封面：它是列表页的门面，跟正文配图是两回事。
 
 **封面来自 `md2publish-cover` 时，路径从 sidecar 里读，不许硬编 `00-cover.png`。**
 压缩是**新增不是替换**：封面超过 2MB 时，原图 `00-cover.png` 与压缩产物 `00-cover.jpg`
