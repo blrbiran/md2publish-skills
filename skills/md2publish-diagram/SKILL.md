@@ -166,7 +166,14 @@ python3 shared/scripts/artifacts.py sidecar \
 
 ```bash
 SOURCE=<按上面规则选出的 .wechat.md 或 .illustrated.md 绝对路径>
-OUT="${SOURCE%.wechat.md}.illustrated.md"   # SOURCE 已经是 .illustrated.md 时，OUT 和 SOURCE 相同，回写要带 --force
+case "${SOURCE}" in
+  *.illustrated.md) OUT="${SOURCE}" ;;                          # 已经是带图版本，原地追加，下面必须带 --force
+  *.wechat.md)      OUT="${SOURCE%.wechat.md}.illustrated.md" ;;
+  *)                OUT="${SOURCE%.md}.illustrated.md" ;;
+esac
+# bash 的 % 后缀剥离只在 SOURCE 真以对应后缀结尾时生效；SOURCE 已是
+# .illustrated.md 时若仍套用 wechat.md 的剥离规则，剥离不生效，会产出
+# name.illustrated.md.illustrated.md 这种和 SOURCE 不同的双重后缀路径。
 
 # 7a 写 insertions（语义层）。image 一律抄 sidecar 的 image 字段
 cat > "$ART/insertions.json" <<'JSON'
