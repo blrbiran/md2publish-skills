@@ -60,7 +60,7 @@
 | 文档 | 什么时候读 | 生命周期 | 装什么 |
 |---|---|---|---|
 | **`docs/handoff/handoff.md`**（本文） | **接手时第一份**；每轮开工前 | **每轮重写** | 现在在哪、下一步做什么、基线怎么跑、红线 |
-| **`docs/theme-design-lessons.md`** | **改任何主题文件之前必读**；改审计/普查脚本前读「机械审计方法」节 | **只增不删** | 判据与规则（规则 1–15 + 案例 + 判例） |
+| **`docs/theme-design-lessons.md`** | **改任何主题文件之前必读**；改审计/普查脚本前读「机械审计方法」节 | **只增不删** | 判据与规则（规则 1–16 + 案例 + 判例） |
 | **`docs/handoff/batch-themes-prompt.md`** | 要**批量重跑**主题时（换文章、或改完脚本字段后） | 按需刷新 | 开新会话用的可粘贴 prompt + 验收命令 |
 | **`docs/superpowers/specs/*-design.md`、`docs/superpowers/plans/*.md`** | 接手一个**进行中的多任务计划**时（本文第六节还挂着该计划的未完成事项）；平时不用翻。注意该计划执行期间的逐任务 ledger 在仓库外的 SDD 工作区里、被 gitignore，克隆仓库的人拿不到，**所以本文与 lessons 不许依赖它** | 项目级，一次性——计划收尾后归档，只在发现记录本身有误时才回来更正（如本轮更正设计文档第八节 editor-slate 的分类） | 判据设计与理由（specs）、逐任务实施步骤（plans）。`census-themes.py` 就是这样一份计划（`2026-08-07-product-landing-census`）落地的产物，脚本 docstring 直接指向它的 design 文档 |
 
