@@ -8,9 +8,11 @@ cd "$(dirname "$0")/.."
 
 FAILED=()
 SKIPPED=()
+TOTAL=0
 
 run() {
   local label="$1"; shift
+  TOTAL=$((TOTAL+1))
   echo
   echo "───── $label ─────"
   "$@"
@@ -46,9 +48,10 @@ run "vendor 同步与漂移（第 5 项）"            bash scripts/test-sync-dr
 echo
 if [[ ${#FAILED[@]} -eq 0 ]]; then
   if [[ ${#SKIPPED[@]} -eq 0 ]]; then
-    echo "全部通过。"
+    echo "全部通过（${TOTAL} 项）。"
   else
-    echo "全部通过（${#SKIPPED[@]} 项跳过：$(IFS=、; echo "${SKIPPED[*]}")）。"
+    PASSED=$((TOTAL - ${#SKIPPED[@]}))
+    echo "${PASSED} 项通过，${#SKIPPED[@]} 项跳过：$(IFS=、; echo "${SKIPPED[*]}")。"
     echo "跳过的项**没有跑过**，不等于通过。装齐工具后重跑。"
   fi
   echo
