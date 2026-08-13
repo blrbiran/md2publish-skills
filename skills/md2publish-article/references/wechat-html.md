@@ -150,7 +150,10 @@ if m:
 h3s = set(re.findall(r'<h3[^>]*style="([^"]*)"', html))
 first_p = re.search(r'<p[^>]*style="([^"]*)"', body)
 def _key(s):
-    d = dict(x.split(':', 1) for x in (y for y in s.split(';') if ':' in y))
+    # 键也要 strip：`a: 1; b: 2` 拆开后除第一条外每条都带前导空格，
+    # 不 strip 的话 `font-weight` 永远取不到值、这条检查就退化成只比 font-size
+    d = dict((k.strip(), v) for k, v in
+             (x.split(':', 1) for x in (y for y in s.split(';') if ':' in y)))
     return (d.get('font-size', '').strip(), d.get('font-weight', '').strip())
 if first_p and h3s and _key(first_p.group(1)) in {_key(h) for h in h3s} and _key(first_p.group(1))[0]:
     fails.append('导语段的字号+字重和 h3 完全一致：读者会把第一段当成小标题，'
