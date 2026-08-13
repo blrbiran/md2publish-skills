@@ -180,5 +180,25 @@ else
 fi
 
 echo
+echo "== 同一锚点两图时顺序不倒（I5：tie-break） =="
+
+rm -f "$OUT"
+printf 'fake' > "$ASSETS/04-first.jpg"
+printf 'fake' > "$ASSETS/05-second.jpg"
+ins '[
+  {"anchor": "## 取舍", "position": "after", "image": "04-first.jpg", "alt": "先出现"},
+  {"anchor": "## 取舍", "position": "after", "image": "05-second.jpg", "alt": "后出现"}
+]'
+out=$(runwb)
+rc=$?
+first_line=$(grep -n -F '![先出现]' "$OUT" | head -1 | cut -d: -f1)
+second_line=$(grep -n -F '![后出现]' "$OUT" | head -1 | cut -d: -f1)
+if [[ $rc -eq 0 && -n "${first_line}" && -n "${second_line}" && ${first_line} -lt ${second_line} ]]; then
+  ok "两条 insertion 共用同一个锚点 + position 时，输出顺序与 insertions 数组顺序一致（不被静默颠倒）"
+else
+  bad "同锚点两图顺序被打乱" "rc=${rc} first=${first_line} second=${second_line} out=${out}"
+fi
+
+echo
 echo "通过 $PASS 项，失败 $FAIL 项"
 [[ $FAIL -eq 0 ]]

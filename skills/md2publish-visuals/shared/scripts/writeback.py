@@ -96,9 +96,19 @@ def build(source: Path, insertions: list[dict], assets_dir: Path, out: Path) -> 
             )
         plan.append((locate(lines, item["anchor"], i), item))
 
-    # 从后往前插，前面的行号才不会被前一次插入顶偏
+    # 从后往前插，前面的行号才不会被前一次插入顶偏。
+    #
+    # `result[pos:pos] = block` 在同一个 pos 上插两次时，**后处理的那条会落在
+    # 先处理的那条前面**（新块插进当前内容之前，把先插的顶到自己后面）。所以两
+    # 条 insertion 共用同一个 offset 时（同一个锚点、同一个 position），处理顺序
+    # 必须是原始索引**从大到小**——让写在 insertions.json 后面的先处理、写在
+    # 前面的后处理——这样"后处理的排到前面"这条插入机制才会把顺序转回和
+    # insertions.json 一致。只按 offset 排序不指定 tie-break 时，同 offset 两项
+    # 的处理顺序不受控，插入机制会把它们在正文里的先后顺序悄悄颠倒。
     result = list(lines)
-    for at, item in sorted(plan, key=lambda p: p[0], reverse=True):
+    for _, (at, item) in sorted(
+        enumerate(plan), key=lambda t: (t[1][0], t[0]), reverse=True
+    ):
         ref = f"![{item['alt']}]({rel}/{item['image']})".replace(os.sep, "/")
         block = ["", ref, ""]
         pos = at + 1 if item["position"] == "after" else at
