@@ -21,10 +21,22 @@ bad() { echo "  ❌ $1"; echo "     $2"; FAIL=$((FAIL+1)); }
 DEST=skills/md2publish-cover/shared
 
 # 真实工作区里那份 vendor 副本的指纹。跑完要原样，证明沙箱确实隔离。
+#
+# 探针文件必须真的存在：不存在时 before 和 after 都会落到同一个 "缺失"，
+# 两条隔离断言于是空转通过——它们号称在看的那个文件根本没被看过。实测过：
+# 把 REAL_PROBE2 指向一个不存在的路径，整个脚本照样打「通过 12 项，失败 0 项」。
 REAL_PROBE="$REPO/$DEST/scripts/compress.py"
-REAL_BEFORE=$(cksum < "$REAL_PROBE" 2>/dev/null || echo "缺失")
-
 REAL_PROBE2="$REPO/skills/md2publish-diagram/shared/scripts/svg2raster.py"
+for probe in "$REAL_PROBE" "$REAL_PROBE2"; do
+  if [[ ! -f "${probe}" ]]; then
+    # 当场退出，别往下跑：探针没了，后面那两条隔离断言的 before / after 会双双
+    # 落到 "缺失" 而打出 ✅，一份既报错又报通过的输出比只报错更难判读。
+    bad "隔离探针文件不存在，隔离断言会空转" "${probe}"
+    exit 1
+  fi
+done
+
+REAL_BEFORE=$(cksum < "$REAL_PROBE" 2>/dev/null || echo "缺失")
 REAL_BEFORE2=$(cksum < "$REAL_PROBE2" 2>/dev/null || echo "缺失")
 
 SANDBOX=$(mktemp -d)
