@@ -80,7 +80,22 @@ def check_sidecar_args(args) -> None:
     argparse 的 required=True 做不到这件事：cover 必须有 preset，diagram 必须没有。
     放任 diagram 传 preset 不报错的话，照抄 cover 命令的人会得到一份声称走过
     preset 链路、实际根本没有的 sidecar。
+
+    另外两件 argparse 也拦不住的事，一并在这里挡掉：
+    - `--image ""`：argparse 认为它"给了"，而 Path("") 是当前目录、exists() 为真，
+      于是 sidecar() 里"图片不存在"那道提示放它过去，最后炸在 with_suffix() 上。
+    - 拼错的 archetype：分支逻辑只认 diagram，其余一律当 AI 支路放行，于是
+      `--archetype covr` 会写出一份 archetype 是乱码的 sidecar，rc=0。
     """
+    if not args.image:
+        raise a.AssetError(
+            "--image 不能为空：空串会被解析成当前目录，"
+            "既绕过'图片不存在'的检查，也算不出 sidecar 该叫什么名字"
+        )
+    if args.archetype not in a.ARCHETYPES:
+        raise a.AssetError(
+            f"未知 archetype: {args.archetype}；可选 {a.ARCHETYPES}"
+        )
     ai_only = (
         ("--preset", args.preset),
         ("--model", args.model),

@@ -176,5 +176,59 @@ else
 fi
 
 echo
+echo "== sidecar：输入本身的校验（空 --image / 未知 archetype） =="
+
+# 空 --image：Path("") 会解析成 cwd（一个目录），exists() 返回 True，于是
+# "图片不存在" 那道中文提示形同虚设，最后在 with_suffix(".json") 上抛裸 traceback。
+# 这条断言钉的是"报错要干净"，所以必须同时否掉 Traceback——只判 rc≠0 的话，
+# 抛栈退出 1 也算通过，等于什么都没测。
+out=$(python3 artifacts.py sidecar \
+  --image "" \
+  --platform wechat --archetype cover --preset editorial-warm \
+  --provider openai --model gpt-image-2 \
+  --prompt-file prompts/wechat/00-cover.md \
+  --brief-file briefs/wechat/00-cover.md \
+  --alt-text "暖色调编辑风封面" 2>&1)
+rc=$?
+if [[ ${rc} -ne 0 ]] && ! grep -q 'Traceback' <<<"${out}" && grep -q -- '--image' <<<"${out}"; then
+  ok "空 --image 被干净拒绝（不抛 traceback）"
+else
+  bad "空 --image 没被干净拒绝" "rc=${rc} out=${out}"
+fi
+
+# 未知 archetype：拼错的非 diagram archetype 会一路走到底，写出一份 archetype
+# 是乱码的 sidecar。断言同时钉两件事：硬失败，且**没有产物落地**——只判 rc
+# 的话，"先写文件再报错" 也会通过。
+rm -f "$TMP/exists.json"
+out=$(python3 artifacts.py sidecar \
+  --image "$TMP/exists.png" \
+  --platform wechat --archetype covr --preset editorial-warm \
+  --provider openai --model gpt-image-2 \
+  --prompt-file prompts/wechat/00-cover.md \
+  --brief-file briefs/wechat/00-cover.md \
+  --alt-text "暖色调编辑风封面" 2>&1)
+rc=$?
+if [[ ${rc} -ne 0 ]] && grep -q '未知 archetype' <<<"${out}" && [[ ! -f "$TMP/exists.json" ]]; then
+  ok "拼错的 archetype 被拒绝，且没留下乱码 sidecar"
+else
+  bad "拼错的 archetype 写出了 sidecar" "rc=${rc} out=${out} sidecar=$([[ -f "$TMP/exists.json" ]] && echo 有 || echo 无)"
+fi
+
+# 合法 archetype 不能被这道新校验误伤（ARCHETYPES 里的每一个都过一遍太重，
+# 取一个本测试其余部分没用到的：infographic）。
+out=$(python3 artifacts.py sidecar \
+  --image "$TMP/exists.png" \
+  --platform wechat --archetype infographic --preset editorial-warm \
+  --provider openai --model gpt-image-2 \
+  --prompt-file prompts/wechat/00-cover.md \
+  --brief-file briefs/wechat/00-cover.md \
+  --alt-text "暖色调编辑风封面" 2>&1)
+if [[ $? -eq 0 ]]; then
+  ok "合法 archetype（infographic）未被新校验误伤"
+else
+  bad "新校验拦住了合法 archetype" "${out}"
+fi
+
+echo
 echo "通过 $PASS 项，失败 $FAIL 项"
 [[ $FAIL -eq 0 ]]
