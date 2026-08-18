@@ -201,7 +201,9 @@ def rasterize(svg: Path, out: Path, aspect: str, width: int, backend: str | None
             )
         order = [backend]
     else:
-        order = [b for b in ("rsvg-convert", "magick", "chrome") if b in available_backends()]
+        # available_backends() 自己就按优先级返回（rsvg-convert → magick → chrome），
+        # 直接用它，别再抄一份顺序：抄一份就多一个会跟它跑偏的真相源。
+        order = available_backends()
 
     if not order:
         raise RasterError(

@@ -103,8 +103,9 @@ def build(source: Path, insertions: list[dict], assets_dir: Path, out: Path) -> 
     # 条 insertion 共用同一个 offset 时（同一个锚点、同一个 position），处理顺序
     # 必须是原始索引**从大到小**——让写在 insertions.json 后面的先处理、写在
     # 前面的后处理——这样"后处理的排到前面"这条插入机制才会把顺序转回和
-    # insertions.json 一致。只按 offset 排序不指定 tie-break 时，同 offset 两项
-    # 的处理顺序不受控，插入机制会把它们在正文里的先后顺序悄悄颠倒。
+    # insertions.json 一致。不指定 tie-break 时顺序并非"不受控"——Python 的排序是
+    # 稳定的，同 offset 两项会按原始索引**从小到大**处理，这个顺序是确定的；问题在于
+    # 它确定地错：上面那条插入机制会把先处理的顶到后面，于是正文里的先后正好颠倒。
     result = list(lines)
     for _, (at, item) in sorted(
         enumerate(plan), key=lambda t: (t[1][0], t[0]), reverse=True
@@ -121,7 +122,7 @@ def main() -> int:
     ap.add_argument("--source", required=True, help="原文，只读，永不修改")
     ap.add_argument("--insertions", required=True, help="agent 写的插入计划 JSON")
     ap.add_argument("--assets-dir", required=True, help="图片所在目录")
-    ap.add_argument("--out", required=True, help="输出路径，通常是 <文章目录>/article.illustrated.md")
+    ap.add_argument("--out", required=True, help="输出路径，由 --source 推导：同目录下把 .wechat.md 换成 .illustrated.md")
     ap.add_argument("--force", action="store_true", help="覆盖已存在的 --out")
     ap.add_argument("--dry-run", action="store_true", help="只打印 diff，不写文件")
     args = ap.parse_args()
