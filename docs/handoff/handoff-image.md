@@ -1,6 +1,6 @@
 # Handoff：图片能力线（cover / visuals / diagram）
 
-最后更新：2026-08-14
+最后更新：2026-08-19
 
 本文只管**图片这条线**。主题库与 HTML 生成那条线在 `docs/handoff/handoff.md`，两者互不重叠，别读错。
 
@@ -9,9 +9,9 @@
 1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。**三期做完之后，这个目标已经达成**——三个 skill 全部建成。
 2. **一期、二期 A、二期 B、三期全部完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover`。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。三期建成 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链），并把 `visuals` 接进 `md2publish-article` 的上游；`scripts/check.sh` 从二期的 9 项长大到**当前的 12 项**。二期 A、二期 B、三期**都跑过整支评审并已执行完毕**：二期 A 是 1 Critical + 6 Important，二期 B 是 4 Important，三期是 **0 Critical + 6 Important**（全部跨组件问题，逐任务评审看不见）；三期评审详情见第六节「三期」小节与第八节。
 3. **手动付费 smoke 现在欠两次，不是一次**：`cover`（二期起欠）与 `visuals`（三期新欠）各有一次"真调 provider 生一张图"的 smoke 从未跑过——本机没有任何 provider 凭证。`diagram` 是唯一的例外，它零成本，端到端**已经真跑过**。三者不要混着说，完整口径见第六节。
-4. **下一步**：`bilibili.yaml` 仍然故意未做（B 站画幅属未验证的外部知识，见第六节末尾）；配好凭证后补跑两次付费 smoke；除此之外 spec 定义的三期范围已经做完，没有排定中的下一期。
+4. **下一步**：三期留下的 6 项边角**已在 2026-08-19 全部清掉**（含一次否定断言扫尾，逐条见第六节「三期」小节末尾）。仍然欠着的只剩两样，且都不是本机能推进的：`bilibili.yaml`（B 站画幅属未验证的外部知识，见第六节末尾）、配好凭证后要补跑的两次付费 smoke（`cover` + `visuals`）。**spec §15 定义的范围到三期为止，没有排定中的下一期。**
 5. 动手前先跑第二节的 `./scripts/check.sh`，全绿（或按 SKIPPED 语义部分跳过）才继续。
-6. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。三期**没有留下已知未修缺陷**——两个真 bug（见第八节）都在收尾前修掉并重新验证过。三期整支评审之后另外裁定了 **6 项**"可以留到下一期"的已知项（非缺陷，是评审时明确决定不在本期修的边角情况），清单见第六节「三期」小节末尾。
+6. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。三期**没有留下已知未修缺陷**——两个真 bug（见第八节）都在收尾前修掉并重新验证过。三期整支评审之后另外裁定了 **6 项**"可以留到下一期"的已知项（非缺陷，是评审时明确决定不在本期修的边角情况）——**这 6 项已在 2026-08-19 全部做完**，逐条的修法与验证方式、以及同批做的否定断言扫尾结果，见第六节「三期」小节末尾。
 7. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
 8. 设计与计划不在本文里，见**第零节**的文档地图——**不要**在本文重复它们的内容。
 
@@ -124,9 +124,9 @@ git log --oneline origin/main..main                # 还没推上去的
 3. 平台 × archetype × preset 矩阵（8 组合）
 4. 压缩不超限（8 项）
 5. preflight + config 自检（21 项）
-6. 产物落盘规则：重跑保护 + sidecar（18 项——三期 T1 加了 diagram 支路的 6 项断言，从 12 变 18）
-7. **Markdown 回写门**（13 项，三期新增，对应 `test-writeback.sh`；覆盖单图与多图 back-to-front 插入顺序）
-8. **SVG→位图降级链**（11 项，三期新增，对应 `test-svg2raster.sh`；本机 `rsvg-convert` / `magick` / Chrome 三后端齐全时的数字，缺后端的机器上会少几项）
+6. 产物落盘规则：重跑保护 + sidecar（**21 项**——三期 T1 加 diagram 支路的 6 项断言从 12 变 18；三期之后的边角清理批次又加了输入校验的 3 项：空 `--image`、拼错的 `--archetype`，以及一条「合法 archetype 没被新校验误伤」的对照）
+7. **Markdown 回写门**（**14 项**，三期新增，对应 `test-writeback.sh`；覆盖单图与多图 back-to-front 插入顺序，第 14 项是三期整支评审第 5 条补的「同锚点两图不被静默颠倒」）
+8. **SVG→位图降级链**（**12 项**，三期新增，对应 `test-svg2raster.sh`；本机 `rsvg-convert` / `magick` / Chrome 三后端齐全时的数字，缺后端的机器上会少几项并 exit 2 报 SKIPPED。第 12 项是三期整支评审第 6 条补的「沙箱里第三方 import 确实失败」）
 9. imagegen 引擎（`bun test`，97 pass / 0 fail / 12 files）
 10. **diagram 端到端（零成本）**（7 项，三期新增，对应 `scripts/test-diagram-e2e.sh`；本机三后端齐全时真跑并全绿，三者都缺时整项 **SKIPPED**，见下）
 11. shared 漂移检查（`md2publish-cover/shared/`、`md2publish-visuals/shared/`、`md2publish-diagram/shared/` 与 `_shared/` 是否一致，三期起从 1 个 skill 扩到 3 个）
@@ -177,17 +177,22 @@ python3 skills/md2publish-article/scripts/test-theme-lib.py   # 期望：ok：0 
 
 **`diagram` 不走 preset / prompt，这是它与另两个 skill 唯一的结构性差异。** `artifacts.py sidecar --archetype diagram` 不接受 `--preset` / `--model` / `--prompt-file` / `--brief-file`，传了就硬失败；`compose_prompt.py` 也不会被 diagram 调用。它的语义层产物直接是 SVG 本身（agent 手写），机械层只有光栅化（`svg2raster.py`）。别把另两个 skill 步骤 4「渲染 prompt」的心智模型套到它头上。
 
-**`svg2raster.py` 只用标准库，不 import `yaml`、不 import `asset_lib`。** 理由：它的降级链测试要在 PATH 遮蔽沙箱里用 `/usr/bin/python3` 跑（见第四节），任何第三方 import 都会让那组测试无法进行，逼着往生产代码里塞"假装某后端不存在"的测试后门。**但这道护栏本身有个洞，记在第四节末尾——沙箱没有真正屏蔽住第三方包。**
+**`svg2raster.py` 只用标准库，不 import `yaml`、不 import `asset_lib`。** 理由：它的降级链测试要在 PATH 遮蔽沙箱里用 `/usr/bin/python3` 跑（见第四节），任何第三方 import 都会让那组测试无法进行，逼着往生产代码里塞"假装某后端不存在"的测试后门。这道护栏三期一度有个洞（沙箱没屏蔽住用户级 site-packages），**已在三期整支评审的修复波里补上并加断言钉死**，来龙去脉见第四节。
 
 ## 四、环境事实（都是实测的，会咬人）
 
 - **Python 是 3.9.13**（anaconda3）。`dict | None` 这类 PEP 604 注解在 3.9 上 import 即 `TypeError`，所有脚本靠 `from __future__ import annotations` 工作。**新增脚本别漏这行。**
 - PyYAML 6.0 已装，是本层唯一的第三方依赖。
-- **`mv` 在这台机器上是交互式的**（覆盖时会停下来等 y/n，在自动化里表现为卡死）。脚本里用 `\cp -f`，别用 `mv`。
+- **`mv` 和 `cp` 在这台机器上都是交互式的**（覆盖已存在的目标时会停下来等 y/n，在自动化里表现为卡死）。脚本里用 `\cp -f`（反斜杠绕过 alias），别用裸 `mv` / 裸 `cp`。
+  `cp` 这一条是三期之后的边角清理批次实测补上的：做变异自证时用 `cp <备份> artifacts.py` 回滚，命令卡在
+  `overwrite artifacts.py? (y/n [n])` 上直到超时被移到后台，而**卡住之前那一步的变异结果已经打印出来了**，
+  很容易被误读成「这轮测试跑完了」。判断输出完整与否，看结尾有没有那行 `通过 N 项，失败 M 项`，别看有没有内容。
+  连带的第二个坑：`\cp -f` 的目标目录不存在时它只报一行 `No such file or directory` 就走，**回滚静默失败**，
+  下一轮变异于是叠在上一轮之上，两条断言一起红，看起来像「断言没有区分能力」。变异自证的每一次回滚都要验一下真的回滚了。
 - **本仓库没有 CI、没有 git hooks、没有 `.github/`。** 所有测试靠手跑。`skills/_shared/README.md` 里那句"改完必须跑一遍"是**文档约束，不是自动闸门**——不要在任何文档里把它写成强制。
 - **可能有另一个 agent 同时在这个仓库里工作**（一期执行期间就有，它在做主题普查那条线）。因此：只用显式路径 `git add`，**绝不 `git add -A` / `git commit -a`**；切分支前先看 `git status`；算"本次改了什么"时不要拿 `main` 当基线，用本次第一个 commit 的父提交。
 - **这台机器的 bash 是 GNU bash 3.2.57。** `$var` 后面紧跟全角标点（`）`、`：`等）会破坏变量名解析，在 `set -u` 下直接报错。二期 A 已踩过两次，三期又踩了第三次：`scripts/check.sh` 的 `run()` 里 SKIPPED 分支最初写的是裸 `echo "  ⊘ $label：SKIPPED"`，只有真的产生一次跳过（三个光栅化后端都不可用）才会触发 `line 21: label�: unbound variable`，本机三后端齐全，第一次没跑出这条路径，是专门造了一次"三后端全缺"的场景才炸出来的。写含中文提示的脚本时一律用 `${var}`，别用裸 `$var`；**光靠本机常规跑测试测不出这类 bug，得刻意触发那条平时不走的分支**。
-- **`/usr/bin/python3` 是 3.9.6，`svg2raster.py` 的 PATH 遮蔽沙箱测试（`test-svg2raster.sh`）靠它验证"只用标准库"这条约束。** 但这道护栏有个洞：沙箱只清空了 `PATH`（`env -i PATH=... HOME=...`），**没有清空用户级 site-packages**——本机 `~/Library/Python/3.9/lib/python/site-packages` 装着 PyYAML 6.0.1，Python 按保留下来的 `HOME` 仍会把它加进 `sys.path`。实测验证：临时给 `svg2raster.py` 加一行 `import yaml` 后用 `/usr/bin/python3 --check` 跑，**不会崩，正常返回 exit 0**。也就是说"只用标准库"这条约束目前**不受这组沙箱测试保护**——现在的代码确实没有第三方 import（读代码可确认），但如果哪天有人加了一行 `import yaml`，这组测试不会报错，因为本机 `/usr/bin/python3` 实际找得到那个包。要让沙箱真正防住，两处 `env -i` 都需要加 `PYTHONNOUSERSITE=1`；本条只记录发现，未动代码（本任务只改文档）。
+- **`/usr/bin/python3` 是 3.9.6，`svg2raster.py` 的 PATH 遮蔽沙箱测试（`test-svg2raster.sh`）靠它验证「只用标准库」这条约束。**这里曾有个洞，**现已修好；记下来是因为这类「沙箱其实没隔离」的假象很容易再犯**：沙箱最初只清空了 `PATH`（`env -i PATH=... HOME=...`），**没有清空用户级 site-packages**——本机 `~/Library/Python/3.9/lib/python/site-packages` 装着 PyYAML 6.0.1，Python 按保留下来的 `HOME` 仍会把它加进 `sys.path`，于是给 `svg2raster.py` 临时加一行 `import yaml` 也不会崩。三期整支评审第 6 条修掉了它：三处 `env -i` 全部加上 `PYTHONNOUSERSITE=1`，并补了一条「沙箱里 `import yaml` 必须失败」的断言把隔离本身钉死（`test-svg2raster.sh` 因此从 11 项变 12 项）。**现在这条约束是真受保护的**，别再照抄旧结论说它没人守。
 - **`git commit` 的 `--` 必须排在 `-m` / `-F` 之后。** `git commit -- <路径> -m "msg"` 会把 `-m` 当成 pathspec 报错，正确形式是 `git commit -F <消息文件> -- <路径>`。三期计划的 Global Constraints 提前点出了这个坑并把九个任务的提交步骤都按正确形式写好，本期因此没有一次真的踩雷——记在这里是防止这条护栏因为"从没人踩过"在下一期被漏抄。
 - **vendor 进来的 `imagegen/` 与上游只差两行**，都在 `main.ts`：`loadProviderModule()` 里 `codex-cli` 分支改成硬失败（D1），`MAX_ATTEMPTS` 从 `3` 改成 `2`（D2）。除这两处外逐字与上游一致，可直接 `diff`。细节与重新同步步骤见 `skills/_shared/scripts/imagegen/VENDOR.md`。
 
@@ -351,14 +356,40 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 
 **评审指出的一个可复用模式**：第 1、2、3 条同源——三期都把"正向引用"改对了（这个 skill 交接给那个 skill），漏掉了"反向或否定断言"（上游实际产出什么；其余 skill 不需要什么）。评审建议：下一期的扫尾任务里加一遍针对否定断言的 grep——`不需要` / `其余` / `只有` / `尚未`。
 
-**留给下一期的已知项（都已裁定"可以留到下一期"，不是遗漏）**：
+**三期留下的 6 项边角：已全部清掉（2026-08-19）。** 它们当时被裁定为"可以留到下一期"的非缺陷，
+现在做完了，逐条与对应的验证方式如下（`git log --oneline -- skills/_shared/scripts scripts/test-sync-drift.sh`
+能捞到这三个 commit）：
 
-- `svg2raster.py` 的 `rasterize()` 里 `available_backends()` 每个元素调一次（3 次），应提到循环外。`lru_cache` 让它不贵，只是冗余。
-- `artifacts.py` 收到 `--image ""` 时，`Path("").exists()` 解析成 cwd 返回 `True`，绕过「图片不存在」的中文提示，最终在 `image.with_suffix(".json")` 抛未捕获的 `ValueError` traceback。仍是硬失败、不会静默产出错 sidecar，但报错不干净。一行可修（`if not args.image: raise a.AssetError(...)`）。
-- `artifacts.py` 不校验 `--archetype` 是否在 `asset_lib.ARCHETYPES` 里——拼错的非 diagram archetype 配上 preset 会写出一份 archetype 是乱码的 sidecar。既有问题，非三期引入。
-- `writeback.py` 的 `--out` 帮助文案里还留着旧的字面量示例 `<文章目录>/article.illustrated.md`（措辞是"通常是"、不是契约断言，非阻塞）。
-- `test-sync-drift.sh` 的第二个隔离探针在文件本就缺失时会空转通过（与第一个探针同形，既有模式）。
-- `writeback.py` 里 tie-break 那处注释说"同 offset 两项的处理顺序不受控"，用词偏了——实际是确定的，只是那个确定的顺序仍会让文档里颠倒。
+| 原条目 | 怎么修的 | 怎么验的 |
+|---|---|---|
+| `svg2raster.py` 的 `rasterize()` 里 `available_backends()` 每元素调一次（3 次） | 直接用 `available_backends()` 的返回值，删掉那份重复的优先级元组——它是同一个顺序的第二个真相源 | 行为不变，靠既有 `test-svg2raster.sh` 12 项（含两条真降级断言）兜底 |
+| `artifacts.py` 收 `--image ""` 抛裸 `ValueError` traceback | `check_sidecar_args` 开头加空值校验 | 新断言同时否掉 `Traceback`——只判 rc≠0 的话抛栈退出 1 也算通过 |
+| `artifacts.py` 不校验 `--archetype` 在不在 `asset_lib.ARCHETYPES` 里 | 同处按权威清单校验 | 新断言同时钉"没留下乱码 sidecar"——只判 rc 的话"先写文件再报错"也会通过 |
+| `writeback.py` 的 `--out` 帮助文案留着旧字面量 | 改成写推导规则 | 措辞，无断言 |
+| `test-sync-drift.sh` 隔离探针在文件缺失时空转通过 | 两个探针都加存在性校验并当场 `exit 1` | 见下面单独一条 |
+| `writeback.py` tie-break 注释说顺序"不受控" | 改成写实际机制（稳定排序 → 顺序确定、但确定地错） | 措辞，无断言 |
+
+**这批里唯一值得单独记的**：`test-sync-drift.sh` 的隔离探针那条，交接文档原本只点了**第二个**探针，
+但两个探针同形——`$(cksum < "$probe" 2>/dev/null || echo "缺失")` 在文件本就不存在时 before / after
+双双落到 `"缺失"`，断言空转。**只修被点名的那一个，正是第八节第 9 条那个物种。**先实测证明了洞是真的
+（把 `REAL_PROBE2` 指向不存在的路径，整支照样打两个 ✅ 和「通过 12 项，失败 0 项」），两个一起修。
+修法选了"当场 `exit 1`"而不是只记一笔 FAIL：探针没了，后面那两条隔离断言仍会打 ✅，
+**一份既报 ❌ 又报 ✅ 的输出比只报错更难判读**。
+
+**顺带做的否定断言扫尾**（三期整支评审开的方子：grep `不需要` / `其余` / `只有` / `尚未`）。
+`skills/` 与 spec 里的否定断言逐条核过，**都还成立**；漂移全在本文自己身上，共四处，已一次改完：
+
+1. 第二节第 6 项：产物落盘规则 18 → **21**（本批新增 3 条断言）。
+2. 第二节第 7 项：Markdown 回写门 13 → **14**。
+3. 第二节第 8 项：SVG→位图降级链 11 → **12**。
+4. 第三节末尾与第四节：`svg2raster.py`"只用标准库"那道护栏还写着"有个洞""未动代码"。
+
+**第 2、3、4 条与本批的改动无关——它们是三期整支评审的修复波改了测试却没回头改基线表。**
+修复波补的断言（评审第 5 条的同锚点用例、第 6 条的 `PYTHONNOUSERSITE=1` + 沙箱隔离断言）
+各自让对应脚本多了一项，而第二节那张表和第三、四节的结论停在修复之前。
+**教训与第八节第 9 条同源，但换了个入口：这次不是"同一事实散落在多份文档"，
+而是"改了代码却没回头改那份记录它的表"。收尾时除了 grep 否定断言，还该把基线表里每个数字
+重新跑一遍对齐——数字是最容易悄悄过期的一种断言，而且它过期时看起来完全正常。**
 
 **一期故意没做、别当成遗漏的**：`bilibili.yaml`（同上）、vendor 脚本、`imagegen/`、`costs.yaml`。清单见 `skills/_shared/README.md` 末节。
 
