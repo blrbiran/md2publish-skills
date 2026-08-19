@@ -9,7 +9,7 @@
 1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。**三期做完之后，这个目标已经达成**——三个 skill 全部建成。
 2. **一期、二期 A、二期 B、三期全部完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover`。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。三期建成 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链），并把 `visuals` 接进 `md2publish-article` 的上游；`scripts/check.sh` 从二期的 9 项长大到**当前的 12 项**。二期 A、二期 B、三期**都跑过整支评审并已执行完毕**：二期 A 是 1 Critical + 6 Important，二期 B 是 4 Important，三期是 **0 Critical + 6 Important**（全部跨组件问题，逐任务评审看不见）；三期评审详情见第六节「三期」小节与第八节。
 3. **手动付费 smoke 现在欠两次，不是一次**：`cover`（二期起欠）与 `visuals`（三期新欠）各有一次"真调 provider 生一张图"的 smoke 从未跑过——本机没有任何 provider 凭证。`diagram` 是唯一的例外，它零成本，端到端**已经真跑过**。三者不要混着说，完整口径见第六节。
-4. **下一步**：三期留下的 6 项边角**已在 2026-08-19 全部清掉**（含一次否定断言扫尾，逐条见第六节「三期」小节末尾）。仍然欠着的只剩两样，且都不是本机能推进的：`bilibili.yaml`（B 站画幅属未验证的外部知识，见第六节末尾）、配好凭证后要补跑的两次付费 smoke（`cover` + `visuals`）。**spec §15 定义的范围到三期为止，没有排定中的下一期。**
+4. **下一步**：三期留下的 6 项边角**已在 2026-08-19 全部清掉**（含一次否定断言扫尾，逐条见第六节「三期」小节末尾）。`bilibili.yaml` 也在同一天落地了（只建模**专栏**，数字标了未核实，见第六节末尾）。**真正还欠着的只剩一样，且不是本机能推进的**：配好凭证后要补跑的两次付费 smoke（`cover` + `visuals`）。**spec §15 定义的范围到三期为止，没有排定中的下一期。**
 5. 动手前先跑第二节的 `./scripts/check.sh`，全绿（或按 SKIPPED 语义部分跳过）才继续。
 6. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。三期**没有留下已知未修缺陷**——两个真 bug（见第八节）都在收尾前修掉并重新验证过。三期整支评审之后另外裁定了 **6 项**"可以留到下一期"的已知项（非缺陷，是评审时明确决定不在本期修的边角情况）——**这 6 项已在 2026-08-19 全部做完**，逐条的修法与验证方式、以及同批做的否定断言扫尾结果，见第六节「三期」小节末尾。
 7. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
@@ -337,7 +337,7 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 3. **两个只有真跑才会暴露的 bug，都在"写了但从没走过"的代码路径上：**
    - `scripts/check.sh` 的 `run()` SKIPPED 分支写的是裸 `$label` 紧跟全角冒号（`echo "  ⊘ $label：SKIPPED"`），bash 3.2.57 + `set -u` 下会把变量名解析坏、报假的 `unbound variable`。本机三个光栅化后端齐全，日常跑测试永远走不到这条分支，只有专门造一次"三后端全缺"的场景才会触发（T7）。
    - `scripts/test-diagram-e2e.sh` 最初写的压缩阈值 `SMALL=20000`，比本机实际光栅化出的原始 PNG（18914 字节）还大，导致 `compress.py` 的"未超限"分支直接生效、返回 `action: "none"`，"强制压缩"那条断言名义上跑了，实际压缩代码路径从未被走到——这同时也是 Important 1（压缩产物没有真正喂给 sidecar）能够藏住的原因：两个假象叠在一起，直到把压缩产物真正串进下游消费（sidecar 的 `image` 字段）才同时暴露（T7）。两处都已修：前者改 `${label}`；后者改用光栅化产物实际字节数的 90% 作为阈值，并补了断言确认压缩代码路径真的被走到。
-4. **`bilibili.yaml` 仍然故意未做**：B 站画幅与文字约定属未验证的外部知识（一期就已留白），三期不猜，需要先分别确认视频封面与专栏头图各自的规格。
+4. **`bilibili.yaml` 三期时仍故意未做**（B 站画幅属未验证的外部知识，一期就已留白）——**2026-08-19 已落地**，口径见下面「bilibili.yaml 落地」一段。
 
 **三期整支评审已执行：0 Critical，6 Important，全部是跨组件问题**——没有一条是逐任务评审能看见的。这是连续第三期证明整支评审不可省（一期不算，那次是 spec 事实核查；二期 A：1 Critical + 6 Important；二期 B：4 Important）。六条依次是：
 
@@ -391,7 +391,30 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 而是"改了代码却没回头改那份记录它的表"。收尾时除了 grep 否定断言，还该把基线表里每个数字
 重新跑一遍对齐——数字是最容易悄悄过期的一种断言，而且它过期时看起来完全正常。**
 
-**一期故意没做、别当成遗漏的**：`bilibili.yaml`（同上）、vendor 脚本、`imagegen/`、`costs.yaml`。清单见 `skills/_shared/README.md` 末节。
+**bilibili.yaml 落地（2026-08-19）——两个决定都是用户裁的，别当成可以随手改的实现细节**：
+
+- **只建模「专栏」，没建模「视频投稿」。** B 站的两种封面规格不同（专栏头图 3:2 中心裁切；
+  视频封面 1146×717 ≈ 16:10、≤5MB），而 schema **每个平台只有一个 `cover` 槽**，两者装不下。
+  要同时支持，得往 `asset_lib.ARCHETYPES` 里加新 archetype——那会强制每个平台补槽定义、
+  矩阵测试再涨一轮，是 spec 改动，不是加个 yaml。spec 的未决项 5 已按这个结论改写。
+- **数字未经官方核实，且这件事标在三处**：yaml 顶部、每个槽的 `unverified` 注释、
+  `_shared/README.md` 的「还没做的事」。来源是第三方教程与 B 站用户专栏，不是创作中心文档。
+  专栏封面的体积上限没查到，借了视频封面的 5MB 作**保守**值——`max_bytes` 偏小只是多压一道，
+  偏大会在上传时被拒，所以取小不取大。谁拿到实际提示，回来改并删掉对应的 `unverified`。
+
+**加一个平台不是加一个文件。** 本次一并改了 5 处断言过平台清单的地方，其中一处是承重的：
+`md2publish-visuals/SKILL.md` 原本写着「本仓库只有微信与小红书两个 platform profile，
+用户说 B 站时**如实说没有该平台的画幅规格**，别猜」——`bilibili.yaml` 一落地这句话就是假的，
+而它恰好是 agent 面对用户提问时会照着答的那句。其余四处：两个 SKILL.md 的 **frontmatter
+`description`**（它们枚举平台，且直接影响 skill 被不被选中）、`cover` 的「没有发布链路」那句、
+`diagram` 的体积上限清单、`skills/README.md` 的封面画幅列。
+**`description` 那两处是差点漏掉的**——第一轮 grep 的输出被 `head -25` 截断了，
+是后来 harness 回显 skill 描述时才撞见的。**扫尾 grep 别带 `head`。**
+
+`test-asset-schema.sh` 把平台清单钉死了，加文件后**正确地翻红**（这是它该有的行为，不是障碍），
+已改成钉三个；矩阵测试自己发现平台，组合数 8 → **12**，全绿。
+
+**一期故意没做、别当成遗漏的**：vendor 脚本、`imagegen/`、`costs.yaml`。清单见 `skills/_shared/README.md` 末节。
 
 ## 七、建议调用的 skills
 
