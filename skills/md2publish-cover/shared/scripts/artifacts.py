@@ -86,6 +86,9 @@ def check_sidecar_args(args) -> None:
       于是 sidecar() 里"图片不存在"那道提示放它过去，最后炸在 with_suffix() 上。
     - 拼错的 archetype：分支逻辑只认 diagram，其余一律当 AI 支路放行，于是
       `--archetype covr` 会写出一份 archetype 是乱码的 sidecar，rc=0。
+    - 拼错的 platform：同一个物种。sidecar() 全程不碰 platform，只是原样记下来，
+      所以 `--platform bilbili` 一路 rc=0，写出一份平台字段是乱码的 sidecar。
+      sidecar 是这张图唯一的出处记录，乱码要到很久以后才会被发现。
     """
     if not args.image:
         raise a.AssetError(
@@ -95,6 +98,11 @@ def check_sidecar_args(args) -> None:
     if args.archetype not in a.ARCHETYPES:
         raise a.AssetError(
             f"未知 archetype: {args.archetype}；可选 {a.ARCHETYPES}"
+        )
+    platforms = a.list_platforms()
+    if args.platform not in platforms:
+        raise a.AssetError(
+            f"未知 platform: {args.platform}；可选 {platforms}"
         )
     ai_only = (
         ("--preset", args.preset),

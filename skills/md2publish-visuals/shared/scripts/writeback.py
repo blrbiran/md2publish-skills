@@ -122,7 +122,7 @@ def main() -> int:
     ap.add_argument("--source", required=True, help="原文，只读，永不修改")
     ap.add_argument("--insertions", required=True, help="agent 写的插入计划 JSON")
     ap.add_argument("--assets-dir", required=True, help="图片所在目录")
-    ap.add_argument("--out", required=True, help="输出路径，由 --source 推导：同目录下把 .wechat.md 换成 .illustrated.md")
+    ap.add_argument("--out", required=True, help="输出路径（本脚本不推导，必填）。调用方按 ${SOURCE%.wechat.md}.illustrated.md 算；source 已是 .illustrated.md 时两者同名，要加 --force")
     ap.add_argument("--force", action="store_true", help="覆盖已存在的 --out")
     ap.add_argument("--dry-run", action="store_true", help="只打印 diff，不写文件")
     args = ap.parse_args()

@@ -176,7 +176,7 @@ else
 fi
 
 echo
-echo "== sidecar：输入本身的校验（空 --image / 未知 archetype） =="
+echo "== sidecar：输入本身的校验（空 --image / 未知 archetype / 未知 platform） =="
 
 # 空 --image：Path("") 会解析成 cwd（一个目录），exists() 返回 True，于是
 # "图片不存在" 那道中文提示形同虚设，最后在 with_suffix(".json") 上抛裸 traceback。
@@ -212,6 +212,25 @@ if [[ ${rc} -ne 0 ]] && grep -q '未知 archetype' <<<"${out}" && [[ ! -f "$TMP/
   ok "拼错的 archetype 被拒绝，且没留下乱码 sidecar"
 else
   bad "拼错的 archetype 写出了 sidecar" "rc=${rc} out=${out} sidecar=$([[ -f "$TMP/exists.json" ]] && echo 有 || echo 无)"
+fi
+
+# 未知 platform：archetype 那条的对称孪生。sidecar() 全程不碰 platform，只是原样
+# 记下来，所以拼错一路 rc=0，写出一份平台字段是乱码的出处记录。断言同样钉两件事：
+# 硬失败，且没有产物落地。用 bilbili（少一个 i）而不是随便一串字符——真实的拼错
+# 长这样，而且它足够接近合法值，能顺带证明校验不是靠"看着不像平台名"蒙对的。
+rm -f "$TMP/exists.json"
+out=$(python3 artifacts.py sidecar \
+  --image "$TMP/exists.png" \
+  --platform bilbili --archetype cover --preset editorial-warm \
+  --provider openai --model gpt-image-2 \
+  --prompt-file prompts/wechat/00-cover.md \
+  --brief-file briefs/wechat/00-cover.md \
+  --alt-text "暖色调编辑风封面" 2>&1)
+rc=$?
+if [[ ${rc} -ne 0 ]] && grep -q '未知 platform' <<<"${out}" && [[ ! -f "$TMP/exists.json" ]]; then
+  ok "拼错的 platform 被拒绝，且没留下乱码 sidecar"
+else
+  bad "拼错的 platform 写出了 sidecar" "rc=${rc} out=${out} sidecar=$([[ -f "$TMP/exists.json" ]] && echo 有 || echo 无)"
 fi
 
 # 合法 archetype 不能被这道新校验误伤（ARCHETYPES 里的每一个都过一遍太重，
