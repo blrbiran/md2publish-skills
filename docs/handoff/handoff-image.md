@@ -9,10 +9,10 @@
 1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。**三期做完之后，这个目标已经达成**——三个 skill 全部建成。
 2. **一期、二期 A、二期 B、三期全部完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover`。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。三期建成 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链），并把 `visuals` 接进 `md2publish-article` 的上游；`scripts/check.sh` 从二期的 9 项长大到**当前的 12 项**。二期 A、二期 B、三期、以及三期之后那批边角清理 + bilibili，**都跑过整支评审并已执行完毕**：二期 A 是 1 Critical + 6 Important，二期 B 是 4 Important，三期是 **0 Critical + 6 Important**，本批是 **0 Critical + 6 Important + 7 Minor**（每一次的 Important 都是跨组件问题，逐任务评审与自查都看不见）；三期评审详情见第六节「三期」小节与第八节，本批见第六节「本批整支评审」小节。
 3. **手动付费 smoke 现在欠两次，不是一次**：`cover`（二期起欠）与 `visuals`（三期新欠）各有一次"真调 provider 生一张图"的 smoke 从未跑过——本机没有任何 provider 凭证。`diagram` 是唯一的例外，它零成本，端到端**已经真跑过**。三者不要混着说，完整口径见第六节。
-4. **下一步**：三期留下的 6 项边角**已在 2026-08-19 全部清掉**（含一次否定断言扫尾，逐条见第六节「三期」小节末尾）。`bilibili.yaml` 也在同一天落地了（只建模**专栏**，数字标了未核实，见第六节末尾）。那批当时欠的**整支评审也已补跑并全部修完**（0C + 6I + 7 Minor，见第六节「本批整支评审」小节）。**真正还欠着的只剩一样，且不是本机能推进的**：配好凭证后要补跑的两次付费 smoke（`cover` + `visuals`）。**spec §15 定义的范围到三期为止，没有排定中的下一期。**
+4. **下一步：没有排定中的活。** spec §15 定义的范围到三期为止。三期留下的 6 项边角**已在 2026-08-19 全部清掉**（含一次否定断言扫尾，逐条见第六节「三期」小节末尾）；`bilibili.yaml` 同日落地（只建模**专栏**，数字标了未核实）；那批当时欠的**整支评审也已补跑，6 个 Important + 6 个 Minor 全部修完并重跑过基线**（见第六节「本批整支评审」小节）。**真正还欠着的只剩一样，且不是本机能推进的**：配好凭证后要补跑的两次付费 smoke（`cover` + `visuals`）。除此之外，接手的人要么是被新需求叫来的，要么是来清第六节末尾那条「有意跳过」的（另一条线的 `docs/handoff/handoff.md:116`，得等那条线的 agent 空出来）。
 5. 动手前先跑第二节的 `./scripts/check.sh`，全绿（或按 SKIPPED 语义部分跳过）才继续。
 6. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。三期**没有留下已知未修缺陷**——两个真 bug（见第八节）都在收尾前修掉并重新验证过。三期整支评审之后另外裁定了 **6 项**"可以留到下一期"的已知项（非缺陷，是评审时明确决定不在本期修的边角情况）——**这 6 项已在 2026-08-19 全部做完**，逐条的修法与验证方式、以及同批做的否定断言扫尾结果，见第六节「三期」小节末尾。
-7. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
+7. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。**本文自己就是这条规则的原因**：本文在 git 里，改本文就要提交，提交就把 `HEAD` 往前推，所以任何「当前 HEAD 是 X」「本地领先 N 个」的写法在写下的**下一秒**就过期了。本文因此只写**怎么查**和**不变的历史锚点**（已完成的期的 commit message / 计划文件路径），不写进度类的 SHA 与计数。
 8. 设计与计划不在本文里，见**第零节**的文档地图——**不要**在本文重复它们的内容。
 
 ## 零、文档地图
@@ -95,9 +95,19 @@ git log --oneline origin/main..main                # 还没推上去的
   B0=$(git log --format=%H --grep='reject empty --image' | tail -1)   # 本批第一个 commit
   git log --oneline "${B0}^..HEAD" -- <下面那串路径>
   ```
-  这条 recipe 实测捞出的就是本批全部 commit。**别记数量**——本文每修订一次就多一个，
-  提交本文这个动作本身就会让任何写死的数字当场过期。本批没有新增 skill 目录，
+  这条 recipe 实测捞出的就是那批全部 commit。**别记数量**——本文每修订一次就多一个，
+  提交本文这个动作本身就会让任何写死的数字当场过期。那批没有新增 skill 目录，
   所以上面那串路径不用补。
+
+  再之后那批**整支评审的修复**（2026-08-19，见第六节「本批整支评审」小节）同样没有计划
+  文件，锚点也用 message：
+  ```bash
+  R0=$(git log --format=%H --grep='symmetric twin of the --archetype guard' | tail -1)
+  git log --oneline "${R0}^..HEAD" -- <上面那串路径>
+  ```
+  **`HEAD` 这一端是活的。** 本文自己就在这串路径里，提交本文这个动作就会把 `HEAD` 往前推，
+  所以「一共几个 commit」这个数在你读到它的时候多半已经不对了，**现查，别记**。
+  这批落成时是三个（机械层修复 / 文档扇出修复 / 本文更新），后续每次修订本文都会加一个。
 
   只看**某一期**时，给同一串路径加上 range。锚点用**那一期的计划文件**去查（别用写死的
   SHA，也别用 `--grep`——各期的任务 commit 没有共同 message 前缀）：
@@ -516,10 +526,31 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 顺带确认了两件**不是**问题的：`skills/_shared/scripts/.ccmem/`（被 `.gitignore` 忽略、也没进
 vendor 清单）；`INDEX.md:58` 与 `skills/README.md:70` 的「不需要」都还成立。
 
+
+**修复的落地状态（这一段是给接手的人对现状用的）**
+
+- **修复自己是三个 commit**（机械层 / 文档扇出 / 本文），不含本文之后的任何修订。
+  怎么捞见第一之二节末尾那条 `R0=...` 的 recipe——**别按数量核对**，本文每改一次就多一个。
+- **落成时重跑过完整基线，是实跑输出**：`./scripts/check.sh` → 「全部通过（12 项）。」
+  （产物落盘规则 21 → **22**，第二节那张表已同步）；
+  `python3 skills/md2publish-article/scripts/test-theme-lib.py` → 「ok：0 条失败」。
+  接手时**自己再跑一遍**，别拿这两行当结论用——中间可能有别的会话动过。
+- **新断言做过变异自证**：删掉 `--platform` 校验后**只有那一条翻红**（`rc=0`、`sidecar=有`，
+  正是真实缺陷形态），其余 21 条仍绿。变异跑在 `mktemp -d` 出来的独立副本里，
+  工作区全程没动——**这样就根本不需要回滚**，也就绕开了第四节那个 `\cp -f` 回滚静默失败的坑。
+  下次做变异自证建议照这个来：改副本，不改工作区。
+- **推送状态一律现查。** 修复的三个 commit 是本地提交的，**当时没推**；但同一天已经发生过
+  一次「另一条线的 agent 从同一个 checkout push、顺手把我们的 commit 带上远程」，
+  所以现在它们在不在 `origin/main` 上，只有 `git log --oneline origin/main..main` 说了算。
+
+**给下一位的一条口径提醒**：本节里的「本批」一律指**边角清理 + bilibili** 那一批
+（2026-08-19），不是它后面这批评审修复。要指后者，说「整支评审的修复」。
+
 ## 七、建议调用的 skills
 
 | 场景 | skill |
 |---|---|
+| **接手时（第一件事）** | 不用 skill：先跑第二节的 `./scripts/check.sh` + `test-theme-lib.py`，再按第一之二节现查 git 状态。**看到全绿才继续**——本文里的任何"已验证"都是历史快照，不是现状 |
 | 开始新一期前（三期已完成，spec §15 定义的四期到此为止；本行留作下次再拆新一期时的参考） | `superpowers:writing-plans`（三期就是这么写出来的：输入是 spec §15 的范围，Global Constraints 照抄上一期计划开头那套——避免每期都重新踩一遍并发提交、bash 3.2.57 之类的老坑） |
 | 执行计划 | `superpowers:subagent-driven-development`（二期 A 就是这么跑完 8 个任务的，在有并发 agent 的情况下也没出事——关键是每个任务只用显式路径 `git add`）或 `superpowers:executing-plans`（内联） |
 | 动任何设计决策前 | `superpowers:brainstorming`（本设计的两版都是这么产出的） |
