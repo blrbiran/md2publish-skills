@@ -72,7 +72,7 @@ alt 文本怎么写、选哪个 preset。脚本负责**机械**：填画幅、�
 |---|---|---|
 | 微信 | 正文插图（`illustration`） | 直接开工 |
 | 小红书 | 卡片系列（`series`），**首图即封面** | 直接开工；**别再去调 `md2publish-cover`**，小红书的封面就是系列第一张 |
-| B 站专栏 | 正文插图（`illustration`）或信息图（`infographic`） | 有 `bilibili.yaml`，但**画幅与体积上限未经官方核实**（见该文件顶部注释）。照常走，并把这条成色告诉用户 |
+| B 站 | **先问**：专栏头图还是正文插图 | spec §3.2：两者都常被叫"配图"，无可靠推导依据——落地 `bilibili.yaml` 给的是画幅规格，**没有**消除这个命名歧义。答"头图"交给 `md2publish-cover`；答"正文插图"留在本 skill 走 `illustration`（用户说"信息图"则按下面那条改 `infographic`）。两种情况都要把**画幅与体积上限未经官方核实**这条成色告诉用户（见 `bilibili.yaml` 顶部注释） |
 | 其他平台 | — | 本仓库只有 `wechat` / `xiaohongshu` / `bilibili` 三个 platform profile。用户说别的平台时**如实说没有该平台的画幅规格**，别猜 |
 
 只有用户明确要"单张主图 / 封面"时才交给 `md2publish-cover`（小红书除外）。
@@ -81,12 +81,13 @@ alt 文本怎么写、选哪个 preset。脚本负责**机械**：填画幅、�
 三个平台都支持它，且都没有 `count_range`，视为固定 1 张，不套用上表的
 默认 archetype。
 
-## 多平台必须拆两次执行（spec §7.2）
+## 多平台必须拆成一平台一次执行（spec §7.2）
 
-`--platform wechat,xiaohongshu` 对本 skill **不成立**。微信要的是 3–8 张装点长文的
-插图，小红书要的是整个卡片系列——**不同内容、不同张数、不同源材料**，不是同一个
-视觉概念换画幅。收到多平台请求时**拆成两次独立执行**：各自选 preset、各自写 brief、
-各自过成本门。**不允许一次确认覆盖两个平台的花费。**
+逗号分隔的 `--platform`（如 `wechat,xiaohongshu`）对本 skill **不成立**。微信要的是
+3–8 张装点长文的插图，小红书要的是整个卡片系列——**不同内容、不同张数、不同源材料**，
+不是同一个视觉概念换画幅。收到多平台请求时**拆成一个平台一次的独立执行**（几个平台
+就几次）：各自选 preset、各自写 brief、各自过成本门。
+**不允许一次确认覆盖多个平台的花费。**
 
 ## 执行流程
 
@@ -206,8 +207,8 @@ for NN in 00 01 ...; do
 done
 ```
 
-取画幅（微信 `illustration` 是列表 `["16:9","4:3"]`，取第一个；小红书 `series` 是
-`"3:4"`）：
+取画幅（是列表时取第一个——微信 `illustration` 是 `["16:9","4:3"]`；小红书 `series`
+是单值 `"3:4"`）：一律按 profile 实际值走，别背清单。
 
 ```bash
 ASPECT=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; v=a.archetype_slot(a.load_platform('${PLATFORM}'),'${ARCHETYPE}')['aspect']; print(v[0] if isinstance(v,list) else v)")
@@ -261,8 +262,8 @@ python3 -c "import json,sys; d=json.loads(sys.argv[1]); r=next(x for x in d['res
 
 ### 步骤 7：逐张压缩
 
-微信正文插图 10MB、小红书 20MB 是硬限制。**必须在这里压完**，等到推草稿箱才发现
-超限，前面全白做。
+微信正文插图 10MB、小红书 20MB、B 站专栏 10MB（**未核实**）是硬限制。
+**必须在这里压完**，等到推草稿箱才发现超限，前面全白做。
 
 ```bash
 MAXB=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; print(a.archetype_slot(a.load_platform('${PLATFORM}'),'${ARCHETYPE}')['max_bytes'])")
@@ -306,8 +307,9 @@ sidecar 写在各自最终产物旁边、与它同名。**最终产物一律以 
 
 ### 步骤 9：回写门（本 skill 独有）
 
-**小红书 `series` 不回写，走到步骤 8 就结束。** 卡片系列是内容本身，不进正文；
-`$OUT`（`<name>.illustrated.md`）只在微信 `illustration` / `infographic` 时产生。
+**`series` 不回写，走到步骤 8 就结束。** 卡片系列是内容本身，不进正文；
+`$OUT`（`<name>.illustrated.md`）在 `illustration` / `infographic` 时产生，**不论平台**——
+回写与否由 archetype 决定，不由平台决定（`writeback.py` 本身也只认 archetype）。
 
 回写三步走：
 
@@ -368,7 +370,7 @@ $ART/
 ```
 
 `<role>` 取 `illustration` / `infographic` / `series`，与本次运行的 `ARCHETYPE`
-一致。按平台分目录，所以 `wechat` 和 `xiaohongshu` 各自跑一次不会同名相撞。
+一致。按平台分目录，所以不同平台各自跑一次不会同名相撞。
 
 ## 前置
 

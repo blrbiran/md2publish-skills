@@ -46,14 +46,23 @@ PyYAML 是本层唯一的第三方依赖。
 单跑：
 
 ```bash
-./scripts/test-asset-schema.sh      # 资产 schema + costs.yaml（17 项）
-./scripts/test-compose-prompt.sh    # 渲染器行为 + 占位符白名单（11 项）
-./scripts/test-platform-matrix.sh   # 平台 × archetype × preset 全矩阵（8 组合）
-./scripts/test-compress.sh          # 压缩不超限（6 项）
-python3 scripts/test-preflight.py   # 自检与配置（14 项）
-./scripts/test-artifacts.sh         # 重跑保护与 sidecar（10 项）
-(cd scripts/imagegen && bun test)   # 生图引擎（97 项）
+./scripts/test-asset-schema.sh      # 资产 schema + costs.yaml
+./scripts/test-compose-prompt.sh    # 渲染器行为 + 占位符白名单
+./scripts/test-platform-matrix.sh   # 平台 × archetype × preset 全矩阵
+./scripts/test-compress.sh          # 压缩不超限
+python3 scripts/test-preflight.py   # 自检与配置
+./scripts/test-artifacts.sh         # 重跑保护与 sidecar
+./scripts/test-writeback.sh         # Markdown 回写门
+./scripts/test-svg2raster.sh        # SVG→位图降级链（缺后端时 exit 2 报 SKIPPED）
+(cd scripts/imagegen && bun test)   # 生图引擎
 ```
+
+**这里故意不写每个脚本几项。** 每个脚本结尾自己会打
+`通过 N 项，失败 M 项`，以那行为准。这份清单曾经写着七个数字，其中五个在被
+加断言、加平台之后悄悄过期（「8 组合」是加 `bilibili.yaml` 当场作废的），
+而过期的数字看起来和正确的数字完全一样——**数字是最容易悄悄过期的一种断言**。
+`docs/handoff/handoff-image.md` 第二节留了一份逐项计数，是给交接时对基线用的，
+那一份每次改测试都必须回头对齐。
 
 **改了 `platforms/`、`presets/`、`costs.yaml` 或 `scripts/` 里任何东西之后，
 跑一遍 `scripts/check.sh`。** 本仓库没有 CI、没有 git hooks，这是一条

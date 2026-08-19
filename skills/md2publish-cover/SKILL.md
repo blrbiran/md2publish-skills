@@ -6,8 +6,8 @@ allowed-tools: Read, Write, Bash, AskUserQuestion
 
 # md2publish-cover：封面图
 
-一篇文章一张封面。**同一个视觉概念可以一次出两个平台的画幅**（`--platform wechat,xiaohongshu`），
-但那是两次渲染、两次生成、两次成本确认。
+一篇文章一张封面。**同一个视觉概念可以一次出多个平台的画幅**（`--platform` 写成逗号分隔，
+如 `wechat,xiaohongshu,bilibili`），但那是各渲染一次、各生成一次、各确认一次成本。
 
 本 skill 的资产（平台 profile、preset、维度词表、脚本、生图引擎）全在 `shared/` 下，
 是从 `skills/_shared/` vendor 来的副本。**不要改 `shared/` 里的任何文件**——
@@ -73,7 +73,7 @@ python3 shared/scripts/preflight.py
 4. 都没有 → 问用户
 
 当前支持 `wechat` / `xiaohongshu` / `bilibili`（B 站专栏，画幅数字未经官方核实，见 `shared/platforms/bilibili.yaml` 顶部）。要多个都出就写成逗号分隔，
-但**每个平台各走一遍步骤 3–8，成本各确认各的**，不许一次确认覆盖两个平台的花费。
+但**每个平台各走一遍步骤 3–8，成本各确认各的**，不许一次确认覆盖多个平台的花费。
 
 ### 步骤 3：选 preset（零成本）
 

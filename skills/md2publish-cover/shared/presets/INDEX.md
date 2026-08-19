@@ -9,7 +9,7 @@
 2. 用户提了风格偏好（"换暖色"、"别那么花"）时，**不换整个 preset**，
    从维度表里找最接近的值，用 `--palette` / `--rendering` / `--layout` 覆盖那一维。
 3. 平台画幅、文字上图策略、体积上限都由 `platforms/<name>.yaml` 决定，
-   preset 不管这些——同一个 preset 在微信和小红书会渲染出不同的画幅约束。
+   preset 不管这些——同一个 preset 在不同平台会渲染出不同的画幅约束。
 
 ## Preset
 
@@ -21,8 +21,9 @@
 | `card-warm` | series | 把一篇长文拆成 5–10 张可独立阅读的图卡 | `warm-earth` | `flat-vector` | `bento-grid` | 微信 |
 
 archetype 与平台的支持关系由 `platforms/*.yaml` 的 `archetypes` 槽决定，
-槽值为 `unsupported` 时该组合会被渲染器直接拒绝。当前：微信不支持 `series`，
-小红书不支持 `illustration`。
+槽值为 `unsupported` 时该组合会被渲染器直接拒绝。当前：微信与 B 站专栏不支持
+`series`，小红书不支持 `illustration`。**这句是快照，加平台会让它过期**——以
+`platforms/*.yaml` 的 `archetypes` 槽为准。
 
 ## 维度：配色（`--palette`）
 
