@@ -89,6 +89,16 @@ git log --oneline origin/main..main                # 还没推上去的
   上一版清单停在二期 B 的 footprint 上，用它算三期会漏掉两个新 skill 的全部 commit。
   第八节第 9 条记的就是这个模式，它在三期又复发了一次。
 
+  三期之后那批**边角清理 + bilibili**（2026-08-19）没有计划文件，锚点改用 message 去找——
+  历史不改写，所以 message 是稳定句柄，而 SHA 不该写进本文：
+  ```bash
+  B0=$(git log --format=%H --grep='reject empty --image' | tail -1)   # 本批第一个 commit
+  git log --oneline "${B0}^..HEAD" -- <下面那串路径>
+  ```
+  这条 recipe 实测捞出的就是本批全部 commit。**别记数量**——本文每修订一次就多一个，
+  提交本文这个动作本身就会让任何写死的数字当场过期。本批没有新增 skill 目录，
+  所以上面那串路径不用补。
+
   只看**某一期**时，给同一串路径加上 range。锚点用**那一期的计划文件**去查（别用写死的
   SHA，也别用 `--grep`——各期的任务 commit 没有共同 message 前缀）：
   ```bash
@@ -121,7 +131,7 @@ git log --oneline origin/main..main                # 还没推上去的
 
 1. 资产 schema + `costs.yaml`（18 项，含 provider 名单四处一致的交叉校验）
 2. 渲染器 + 占位符白名单（11 项）
-3. 平台 × archetype × preset 矩阵（8 组合）
+3. 平台 × archetype × preset 矩阵（**12 组合**——3 平台 × 4 preset。这个数字**不是写死的**：矩阵测试自己调 `list_platforms()` / `list_presets()` 发现，加平台或加 preset 会自动涨，别把它当校验值，跑一遍看实际输出）
 4. 压缩不超限（8 项）
 5. preflight + config 自检（21 项）
 6. 产物落盘规则：重跑保护 + sidecar（**21 项**——三期 T1 加 diagram 支路的 6 项断言从 12 变 18；三期之后的边角清理批次又加了输入校验的 3 项：空 `--image`、拼错的 `--archetype`，以及一条「合法 archetype 没被新校验误伤」的对照）
@@ -416,6 +426,27 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 
 **一期故意没做、别当成遗漏的**：vendor 脚本、`imagegen/`、`costs.yaml`。清单见 `skills/_shared/README.md` 末节。
 
+**本批（2026-08-19）的收尾状态——两件没做完的事，都需要人来定**：
+
+1. **整支评审没跑。** 做了一次**自查**（把本批全量 diff 通读一遍），抓出 3 处漏网并已修：
+   `md2publish-cover` / `md2publish-visuals` **步骤 2**（决定本次用哪个平台的那一步）都写着
+   「当前支持 `wechat` 与 `xiaohongshu`」，不改的话 `bilibili` 永远走不到；外加 diagram 代码
+   片段里的 `PLATFORM=wechat # 或 xiaohongshu` 注释。**但第八节末尾的结论没有被推翻**：
+   连续三期证明自查替代不了整支评审，下一位接手的人该补跑一次，尤其是本批动了
+   `artifacts.py` 的输入校验（所有 skill 的步骤 7/8 都调它）和平台清单（跨全部三个 skill）。
+2. **本批 commit 还没推到 `origin/main`。** 推不推没定。**别信任何写死的领先数**——
+   本文每提交一次就变，查法见第一之二节；另一条线的 agent 还会顺手把我们的 commit 带上远程。
+
+**本批自己踩到、值得下一位知道的三条**（教训已分散写进第四、六节，这里只做索引）：
+
+- **扫尾 grep 别带 `head`。** 第一轮扫否定断言时输出被 `head -25` 截断，漏掉了两个 SKILL.md
+  的 frontmatter `description`——那两处枚举平台，且直接影响 skill 选不选中。
+- **同一个事实要按「说法」和「标识符」各扫一遍，且标识符要试几种标点写法。**
+  前几轮扫的是中文说法与 `wechat / xiaohongshu`，而漏掉的两处写的是 `` `wechat` 与 `xiaohongshu` ``。
+- **数字是最容易悄悄过期的断言。** 本批修的四处文档漂移里有三处是三期修复波留下的
+  （改了测试没回头改基线表），第二节第 3 项的「8 组合」又是同一种（现在是 12）。
+  **收尾时把基线表里每个数字重新跑一遍对齐**，别只读不跑。
+
 ## 七、建议调用的 skills
 
 | 场景 | skill |
@@ -424,6 +455,7 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 | 执行计划 | `superpowers:subagent-driven-development`（二期 A 就是这么跑完 8 个任务的，在有并发 agent 的情况下也没出事——关键是每个任务只用显式路径 `git add`）或 `superpowers:executing-plans`（内联） |
 | 动任何设计决策前 | `superpowers:brainstorming`（本设计的两版都是这么产出的） |
 | 每一期收尾 | `superpowers:requesting-code-review`。**必须做一次整支评审，逐任务评审替代不了它**——理由见第八节末尾。也顺带做事实核查：一期的 spec 复审抓出 6 处事实错误，其中"悬空引用四处"实为九处 |
+| 补跑本批欠的整支评审（见第六节末尾） | `superpowers:requesting-code-review`。范围给「三期之后的边角清理 + bilibili」这 7 个 commit，锚点查法见第一之二节 |
 | 排查测试失败 | `superpowers:systematic-debugging` |
 | 收尾分支 | `superpowers:finishing-a-development-branch` |
 
