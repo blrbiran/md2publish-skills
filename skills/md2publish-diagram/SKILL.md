@@ -63,7 +63,7 @@ PNG，微信发不了；装 `brew install librsvg` 之后回来跑步骤 4 即�
 ### 步骤 2：定平台，取画幅与体积上限
 
 ```bash
-PLATFORM=wechat      # 或 xiaohongshu
+PLATFORM=wechat      # 或 xiaohongshu / bilibili
 ASPECT=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; s=a.archetype_slot(a.load_platform('${PLATFORM}'),'diagram'); print(s['aspect'][0] if isinstance(s['aspect'],list) else s['aspect'])")
 MAXB=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; print(a.archetype_slot(a.load_platform('${PLATFORM}'),'diagram')['max_bytes'])")
 ```

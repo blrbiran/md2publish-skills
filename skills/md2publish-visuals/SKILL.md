@@ -108,7 +108,7 @@ python3 shared/scripts/preflight.py
 3. `~/.config/md2publish/images.yaml` 的 `default_platform`
 4. 都没有 → 问用户
 
-当前支持 `wechat` 与 `xiaohongshu`。平台一旦确定，按上面的路由表定下本次的
+当前支持 `wechat` / `xiaohongshu` / `bilibili`（B 站专栏，画幅数字未经官方核实，见 `shared/platforms/bilibili.yaml` 顶部）。平台一旦确定，按上面的路由表定下本次的
 `ARCHETYPE`（`illustration` / `infographic` / `series`）。
 
 ### 步骤 3：选 preset + 定张数与位置（语义层，本 skill 独有的重活）

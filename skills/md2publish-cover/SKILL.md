@@ -72,7 +72,7 @@ python3 shared/scripts/preflight.py
 3. `~/.config/md2publish/images.yaml` 的 `default_platform`
 4. 都没有 → 问用户
 
-当前支持 `wechat` 与 `xiaohongshu`。要两个都出就写 `wechat,xiaohongshu`，
+当前支持 `wechat` / `xiaohongshu` / `bilibili`（B 站专栏，画幅数字未经官方核实，见 `shared/platforms/bilibili.yaml` 顶部）。要多个都出就写成逗号分隔，
 但**每个平台各走一遍步骤 3–8，成本各确认各的**，不许一次确认覆盖两个平台的花费。
 
 ### 步骤 3：选 preset（零成本）
