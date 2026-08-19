@@ -15,10 +15,10 @@ echo "== platform profile 校验 =="
 out=$(run_py '
 import asset_lib as a
 ps = a.list_platforms()
-assert ps == ["wechat", "xiaohongshu"], ps
+assert ps == ["bilibili", "wechat", "xiaohongshu"], ps
 print("OK")
 ')
-[[ "$out" == "OK" ]] && ok "list_platforms 返回 wechat/xiaohongshu" || bad "list_platforms" "$out"
+[[ "$out" == "OK" ]] && ok "list_platforms 返回 bilibili/wechat/xiaohongshu" || bad "list_platforms" "$out"
 
 out=$(run_py '
 import asset_lib as a

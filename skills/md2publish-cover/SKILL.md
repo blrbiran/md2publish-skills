@@ -1,6 +1,6 @@
 ---
 name: md2publish-cover
-description: 为文章生成封面图，支持微信公众号与小红书两种画幅。当用户说"生成封面"、"封面图"、"文章头图"、"小红书首图"，或在发布工作流里需要封面素材时使用。步骤 1–4 零成本零副作用（产出 prompt 文件），步骤 5 起才调 provider、才花钱。
+description: 为文章生成封面图，支持微信公众号、小红书、B 站专栏三种画幅。当用户说"生成封面"、"封面图"、"文章头图"、"小红书首图"，或在发布工作流里需要封面素材时使用。步骤 1–4 零成本零副作用（产出 prompt 文件），步骤 5 起才调 provider、才花钱。
 allowed-tools: Read, Write, Bash, AskUserQuestion
 ---
 
@@ -233,7 +233,7 @@ sidecar 写在 `${FINAL}` 旁边、与它同名（`$ART/assets/<platform>/00-cov
   推草稿箱时 `md2publish-draft` 拿 `${FINAL}`（即 sidecar `image` 字段记的那个文件名，
   在 sidecar 所在目录下解析出来的文件）当 `--cover`，
   **不是** `00-cover.png`。
-- 小红书：本仓库**还没有**小红书的发布 skill，产物需要用户自己上传。如实说，别暗示能自动发。
+- 小红书 / B 站：本仓库**只有微信一条发布链路**（`md2publish-draft`），这两个平台的产物需要用户自己上传。如实说，别暗示能自动发。
 - 封面**不进正文**，不要往 Markdown 里插 `![]()`。
 
 ## 产物布局

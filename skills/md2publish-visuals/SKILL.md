@@ -1,6 +1,6 @@
 ---
 name: md2publish-visuals
-description: 为文章生成一组配图——微信正文插图、信息图、小红书图卡系列，并把图片引用回写进 Markdown（另存，原文不动）。当用户说"配图"、"插图"、"信息图"、"图文笔记"、"小红书卡片"时使用。步骤 1–4 零成本零副作用（产出 prompt 文件），步骤 5 起才调 provider、才花钱。
+description: 为文章生成一组配图——微信/B 站专栏的正文插图、信息图、小红书图卡系列，并把图片引用回写进 Markdown（另存，原文不动）。当用户说"配图"、"插图"、"信息图"、"图文笔记"、"小红书卡片"时使用。步骤 1–4 零成本零副作用（产出 prompt 文件），步骤 5 起才调 provider、才花钱。
 allowed-tools: Read, Write, Bash, AskUserQuestion
 ---
 
@@ -72,12 +72,13 @@ alt 文本怎么写、选哪个 preset。脚本负责**机械**：填画幅、�
 |---|---|---|
 | 微信 | 正文插图（`illustration`） | 直接开工 |
 | 小红书 | 卡片系列（`series`），**首图即封面** | 直接开工；**别再去调 `md2publish-cover`**，小红书的封面就是系列第一张 |
-| 其他平台 | — | 本仓库只有微信与小红书两个 platform profile。用户说 B 站时**如实说没有该平台的画幅规格**，别猜 |
+| B 站专栏 | 正文插图（`illustration`）或信息图（`infographic`） | 有 `bilibili.yaml`，但**画幅与体积上限未经官方核实**（见该文件顶部注释）。照常走，并把这条成色告诉用户 |
+| 其他平台 | — | 本仓库只有 `wechat` / `xiaohongshu` / `bilibili` 三个 platform profile。用户说别的平台时**如实说没有该平台的画幅规格**，别猜 |
 
 只有用户明确要"单张主图 / 封面"时才交给 `md2publish-cover`（小红书除外）。
 
 用户明确说"信息图"时，不论平台，本次运行的 archetype 都改为 `infographic`——
-微信与小红书都支持它，且两边都没有 `count_range`，视为固定 1 张，不套用上表的
+三个平台都支持它，且都没有 `count_range`，视为固定 1 张，不套用上表的
 默认 archetype。
 
 ## 多平台必须拆两次执行（spec §7.2）

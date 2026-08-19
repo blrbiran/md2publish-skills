@@ -1,0 +1,52 @@
+# ⚠️ 本文件的画幅与体积数字**未经 B 站官方文档核实**，来源是第三方教程与
+# B 站用户专栏（见每个槽的 source 注释）。一期起这个平台一直留白就是因为
+# 「B 站规格属未验证的外部知识」，现在按用户裁定先落地、并把成色标在这里：
+# 谁有创作中心/投稿页的实际提示，请以那个为准回来改，并删掉对应的 unverified 注释。
+#
+# **建模的是「专栏」不是「视频投稿」**（用户裁定 2026-08-19）：本仓库是文章发布线
+# （Markdown → HTML → 草稿箱），B 站这边对应的是专栏。视频封面是另一回事，
+# 规格也不同（1146×717，≈16:10，≤5MB），schema 每个平台只有一个 cover 槽装不下两种，
+# 真要同时支持得往 asset_lib.ARCHETYPES 里加新 archetype——那是 spec 改动，不是加个 yaml。
+name: bilibili
+display_name: B 站专栏
+archetypes:
+  cover:
+    # 专栏单图封面：系统按 3:2 自动截取**中心区域**作为信息流展示图。
+    # source: https://www.bilibili.com/read/cv1627720/ （B 站用户专栏，unverified）
+    aspect: "3:2"
+    # unverified：专栏封面的体积上限没查到。这里借用视频封面的 5MB 作保守值——
+    # 取小不取大：偏小只是多压一道，偏大会在上传时被拒。
+    max_bytes: 5242880
+    crop_warning: 系统按 3:2 截取中心区域，重要视觉元素与标题文字一律居中，别贴边
+    text_on_image:
+      title: true
+      subtitle: false
+      notes: 信息流里封面文字是点击的主要抓手；但会被中心裁切，字必须落在中心区域
+  illustration:
+    # unverified：专栏正文插图的画幅与体积上限均未核实，暂按与微信同档处理。
+    aspect: ["16:9", "4:3"]
+    count_range: [3, 8]
+    max_bytes: 10485760
+    text_on_image:
+      title: false
+      subtitle: false
+      notes: 正文插图不承载标题，避免与小标题重复
+  infographic:
+    # unverified：同上，画幅与体积上限未核实。
+    aspect: "4:3"
+    max_bytes: 10485760
+    text_on_image:
+      title: true
+      subtitle: true
+      notes: 信息图的文字是内容本体，必须清晰可读
+  # 专栏是长图文，不是卡片流，没有"第 1 张封面 + 第 2..N 张分点"这种消费方式。
+  series: unsupported
+  diagram:
+    # unverified：同上，画幅与体积上限未核实。
+    aspect: ["16:9", "4:3"]
+    max_bytes: 10485760
+    raster_format: png
+    text_on_image:
+      title: false
+      subtitle: false
+      notes: 示意图的文字是节点与连线标签，不是标题

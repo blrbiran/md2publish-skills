@@ -89,8 +89,11 @@ python3 compose_prompt.py \
 
 ## 还没做的事
 
-- **`bilibili.yaml`** —— B 站的画幅与文字约定属未验证的外部知识，
-  需先分别确认视频封面与专栏头图的规格，不猜。
+- **`bilibili.yaml` 的数字未经官方核实** —— 文件已经有了（2026-08-19），建模的是**专栏**、不是视频投稿；
+  画幅取自第三方教程与 B 站用户专栏，体积上限借的是视频封面的 5MB 作保守值。
+  每个未核实的槽在 yaml 里都标了 `unverified`，谁有创作中心的实际提示请回来改。
+  **视频封面（≈16:10）仍然没建模**：schema 每个平台只有一个 `cover` 槽，两种封面装不下，
+  真要同时支持得往 `asset_lib.ARCHETYPES` 里加新 archetype——那是 spec 改动。
 - **`presets/dimensions/layouts/` 只有一个值** —— `infographic` / `series` 现在都在用
   `_shared/`（`md2publish-visuals`），但两者共用同一个 `bento-grid`，尚未按品类分化出更多布局，需要时再补。
 - **`costs.yaml` 全是 `unknown`** —— 真实单价同属外部知识，用户实测后自己填。

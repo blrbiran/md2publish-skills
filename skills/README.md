@@ -52,7 +52,7 @@
 |---|---|---|---|
 | `wechat-finetune` | 成稿 → 公众号版 Markdown（标题/精简/元数据） | 无（原文不改，另存） | 无 |
 | `md2publish-article` | Markdown → 微信内联样式 HTML | 无 | 无 |
-| `md2publish-cover` | 封面图（微信 16:9 / 小红书 3:4），真调 provider 生成 | 本地文件 + **API 消费（花钱）** | provider API key（缺失时降级为只产 prompt） |
+| `md2publish-cover` | 封面图（微信 16:9 / 小红书 3:4 / B 站专栏 3:2），真调 provider 生成 | 本地文件 + **API 消费（花钱）** | provider API key（缺失时降级为只产 prompt） |
 | `md2publish-visuals` | 正文配图 / 信息图 / 卡片系列，真调 provider 生成，**回写 Markdown**（另存 `<name>.illustrated.md`） | 本地文件 + **API 消费（花钱）** | provider API key（缺失时降级为只产 prompt） |
 | `md2publish-diagram` | 架构图 / 流程图，不调 AI、零 API 成本，直接写 SVG | 本地文件 | 无 |
 | `md2publish-draft` | 上传图片 + 创建草稿（确认后执行） | 写微信素材库、草稿箱 | WECHAT_APPID/SECRET + IP 白名单 |
