@@ -7,9 +7,9 @@
 ## 快速接手入口
 
 1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。**三期做完之后，这个目标已经达成**——三个 skill 全部建成。
-2. **一期、二期 A、二期 B、三期全部完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover`。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。三期建成 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链），并把 `visuals` 接进 `md2publish-article` 的上游；`scripts/check.sh` 从二期的 9 项长大到**当前的 12 项**。二期 A、二期 B、三期**都跑过整支评审并已执行完毕**：二期 A 是 1 Critical + 6 Important，二期 B 是 4 Important，三期是 **0 Critical + 6 Important**（全部跨组件问题，逐任务评审看不见）；三期评审详情见第六节「三期」小节与第八节。
+2. **一期、二期 A、二期 B、三期全部完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover`。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。三期建成 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链），并把 `visuals` 接进 `md2publish-article` 的上游；`scripts/check.sh` 从二期的 9 项长大到**当前的 12 项**。二期 A、二期 B、三期、以及三期之后那批边角清理 + bilibili，**都跑过整支评审并已执行完毕**：二期 A 是 1 Critical + 6 Important，二期 B 是 4 Important，三期是 **0 Critical + 6 Important**，本批是 **0 Critical + 6 Important + 7 Minor**（每一次的 Important 都是跨组件问题，逐任务评审与自查都看不见）；三期评审详情见第六节「三期」小节与第八节，本批见第六节「本批整支评审」小节。
 3. **手动付费 smoke 现在欠两次，不是一次**：`cover`（二期起欠）与 `visuals`（三期新欠）各有一次"真调 provider 生一张图"的 smoke 从未跑过——本机没有任何 provider 凭证。`diagram` 是唯一的例外，它零成本，端到端**已经真跑过**。三者不要混着说，完整口径见第六节。
-4. **下一步**：三期留下的 6 项边角**已在 2026-08-19 全部清掉**（含一次否定断言扫尾，逐条见第六节「三期」小节末尾）。`bilibili.yaml` 也在同一天落地了（只建模**专栏**，数字标了未核实，见第六节末尾）。**真正还欠着的只剩一样，且不是本机能推进的**：配好凭证后要补跑的两次付费 smoke（`cover` + `visuals`）。**spec §15 定义的范围到三期为止，没有排定中的下一期。**
+4. **下一步**：三期留下的 6 项边角**已在 2026-08-19 全部清掉**（含一次否定断言扫尾，逐条见第六节「三期」小节末尾）。`bilibili.yaml` 也在同一天落地了（只建模**专栏**，数字标了未核实，见第六节末尾）。那批当时欠的**整支评审也已补跑并全部修完**（0C + 6I + 7 Minor，见第六节「本批整支评审」小节）。**真正还欠着的只剩一样，且不是本机能推进的**：配好凭证后要补跑的两次付费 smoke（`cover` + `visuals`）。**spec §15 定义的范围到三期为止，没有排定中的下一期。**
 5. 动手前先跑第二节的 `./scripts/check.sh`，全绿（或按 SKIPPED 语义部分跳过）才继续。
 6. 二期 A **没有留下已知未修缺陷**；收尾时补修的那处（`preflight.py` 对非 UTF-8 `.env` 抛栈）记在第六节末尾，留着是因为那类错误容易再犯。二期 B **故意留了一条 Minor 未修**：`skills/_shared/scripts/test-artifacts.sh` 第二处 sidecar 断言（"png 与 jpg 共写同一个 .json"）把 `artifacts.py` 的 stdout / stderr 与退出码一起丢掉了，所以一旦它因无关原因失败，浮上来的是"压缩产物没被记下来"这句误导性的消息——已验证它**仍会朝正确方向失败**（不是静默通过），只是诊断信息差。三期**没有留下已知未修缺陷**——两个真 bug（见第八节）都在收尾前修掉并重新验证过。三期整支评审之后另外裁定了 **6 项**"可以留到下一期"的已知项（非缺陷，是评审时明确决定不在本期修的边角情况）——**这 6 项已在 2026-08-19 全部做完**，逐条的修法与验证方式、以及同批做的否定断言扫尾结果，见第六节「三期」小节末尾。
 7. git 状态一律**现查**，别信任何文档里写死的 SHA 或"领先/落后几个 commit"的结论——查法与两个坑见第一之二节。
@@ -134,7 +134,7 @@ git log --oneline origin/main..main                # 还没推上去的
 3. 平台 × archetype × preset 矩阵（**12 组合**——3 平台 × 4 preset。这个数字**不是写死的**：矩阵测试自己调 `list_platforms()` / `list_presets()` 发现，加平台或加 preset 会自动涨，别把它当校验值，跑一遍看实际输出）
 4. 压缩不超限（8 项）
 5. preflight + config 自检（21 项）
-6. 产物落盘规则：重跑保护 + sidecar（**21 项**——三期 T1 加 diagram 支路的 6 项断言从 12 变 18；三期之后的边角清理批次又加了输入校验的 3 项：空 `--image`、拼错的 `--archetype`，以及一条「合法 archetype 没被新校验误伤」的对照）
+6. 产物落盘规则：重跑保护 + sidecar（**22 项**——三期 T1 加 diagram 支路的 6 项断言从 12 变 18；三期之后的边角清理批次又加了输入校验的 3 项：空 `--image`、拼错的 `--archetype`，以及一条「合法 archetype 没被新校验误伤」的对照；本批整支评审第 6 条又加了「拼错的 `--platform`」1 项，共 22）
 7. **Markdown 回写门**（**14 项**，三期新增，对应 `test-writeback.sh`；覆盖单图与多图 back-to-front 插入顺序，第 14 项是三期整支评审第 5 条补的「同锚点两图不被静默颠倒」）
 8. **SVG→位图降级链**（**12 项**，三期新增，对应 `test-svg2raster.sh`；本机 `rsvg-convert` / `magick` / Chrome 三后端齐全时的数字，缺后端的机器上会少几项并 exit 2 报 SKIPPED。第 12 项是三期整支评审第 6 条补的「沙箱里第三方 import 确实失败」）
 9. imagegen 引擎（`bun test`，97 pass / 0 fail / 12 files）
@@ -372,7 +372,7 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 
 | 原条目 | 怎么修的 | 怎么验的 |
 |---|---|---|
-| `svg2raster.py` 的 `rasterize()` 里 `available_backends()` 每元素调一次（3 次） | 直接用 `available_backends()` 的返回值，删掉那份重复的优先级元组——它是同一个顺序的第二个真相源 | 行为不变，靠既有 `test-svg2raster.sh` 12 项（含两条真降级断言）兜底 |
+| `svg2raster.py` 的 `rasterize()` 里 `available_backends()` 每元素调一次（3 次） | 直接用 `available_backends()` 的返回值，删掉那份重复的优先级元组——它是同一个顺序的第二个真相源 | **靠代码等价性论证，不是靠测试**——原式是「按固定元组过滤 `available_backends()` 的成员」，而后者本就按同一顺序产出这三个名字，过滤即恒等。本批整支评审实测：把 `order` 整个反转，`test-svg2raster.sh` 照样 12 项全绿（每条降级断言都把 PATH 遮蔽到只剩一个后端，`order` 长度 ≤1，反转是空操作），所以那 12 项**盖不住默认顺序**，别拿它当兜底 |
 | `artifacts.py` 收 `--image ""` 抛裸 `ValueError` traceback | `check_sidecar_args` 开头加空值校验 | 新断言同时否掉 `Traceback`——只判 rc≠0 的话抛栈退出 1 也算通过 |
 | `artifacts.py` 不校验 `--archetype` 在不在 `asset_lib.ARCHETYPES` 里 | 同处按权威清单校验 | 新断言同时钉"没留下乱码 sidecar"——只判 rc 的话"先写文件再报错"也会通过 |
 | `writeback.py` 的 `--out` 帮助文案留着旧字面量 | 改成写推导规则 | 措辞，无断言 |
@@ -412,7 +412,10 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
   专栏封面的体积上限没查到，借了视频封面的 5MB 作**保守**值——`max_bytes` 偏小只是多压一道，
   偏大会在上传时被拒，所以取小不取大。谁拿到实际提示，回来改并删掉对应的 `unverified`。
 
-**加一个平台不是加一个文件。** 本次一并改了 5 处断言过平台清单的地方，其中一处是承重的：
+**加一个平台不是加一个文件。** 本次一并改了断言过平台清单的地方——落地当时数成「5 处」，
+**这个数是错的**（本批整支评审复核：实际是 11 处文档 + 1 处测试，且当时的枚举还漏掉了
+自查抓出的 3 处和 `visuals` 的另两句）。**别把它当清单目标用，会提前收工**；
+下面留着当时的叙述是因为其中一处是承重的：
 `md2publish-visuals/SKILL.md` 原本写着「本仓库只有微信与小红书两个 platform profile，
 用户说 B 站时**如实说没有该平台的画幅规格**，别猜」——`bilibili.yaml` 一落地这句话就是假的，
 而它恰好是 agent 面对用户提问时会照着答的那句。其余四处：两个 SKILL.md 的 **frontmatter
@@ -426,16 +429,19 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 
 **一期故意没做、别当成遗漏的**：vendor 脚本、`imagegen/`、`costs.yaml`。清单见 `skills/_shared/README.md` 末节。
 
-**本批（2026-08-19）的收尾状态——两件没做完的事，都需要人来定**：
+**本批（2026-08-19）收尾时欠的两件事，都在 2026-08-19 的后续会话里了结了**：
 
-1. **整支评审没跑。** 做了一次**自查**（把本批全量 diff 通读一遍），抓出 3 处漏网并已修：
-   `md2publish-cover` / `md2publish-visuals` **步骤 2**（决定本次用哪个平台的那一步）都写着
-   「当前支持 `wechat` 与 `xiaohongshu`」，不改的话 `bilibili` 永远走不到；外加 diagram 代码
-   片段里的 `PLATFORM=wechat # 或 xiaohongshu` 注释。**但第八节末尾的结论没有被推翻**：
-   连续三期证明自查替代不了整支评审，下一位接手的人该补跑一次，尤其是本批动了
-   `artifacts.py` 的输入校验（所有 skill 的步骤 7/8 都调它）和平台清单（跨全部三个 skill）。
-2. **本批 commit 还没推到 `origin/main`。** 推不推没定。**别信任何写死的领先数**——
-   本文每提交一次就变，查法见第一之二节；另一条线的 agent 还会顺手把我们的 commit 带上远程。
+1. **整支评审已补跑**（用户裁定跑全量）。结论 **0 Critical + 6 Important + 7 Minor**，
+   详见下面「本批整支评审」小节。此前那次**自查**（通读全量 diff）抓出的 3 处漏网仍然算数：
+   `md2publish-cover` / `md2publish-visuals` **步骤 2** 都写着「当前支持 `wechat` 与
+   `xiaohongshu`」，不改的话 `bilibili` 永远走不到；外加 diagram 代码片段里的
+   `PLATFORM=wechat # 或 xiaohongshu` 注释。**但自查替代不了整支评审这条结论又被证实了一次**——
+   整支评审在自查之后仍抓出 6 个 Important，全部跨组件。这是连续第四期。
+2. **推送这件事不是被决定的，是被并发推走的。** 用户当时的裁定是**不推**（等评审修完一起推），
+   而在整支评审跑着的那段时间里，另一条线的 agent 在同一个 checkout 里 push 了一次，
+   把 `f74798f` 一起带上了 `origin/main`（`git reflog show origin/main` 里是 `update by push`）。
+   **这正是第一之二节警告的那件事，现在有了一次实证**：在这个仓库里「不推」不是一个能靠
+   自己不动手来维持的状态。要真的不上远程，只有别提交到 `main`。
 
 **本批自己踩到、值得下一位知道的三条**（教训已分散写进第四、六节，这里只做索引）：
 
@@ -447,6 +453,69 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
   （改了测试没回头改基线表），第二节第 3 项的「8 组合」又是同一种（现在是 12）。
   **收尾时把基线表里每个数字重新跑一遍对齐**，别只读不跑。
 
+**本批整支评审（2026-08-19 补跑）：0 Critical + 6 Important + 7 Minor，六条 Important 全部跨组件。**
+这是**连续第四期**「逐任务/自查全绿、整支评审仍抓出一批跨组件问题」（一期不算；二期 A 1C+6I、
+二期 B 4I、三期 0C+6I、本批 0C+6I）。六条依次是，**都已修完并重跑过 `check.sh` 十二项全绿**：
+
+1. **`skills/_shared/README.md` 里还有第二张基线表，7 个数字里 5 个是错的**，其中「8 组合」
+   是本批自己加 `bilibili.yaml` 当场作废的，而且它漏列了 `test-svg2raster.sh` /
+   `test-writeback.sh` 两个脚本。**本批的收尾扫尾只对齐了本文第二节那一张，停在那里就收工了。**
+   修法**没有重填数字**——那只是把时钟拨回零，同一族缺陷下次还来；改成删掉逐项计数、
+   指向各脚本自己打的 `通过 N 项，失败 M 项`，并写明为什么不写数字。本文第二节那份逐项计数
+   保留（交接对基线要用），但它现在是**唯一**一份，改测试时只有一处要回头对齐。
+2. **`md2publish-visuals` 步骤 9 的回写门还写着「只在微信 `illustration` / `infographic`
+   时产生」**，与 235 行之前新加的 B 站路由行直接矛盾。失效方式是静默的：agent 拿到
+   「照常走」的路由行和「只有微信才产出」的步骤头，很可能走到步骤 8 就停，不产出
+   `<name>.illustrated.md`，而那正是下游 `md2publish-article` 要找的文件。已改成按 archetype
+   表述（`series` 不回写，`illustration` / `infographic` 回写，**不论平台**）——契约本来就是
+   archetype 决定的，`writeback.py` 自己也只认 archetype。
+3. **`presets/INDEX.md` 的 `unsupported` 那句枚举过期了**（只说微信不支持 `series`，
+   而 `bilibili.yaml` 也是 `series: unsupported`）。它是契约里点名「必须同步」的文件，
+   且是两个 skill 的步骤 3 指过去选 preset 的**唯一发现入口**，还会 vendor 进三个 skill。
+   已补上，并加了一句「这句是快照，以 `platforms/*.yaml` 为准」。
+4. **spec 内部自相矛盾**：§1.1 的 B 站列写着封面 16:9，而落地的 `bilibili.yaml` 是 3:2；
+   §5.1 还写着「具体取值在实施时按 §1.1 复核后填写」。**本批只改了 §14.5。** 照 §5.1 做的人
+   会得出「落地的 yaml 是错的」这个结论。已把 §1.1 那一列标注为**视频投稿**（16:9 是视频的），
+   §5.1 改为指向 §14.5。
+5. **spec §3.2 说 B 站要「询问」，而本批新写的 `visuals` 路由行改成了「照常走」**——
+   那一行的标题恰恰写着「（spec §3.2）」，自称是它的镜像。这是本批引入的、没有记成偏离的
+   行为改动。**归因要点**：§3.2 要求询问的理由是「专栏头图与正文插图都常被叫配图，
+   无可靠推导依据」，那是**命名歧义**；落地 `bilibili.yaml` 补的是画幅规格，**消除不了它**。
+   已按 spec 恢复「先问是头图还是正文插图」，并在 §3.2 那一行钉了一句「`bilibili.yaml`
+   落地后这条依然成立」，免得下一个人再"修"回去。
+6. **`artifacts.py` 的 `--platform` 至今没有校验，是本批刚修的 `--archetype` 的对称孪生。**
+   `sidecar()` 全程不碰 platform，只原样记下来，所以 `--platform wechaaat` 一路 rc=0，
+   写出一份平台字段是乱码的出处记录（评审实跑复现）。本批把平台命名空间从 2 个扩到 3 个、
+   还引入了一个容易拼错的名字（`bilbili`），而每个 SKILL.md 都让 agent 把 `${PLATFORM}`
+   插进这个调用。已按 `asset_lib.list_platforms()`（自己 glob 发现，不背名单）校验，
+   并补了第 22 条断言 + 变异自证（删掉校验后**只有它翻红**，rc=0、sidecar=有，其余 21 条仍绿）。
+
+**Minor 做了 6 条**：`visuals` 步骤 7 的体积上限漏 B 站（同一事实 `diagram` 那份**改了**、
+`visuals` 这份没改）；`cover` 开头「两个平台」与它自己步骤 2 的「逗号分隔」自相矛盾（本批引入）；
+`INDEX.md` 与 `visuals` 里另两处「微信和小红书」残留；`writeback.py` 的 `--out` 帮助文案
+过度断言（写成「由 `--source` 推导」，可脚本自己不推导，`--out` 是 `required=True`，
+且 source 已是 `.illustrated.md` 时两者同名要加 `--force`）；本节「5 处」计数错；
+`test-sync-drift.sh` 新加的 `exit 1` 路径不打统计行（第四节把那行教成了「输出是否完整」的信号）。
+
+**只跳过一条，是有意的**：`docs/handoff/handoff.md:116` 也有一处「微信 / 小红书两种画幅」，
+但那是**另一条线自己的交接文档**，有并发 agent 在动它。**没碰，留给那条线**——
+`skills/README.md` 里的孪生行本批已经改过了，两处不同步这件事记在这里。
+
+**本批整支评审自己贡献的一条方法论**：评审建议扫尾时除了按「说法」和「标识符」grep，
+再加一轴——**按「作用」grep**。上面第 2、3、5 条同源，都是「一句决定 agent 行为、
+且恰好点了平台名的话」，特征词是效果动词：`只在…时产生` / `不回写` / `直接开工` / `询问`。
+平台集合一变，这类句子的真假会跟着翻，而按平台标识符扫**扫得到它们**、按中文说法扫
+**也扫得到**，可前两轮都扫过了还是漏了——因为漏的不是关键词，是**没意识到那句话是个断言**。
+
+**这条方子当场就有回报**：修完六条 Important 之后按它扫了一遍（关键词
+`只在…时产生|不回写|直接开工|只有微信|微信和小红书|微信与小红书|两个平台|两个 platform|两种画幅|其余 skill|不需要`，
+`--include` 限定 md/yaml/py/sh，排除 `/shared/` 的 vendor 副本，**不带 `head`**），
+又捞出三处同族的：`visuals` 的「多平台必须拆**两次**执行」整节、`cover` 与 spec §7.2 的
+「不允许一次确认覆盖**两个平台**的花费」——三个平台之后「两次 / 两个」就是错的，而且这句
+管的是**成本确认**，读窄了会漏掉第三个平台的花费确认。已一并改成「一个平台一次」「多个平台」。
+顺带确认了两件**不是**问题的：`skills/_shared/scripts/.ccmem/`（被 `.gitignore` 忽略、也没进
+vendor 清单）；`INDEX.md:58` 与 `skills/README.md:70` 的「不需要」都还成立。
+
 ## 七、建议调用的 skills
 
 | 场景 | skill |
@@ -455,7 +524,7 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 | 执行计划 | `superpowers:subagent-driven-development`（二期 A 就是这么跑完 8 个任务的，在有并发 agent 的情况下也没出事——关键是每个任务只用显式路径 `git add`）或 `superpowers:executing-plans`（内联） |
 | 动任何设计决策前 | `superpowers:brainstorming`（本设计的两版都是这么产出的） |
 | 每一期收尾 | `superpowers:requesting-code-review`。**必须做一次整支评审，逐任务评审替代不了它**——理由见第八节末尾。也顺带做事实核查：一期的 spec 复审抓出 6 处事实错误，其中"悬空引用四处"实为九处 |
-| 补跑本批欠的整支评审（见第六节末尾） | `superpowers:requesting-code-review`。范围给「三期之后的边角清理 + bilibili」这 7 个 commit，锚点查法见第一之二节 |
+| ~~补跑本批欠的整支评审~~ **已于 2026-08-19 补跑完毕**（0C + 6I + 7 Minor，全部已修，见第六节「本批整支评审」小节）。本行留作下次的做法参考 | `superpowers:requesting-code-review`。范围给「三期之后的边角清理 + bilibili」那 8 个 commit（`f67b68e^..f74798f`），锚点查法见第一之二节。给评审者的 prompt 里要**点名**本仓库的三条反复缺陷：数字会悄悄过期、否定/反向断言会被漏掉、断言可能没有区分能力——本次六条 Important 里有五条落在前两类 |
 | 排查测试失败 | `superpowers:systematic-debugging` |
 | 收尾分支 | `superpowers:finishing-a-development-branch` |
 
@@ -569,3 +638,20 @@ git checkout 6b4cea6^ -- skills/md2publish-images/
 三期整支评审的六条发现（0 Critical + 6 Important，全部跨组件）详见第六节「三期」
 小节，不在此处重复；六条里第 1、2、3 条同源——都是漏掉了"否定/反向断言"，可复用
 的应对方式（扫尾时加一遍针对否定断言的 grep）也记在该小节末尾。
+
+**边角清理 + bilibili 那一批（两条，都是关于"扫尾扫到哪里算完"的）**
+
+15. **同一张表在仓库里有第二份，而扫尾只对齐了第一份。** 本批收尾时把本文第二节的
+    基线数字逐个重跑对齐了——这本身是上一批刚总结出来的做法——可
+    `skills/_shared/README.md` 里还有**第二张**同类的表，7 个数字错 5 个，其中一个
+    (`8 组合`) 是本批自己当场作废的。**教训不是"再仔细点"**，是：一份需要人工对齐的
+    数字表，存在第二份就一定会漂。修法是把第二份的数字**删掉**（指向脚本自己打的
+    统计行），让全仓库只剩一处需要对齐，而不是把两处都填对——填对只是把时钟拨回零。
+    这条与第 9 条同源，但第 9 条的入口是"同一事实散在多份文档"，这条是"同一张表有两份"。
+16. **扫尾要按「作用」扫，不只按「说法」和「标识符」扫。** 本批已经按说法和标识符各扫
+    过（还专门记了「别带 `head`」「标识符要试几种标点写法」），整支评审仍抓出三句漏网，
+    它们的共同点是：**是一句决定 agent 行为的断言，且恰好点了平台名**——
+    「`$OUT` 只在微信…时产生」「当前：微信不支持 `series`」「B 站 → 直接开工」。
+    前两轮 grep 的关键词**能命中这些行**，漏掉不是因为没扫到，是因为扫到了却没意识到
+    那是一句会随平台集合变化而翻假的断言。可操作的第三轴：grep 效果动词——
+    `只在…时产生` / `不回写` / `直接开工` / `询问` / `交给`。
