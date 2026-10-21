@@ -7,7 +7,7 @@
 ## 快速接手入口
 
 1. 目标：把 `md2publish-images` 拆成 `md2publish-cover` / `md2publish-visuals` / `md2publish-diagram` 三个 skill，并支持微信之外的平台（小红书、B 站）。**三期做完之后，这个目标已经达成**——三个 skill 全部建成。
-2. **一期、二期 A、二期 B、三期全部完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover`。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。三期建成 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链），并把 `visuals` 接进 `md2publish-article` 的上游；`scripts/check.sh` 从二期的 9 项长大到**当前的 12 项**。二期 A、二期 B、三期、以及三期之后那批边角清理 + bilibili，**都跑过整支评审并已执行完毕**：二期 A 是 1 Critical + 6 Important，二期 B 是 4 Important，三期是 **0 Critical + 6 Important**，本批是 **0 Critical + 6 Important + 7 Minor**（每一次的 Important 都是跨组件问题，逐任务评审与自查都看不见）；三期评审详情见第六节「三期」小节与第八节，本批见第六节「本批整支评审」小节。
+2. **一期、二期 A、二期 B、三期全部完成并合进本地 `main`**：二期 A vendor 进 `imagegen/` 生图引擎、补齐 `compress.py` / `preflight.py` / `config.py` / `artifacts.py` 机械层、建成 `md2publish-cover`。二期 B 删除了 `md2publish-images`，spec §12 列出的**十一处**活引用全部改指向 `md2publish-cover`。三期建成 `md2publish-visuals`（含 Markdown 回写门）与 `md2publish-diagram`（含 SVG→PNG 降级链），并把 `visuals` 接进 `md2publish-article` 的上游；`scripts/check.sh` 从二期的 9 项长大到 12 项，`--confirmed-by-orca` 那批又加 1 项，**当前 13 项**。二期 A、二期 B、三期、以及三期之后那批边角清理 + bilibili，**都跑过整支评审并已执行完毕**：二期 A 是 1 Critical + 6 Important，二期 B 是 4 Important，三期是 **0 Critical + 6 Important**，本批是 **0 Critical + 6 Important + 7 Minor**（每一次的 Important 都是跨组件问题，逐任务评审与自查都看不见）；三期评审详情见第六节「三期」小节与第八节，本批见第六节「本批整支评审」小节。
 3. **手动付费 smoke 现在欠两次，不是一次**：`cover`（二期起欠）与 `visuals`（三期新欠）各有一次"真调 provider 生一张图"的 smoke 从未跑过——本机没有任何 provider 凭证。`diagram` 是唯一的例外，它零成本，端到端**已经真跑过**。三者不要混着说，完整口径见第六节。
 4. **下一步：没有排定中的活。** spec §15 定义的范围到三期为止。三期留下的 6 项边角**已在 2026-08-19 全部清掉**（含一次否定断言扫尾，逐条见第六节「三期」小节末尾）；`bilibili.yaml` 同日落地（只建模**专栏**，数字标了未核实）；那批当时欠的**整支评审也已补跑，6 个 Important + 6 个 Minor 全部修完并重跑过基线**（见第六节「本批整支评审」小节）。**真正还欠着的只剩一样，且不是本机能推进的**：配好凭证后要补跑的两次付费 smoke（`cover` + `visuals`）。除此之外，接手的人要么是被新需求叫来的，要么是来清第六节末尾那条「有意跳过」的（另一条线的 `docs/handoff/handoff.md:116`，得等那条线的 agent 空出来）。
 5. 动手前先跑第二节的 `./scripts/check.sh`，全绿（或按 SKIPPED 语义部分跳过）才继续。
@@ -137,7 +137,7 @@ git log --oneline origin/main..main                # 还没推上去的
 ./scripts/check.sh
 ```
 
-一条命令跑**十二项**检查（二期时是九项，三期又加了三项），期望全部 ✓、末尾打印「全部通过（12 项）。」：
+一条命令跑**十三项**检查（二期时是九项，三期又加了三项，`--confirmed-by-orca` 那批加了第 11 项），期望全部 ✓、末尾打印「全部通过（13 项）。」：
 
 1. 资产 schema + `costs.yaml`（18 项，含 provider 名单四处一致的交叉校验）
 2. 渲染器 + 占位符白名单（11 项）
@@ -149,15 +149,16 @@ git log --oneline origin/main..main                # 还没推上去的
 8. **SVG→位图降级链**（**12 项**，三期新增，对应 `test-svg2raster.sh`；本机 `rsvg-convert` / `magick` / Chrome 三后端齐全时的数字，缺后端的机器上会少几项并 exit 2 报 SKIPPED。第 12 项是三期整支评审第 6 条补的「沙箱里第三方 import 确实失败」）
 9. imagegen 引擎（`bun test`，97 pass / 0 fail / 12 files）
 10. **diagram 端到端（零成本）**（7 项，三期新增，对应 `scripts/test-diagram-e2e.sh`；本机三后端齐全时真跑并全绿，三者都缺时整项 **SKIPPED**，见下）
-11. shared 漂移检查（`md2publish-cover/shared/`、`md2publish-visuals/shared/`、`md2publish-diagram/shared/` 与 `_shared/` 是否一致，三期起从 1 个 skill 扩到 3 个）
-12. vendor 同步与漂移（12 项，三期从 9 变 12，T6 给两个新 skill 加了清单断言）
+11. **query.py 与被替换的内联 python 等价 + `--confirmed-by-orca`**（**86 项**，对应 `skills/_shared/scripts/test-query.sh`；SKILL.md 里原来的内联 `python3 -c "…"` 换成了 `shared/scripts/query.py` / `md2publish-draft/scripts/cover_path.py`，这一项把旧命令原样留着，与新命令在同一份 fixture 上逐字节比 stdout，另查 SKILL.md 里写的就是被比过的那几行、不再有内联 `python3 -c`（`import yaml` 依赖检查除外）、`--confirmed-by-orca` 开关写在 draft 步骤 3 / visuals 步骤 5 / article 步骤 7 / cover 步骤 6）
+12. shared 漂移检查（`md2publish-cover/shared/`、`md2publish-visuals/shared/`、`md2publish-diagram/shared/` 与 `_shared/` 是否一致，三期起从 1 个 skill 扩到 3 个）
+13. vendor 同步与漂移（12 项，三期从 9 变 12，T6 给两个新 skill 加了清单断言）
 
-**第 11、12 项的先后顺序是有意的，别调换。** 第 12 项开头就跑一遍 `sync-shared.sh`；
+**第 12、13 项的先后顺序是有意的，别调换。** 第 13 项开头就跑一遍 `sync-shared.sh`；
 它如今在临时沙箱副本里跑、不碰工作区，但只要有谁把它改回原地跑，真实漂移就会在
-第 11 项看见它之前被冲掉，第 11 项从此永远不可能失败。design §4.3 明说漂移是
+第 12 项看见它之前被冲掉，第 12 项从此永远不可能失败。design §4.3 明说漂移是
 vendoring 唯一的真实失败模式，且**绝不能靠 re-sync 解决**。
 
-**SKIPPED 是第三态，不是失败也不是通过。** `check.sh` 的 `run()` 除了 ✓ / ✗，子进程退出码为 2 时会打印 `⊘ SKIPPED`——目前只有第 10 项（diagram 端到端）会触发，机器上 `rsvg-convert` / `magick` / Chrome 一个都没装时如实报 SKIPPED，而不是把只想改主题库、没装光栅化工具的人也硬拦住。**SKIPPED 不算通过**：末尾摘要区分「全部通过（12 项）。」（零跳过）与「N 项通过，M 项跳过：……。」（有跳过），后者紧跟一句「跳过的项**没有跑过**，不等于通过」。
+**SKIPPED 是第三态，不是失败也不是通过。** `check.sh` 的 `run()` 除了 ✓ / ✗，子进程退出码为 2 时会打印 `⊘ SKIPPED`——目前只有第 10 项（diagram 端到端）会触发，机器上 `rsvg-convert` / `magick` / Chrome 一个都没装时如实报 SKIPPED，而不是把只想改主题库、没装光栅化工具的人也硬拦住。**SKIPPED 不算通过**：末尾摘要区分「全部通过（13 项）。」（零跳过）与「N 项通过，M 项跳过：……。」（有跳过），后者紧跟一句「跳过的项**没有跑过**，不等于通过」。
 
 外加确认没碰坏另一条线（`check.sh` 不包含这一项，得单跑）：
 

@@ -64,8 +64,8 @@ PNG，微信发不了；装 `brew install librsvg` 之后回来跑步骤 4 即�
 
 ```bash
 PLATFORM=wechat      # 或 xiaohongshu / bilibili
-ASPECT=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; s=a.archetype_slot(a.load_platform('${PLATFORM}'),'diagram'); print(s['aspect'][0] if isinstance(s['aspect'],list) else s['aspect'])")
-MAXB=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; print(a.archetype_slot(a.load_platform('${PLATFORM}'),'diagram')['max_bytes'])")
+ASPECT=$(python3 shared/scripts/query.py slot --platform "${PLATFORM}" --archetype diagram --field aspect --first)
+MAXB=$(python3 shared/scripts/query.py slot --platform "${PLATFORM}" --archetype diagram --field max_bytes)
 ```
 
 微信 diagram 的 `aspect` 是列表 `["16:9", "4:3"]`，上面取第一个；用户要竖图时手动
@@ -113,7 +113,7 @@ PNG="$ART/assets/${PLATFORM}/00-diagram.png"
 mkdir -p "$(dirname "${SVG}")" "$(dirname "${PNG}")"
 python3 shared/scripts/artifacts.py guard --path "${PNG}"        # 报告并停下问用户，别自己加 --force
 RASTER=$(python3 shared/scripts/svg2raster.py --svg "${SVG}" --out "${PNG}" --aspect "${ASPECT}" --json)
-BACKEND=$(python3 -c "import json,sys; print(json.loads(sys.argv[1])['backend'])" "${RASTER}")
+BACKEND=$(python3 shared/scripts/query.py json --arg "${RASTER}" --key backend)
 ```
 
 `${BACKEND}` 是**实际用的光栅化后端**，步骤 6 要如实填进 sidecar。**不要**凭印象

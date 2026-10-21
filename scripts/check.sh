@@ -38,6 +38,7 @@ run "Markdown 回写门"                         bash skills/_shared/scripts/tes
 run "SVG→位图降级链"                          bash skills/_shared/scripts/test-svg2raster.sh
 run "imagegen 引擎"                           bash -c 'cd skills/_shared/scripts/imagegen && bun test'
 run "diagram 端到端（零成本）"                 bash scripts/test-diagram-e2e.sh
+run "query.py 与被替换的内联 python 等价 + --confirmed-by-orca" bash skills/_shared/scripts/test-query.sh
 # 顺序有意义：漂移检查必须排在同步行为测试**之前**。
 # test-sync-drift.sh 如今在沙箱副本里跑、不碰工作区，但即便如此也别把它挪到前面——
 # 它做的第一件事是 sync-shared.sh，谁要是哪天把它改回原地跑，真实漂移就会在

@@ -13,14 +13,14 @@ shared_items_for() {
     md2publish-cover)
       echo "platforms presets costs.yaml \
 scripts/asset_lib.py scripts/compose_prompt.py scripts/compress.py \
-scripts/config.py scripts/preflight.py scripts/artifacts.py scripts/imagegen"
+scripts/config.py scripts/preflight.py scripts/artifacts.py scripts/query.py scripts/imagegen"
       ;;
     md2publish-visuals)
       # 与 cover 同构，另加 writeback.py（回写门）
       echo "platforms presets costs.yaml \
 scripts/asset_lib.py scripts/compose_prompt.py scripts/compress.py \
 scripts/config.py scripts/preflight.py scripts/artifacts.py \
-scripts/writeback.py scripts/imagegen"
+scripts/writeback.py scripts/query.py scripts/imagegen"
       ;;
     md2publish-diagram)
       # 刻意比另两个小得多：diagram 不调 AI，因此不带 imagegen（一整个 TS 引擎）、
@@ -32,9 +32,11 @@ scripts/writeback.py scripts/imagegen"
       # 能独立跑的东西，而不是要求 agent 跨去 visuals 目录、顺带跑一遍它的付费流水线。
       # writeback.py 只硬 import artifacts / asset_lib，两者都已经在这份清单里，
       # 不必因此带上 imagegen/presets/costs.yaml/config.py 这些付费专属资产。
+      # scripts/query.py 也要带：SKILL.md 步骤 2、4 取画幅/上限/后端都靠它（替换了内联
+      # python3 -c）。它只在 limits 子命令里才 import config.py，diagram 用不到那一支。
       echo "platforms \
 scripts/asset_lib.py scripts/artifacts.py scripts/compress.py scripts/svg2raster.py \
-scripts/writeback.py scripts/fixtures/diagram-sample.svg"
+scripts/writeback.py scripts/query.py scripts/fixtures/diagram-sample.svg"
       ;;
     *)
       echo "未知 skill: $1" >&2

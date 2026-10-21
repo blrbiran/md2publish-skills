@@ -22,6 +22,7 @@
 | `scripts/config.py` | 读 `~/.config/md2publish/images.yaml` |
 | `scripts/preflight.py` | 运行时 / provider / 压缩工具三项自检 |
 | `scripts/artifacts.py` | 重跑保护 + 产物 sidecar |
+| `scripts/query.py` | SKILL.md 步骤里的只读查询（画幅、体积上限、估价、取 JSON 字段），替换原来的内联 `python3 -c` |
 
 ## 前置
 
@@ -54,6 +55,7 @@ python3 scripts/test-preflight.py   # 自检与配置
 ./scripts/test-artifacts.sh         # 重跑保护与 sidecar
 ./scripts/test-writeback.sh         # Markdown 回写门
 ./scripts/test-svg2raster.sh        # SVG→位图降级链（缺后端时 exit 2 报 SKIPPED）
+./scripts/test-query.sh             # query.py 与被替换的内联 python3 -c 逐字节等价
 (cd scripts/imagegen && bun test)   # 生图引擎
 ```
 

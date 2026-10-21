@@ -127,7 +127,7 @@ python3 shared/scripts/compose_prompt.py \
 `--json` 输出为准**，sidecar 只能填那份输出里的值。价目查询：
 
 ```bash
-python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; print(a.estimate_cost('<provider>', '<model>'))"
+python3 shared/scripts/query.py cost --provider <provider> --model <model>
 ```
 
 返回 `None` 就明说"该 provider 无价目表"，**不要编一个数字**。
@@ -141,12 +141,20 @@ python3 shared/scripts/artifacts.py guard --path "$ART/assets/<platform>/00-cove
 ```
 
 它非零退出就是文件已存在——**报告并停下问用户**，别自己加 `--force`。
+
+带 `--confirmed-by-orca <id>` 调用时，这次命中视为已由 Orca 确认（它是下面
+「还要不要继续花钱」那个问题的重跑情形）：不要询问，改跑这一条，并在步骤 8 的交接里
+打印一行 `confirmed-by-orca: <id>`：
+
+```bash
+python3 shared/scripts/artifacts.py guard --path "$ART/assets/<platform>/00-cover.png" --force
+```
 `$ART/briefs/` 和 `$ART/prompts/` 是复现记录，不是临时文件，一并保留。
 
 取画幅（别硬编 16:9，小红书是 3:4）：
 
 ```bash
-ASPECT=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; p=a.load_platform('<platform>'); print(a.archetype_slot(p,'cover')['aspect'])")
+ASPECT=$(python3 shared/scripts/query.py slot --platform <platform> --archetype cover --field aspect)
 ```
 
 生成。**必须带 `--json`**：不带的话 stdout 只有一个路径，你永远不知道引擎最后
@@ -160,9 +168,9 @@ GEN=$(bun shared/scripts/imagegen/main.ts \
   --ar "$ASPECT" --json \
   [--provider <p>] [--model <m>])
 
-RAW=$(python3      -c 'import json,sys; print(json.load(sys.stdin)["savedImage"])' <<<"$GEN")
-PROVIDER=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["provider"])'   <<<"$GEN")
-MODEL=$(python3    -c 'import json,sys; print(json.load(sys.stdin)["model"])'      <<<"$GEN")
+RAW=$(python3 shared/scripts/query.py json --key savedImage <<<"$GEN")
+PROVIDER=$(python3 shared/scripts/query.py json --key provider <<<"$GEN")
+MODEL=$(python3 shared/scripts/query.py json --key model <<<"$GEN")
 ```
 
 `--json` 下 stdout 是一个 JSON 对象（`savedImage` / `provider` / `model` / `attempts`），
@@ -173,6 +181,8 @@ MODEL=$(python3    -c 'import json,sys; print(json.load(sys.stdin)["model"])'   
 **单张最多 2 次计费尝试**（引擎里已经压到 2）。生成了但不满意属于"质量类"失败：
 改 `$ART/prompts/<platform>/00-cover.md` 重跑那一张，**同样计入计费尝试**——
 不要连着重试三四遍，先问用户还要不要继续花钱。
+带 `--confirmed-by-orca <id>` 调用时，这个问题视为已由 Orca 确认，不要询问；
+「不要连着重试三四遍」照旧算数，交接时同样打印 `confirmed-by-orca: <id>`。
 
 失败分类处理：
 
@@ -188,7 +198,7 @@ MODEL=$(python3    -c 'import json,sys; print(json.load(sys.stdin)["model"])'   
 微信封面 2MB 是硬限制。**必须在这里压完**，等到推草稿箱才发现超限，前面全白做。
 
 ```bash
-MAXB=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; p=a.load_platform('<platform>'); print(a.archetype_slot(p,'cover')['max_bytes'])")
+MAXB=$(python3 shared/scripts/query.py slot --platform <platform> --archetype cover --field max_bytes)
 FINAL=$(python3 shared/scripts/compress.py --image "$RAW" --max-bytes "$MAXB")
 ```
 

@@ -10,6 +10,8 @@ allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 
 创建草稿是本工作流唯一的外部副作用。用户确认之前，任何 `upload_image` / `create_draft` 都不能执行——上传图片也会写入用户的微信素材库。
 
+带 `--confirmed-by-orca <id>` 调用时，这份确认已由 Orca 事先给出，见步骤 3。
+
 ## 执行流程
 
 ### 步骤 1：前置检查
@@ -42,11 +44,11 @@ md2wechat doctor --json
 "推草稿箱才发现封面超限"这个失败模式请回来。
 
 ```bash
+cd <本 skill 目录的绝对路径>  # 下面的 scripts/ 相对本 skill 目录
 ART=<文章目录的绝对路径>     # 例如 /Users/me/posts/2026-08-10-cache-invalidation
                             # 与 md2publish-cover 用的是同一个目录；本 skill 不继承它，必须自己定
 SIDECAR="$ART/assets/wechat/00-cover.json"   # 把 wechat 换成实际平台目录名
-COVER=$(python3 -c "import json,pathlib,sys; p=pathlib.Path(sys.argv[1]); \
-print(p.parent / json.load(p.open())['image'])" "$SIDECAR")
+COVER=$(python3 scripts/cover_path.py "$SIDECAR")
 ```
 
 `image` 字段记的是最终产物的**文件名**：未超限时是 `.png`、超限时是 `.jpg`，两种情况都由它
@@ -78,6 +80,8 @@ print(p.parent / json.load(p.open())['image'])" "$SIDECAR")
 ```
 
 用户明确同意才继续；犹豫或修改要求时回到步骤 2。
+
+**带 `--confirmed-by-orca <id>` 调用时**：本步骤的确认已由 Orca 给出——照样把上面的发布摘要打印出来，但不要询问，直接进入步骤 4；并在步骤 5 给用户的报告里打印一行 `confirmed-by-orca: <id>`。这个开关只覆盖本步骤的确认。
 
 ### 步骤 4：上传图片
 

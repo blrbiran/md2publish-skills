@@ -120,7 +120,7 @@ preset。**不要背 preset 名单**——资产会持续增补，每次都回�
 取该 archetype 的槽配置，重点是 `count_range`：
 
 ```bash
-SLOT=$(python3 -c "import sys,json; sys.path.insert(0,'shared/scripts'); import asset_lib as a; print(json.dumps(a.archetype_slot(a.load_platform('${PLATFORM}'),'${ARCHETYPE}'),ensure_ascii=False))")
+SLOT=$(python3 shared/scripts/query.py slot --platform "${PLATFORM}" --archetype "${ARCHETYPE}")
 ```
 
 `count_range` 是硬约束：微信 `illustration` 是 `[3, 8]`，小红书 `series` 是 `[1, 18]`。
@@ -189,13 +189,18 @@ provider 名）。
 `max_images_per_run`（配置文件，默认 10）是**硬上限**：超过直接拒绝，不是提示。
 
 ```bash
-python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import config, asset_lib as a; c=config.load_config(); print(c['max_images_per_run'], a.estimate_cost('<provider>','<model>'))"
+python3 shared/scripts/query.py limits --provider <provider> --model <model>
 ```
 
 `N`（本次张数）超过 `max_images_per_run` 就直接拒绝，不要问用户要不要放宽。
 估价乘以 `N` 得到总预估金额，与 provider / model 一起报给用户，等确认后再往下走。
 注意这里只是预告：省略 `--provider` / `--model` 时，引擎会自己回退挑一个，**真相
 以步骤 6 的 `--json` 输出为准**，sidecar 只能填那份输出里的值。
+
+**带 `--confirmed-by-orca <id>` 调用时**：上面这次花钱确认已由 Orca 给出——照样把
+「将生成 N 张 / 预估 ¥X / provider / model」报出来，但不要询问，直接进步骤 6，
+并在交接时打印一行 `confirmed-by-orca: <id>`。`max_images_per_run` 的硬上限
+不是确认，开关不放宽它：超了照样直接拒绝。
 
 ### 步骤 6：批量生成
 
@@ -211,7 +216,7 @@ done
 是单值 `"3:4"`）：一律按 profile 实际值走，别背清单。
 
 ```bash
-ASPECT=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; v=a.archetype_slot(a.load_platform('${PLATFORM}'),'${ARCHETYPE}')['aspect']; print(v[0] if isinstance(v,list) else v)")
+ASPECT=$(python3 shared/scripts/query.py slot --platform "${PLATFORM}" --archetype "${ARCHETYPE}" --field aspect --first)
 ```
 
 写 batch 文件，一次性把 N 张任务都提交给引擎（`--jobs` 取配置文件的
@@ -241,7 +246,7 @@ BATCH=$(bun shared/scripts/imagegen/main.ts \
 的 `provider` / `model`（`id` 是字符串，与 batch.json 里写的 `"00"` 一致）：
 
 ```bash
-python3 -c "import json,sys; d=json.loads(sys.argv[1]); r=next(x for x in d['results'] if str(x['id'])=='${NN}'); print(r['provider'], r['model'])" "${BATCH}"
+python3 shared/scripts/query.py json --arg "${BATCH}" --results-id "${NN}" --keys provider,model
 ```
 
 步骤 8 的 sidecar 就用这条命令逐张查。
@@ -266,7 +271,7 @@ python3 -c "import json,sys; d=json.loads(sys.argv[1]); r=next(x for x in d['res
 **必须在这里压完**，等到推草稿箱才发现超限，前面全白做。
 
 ```bash
-MAXB=$(python3 -c "import sys; sys.path.insert(0,'shared/scripts'); import asset_lib as a; print(a.archetype_slot(a.load_platform('${PLATFORM}'),'${ARCHETYPE}')['max_bytes'])")
+MAXB=$(python3 shared/scripts/query.py slot --platform "${PLATFORM}" --archetype "${ARCHETYPE}" --field max_bytes)
 ```
 
 **压缩不是替换，是新增。** 压完之后 `NN-<role>.png`（超限的原图）和
@@ -287,7 +292,7 @@ for NN in 00 01 ...; do
   RAW="$ART/assets/<platform>/${NN}-<role>.png"
   FINAL=$(python3 shared/scripts/compress.py --image "${RAW}" --max-bytes "${MAXB}")
 
-  read -r PROVIDER MODEL <<<"$(python3 -c "import json,sys; d=json.loads(sys.argv[1]); r=next(x for x in d['results'] if str(x['id'])=='${NN}'); print(r['provider'], r['model'])" "${BATCH}")"
+  read -r PROVIDER MODEL <<<"$(python3 shared/scripts/query.py json --arg "${BATCH}" --results-id "${NN}" --keys provider,model)"
 
   python3 shared/scripts/artifacts.py sidecar \
     --image "${FINAL}" \
@@ -315,7 +320,7 @@ sidecar 写在各自最终产物旁边、与它同名。**最终产物一律以 
 
 ```bash
 # 9a 写 insertions（语义层）。image 一律抄 sidecar 的 image 字段，绝不硬编 .png
-python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['image'])" "$ART/assets/${PLATFORM}/01-illustration.json"
+python3 shared/scripts/query.py json --file "$ART/assets/${PLATFORM}/01-illustration.json" --key image
 
 cat > "$ART/insertions.json" <<'JSON'
 [

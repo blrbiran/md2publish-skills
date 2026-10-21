@@ -84,6 +84,7 @@ md2wechat inspect <article.md> --mode ai --theme <theme> --json
 ### 步骤 7：落盘和预览
 
 - 输出文件默认写到源文件同目录：`<article-name>.html`。**如果该路径已存在文件，先问用户是否覆盖。**
+  带 `--confirmed-by-orca <id>` 调用时，覆盖已由 Orca 确认：不要询问，直接覆盖，并在步骤 8 的报告里打印一行 `confirmed-by-orca: <id>`。
 - 保存后用 `open <file>.html`（macOS）让用户在浏览器里检查效果。
 - 明确告诉用户：浏览器效果和微信编辑器效果有差异，最终以粘贴进公众号后台的效果为准。
 
