@@ -225,7 +225,7 @@ done
 echo
 echo "== --confirmed-by-orca 写在该写的地方 =="
 # 每个文件里含 `--confirmed-by-orca` 的行数要恰好等于期望值，且每个点名的步骤里都要有；
-# 没有开关的 diagram 必须是 0（它没有要人确认的花钱/外部副作用步骤）。
+# diagram 只有步骤 4 的重跑保护归开关管（它零成本，没有花钱确认）。
 section() {  # section <file> <heading-prefix>：从该标题到下一个 ### 标题
   awk -v h="$2" 'index($0,h)==1{f=1;print;next} f&&/^#{2,3} /{f=0} f' "$1"
 }
@@ -248,21 +248,121 @@ check_in() {
   fi
 }
 A=skills/md2publish-article/SKILL.md
-check_count $R 2
+# 第二批（人裁 2026-10-22，Orca 会话 b37f7ce9）：draft 步骤 2 元数据超限、visuals 步骤 6
+# 重跑保护与步骤 9 回写 diff、diagram 步骤 4 重跑保护也归这个开关管。开关下替人做的每个
+# 选择都要在交接里打一行 `⚠ confirmed-by-orca:`，Orca 靠这个前缀把它标红——没有这一行，
+# 自动决定就和人点过头的决定长得一样。
+FLAG='⚠ confirmed-by-orca: <id>'
+check_count $R 3
 check_in $R intro '--confirmed-by-orca'
+check_in $R '### 步骤 2' '--confirmed-by-orca'
+check_in $R '### 步骤 2' "$FLAG"
 check_in $R '### 步骤 3' '--confirmed-by-orca'
 check_in $R '### 步骤 3' 'confirmed-by-orca: <id>'
-check_count $V 1
+check_count $V 3
 check_in $V '### 步骤 5' '--confirmed-by-orca'
 check_in $V '### 步骤 5' 'confirmed-by-orca: <id>'
+check_in $V '### 步骤 6' '--confirmed-by-orca'
+check_in $V '### 步骤 6' "$FLAG"
+check_in $V '### 步骤 9' '--confirmed-by-orca'
+check_in $V '### 步骤 9' "$FLAG"
 check_count $A 1
 check_in $A '### 步骤 7' '--confirmed-by-orca'
 check_in $A '### 步骤 7' 'confirmed-by-orca: <id>'
 check_count $C 2
 check_in $C '### 步骤 6' '--confirmed-by-orca'
-check_in $C '### 步骤 6' 'confirmed-by-orca: <id>'
-check_in $C '### 步骤 6' 'python3 shared/scripts/artifacts.py guard --path "$ART/assets/<platform>/00-cover.png" --force'
-check_count $D 0
+check_in $C '### 步骤 6' "$FLAG"
+check_count $D 1
+check_in $D '### 步骤 4' '--confirmed-by-orca'
+check_in $D '### 步骤 4' "$FLAG"
+
+echo
+echo "== 开关下重跑也绝不覆盖：旧产物原地保留，新产物另存编号文件 =="
+# 人裁「带开关也另存新文件」：a81c5fa6 曾让 cover 在开关下加 --force 覆盖，现已推翻。
+# 任何 SKILL.md 里只要出现带 --force 的 guard 命令（# 注释里的「别自己加 --force」不算），
+# 就是又能覆盖花钱生成的图了。
+for f in "$REPO"/skills/*/SKILL.md; do
+  grep -nE 'artifacts\.py guard [^#]*--force' "$f" > "$TMP/force.txt"
+  rel=${f#"$REPO"/}
+  if [[ ! -s "$TMP/force.txt" ]]; then
+    ok "${rel}：没有带 --force 的 guard 命令"
+  else
+    bad "${rel}：出现带 --force 的 guard 命令" "$(cat "$TMP/force.txt")"
+  fi
+done
+# 不带开关时的原文一字不变：这几行就是人看到的停下来问的那道门。
+expect_line $C 'python3 shared/scripts/artifacts.py guard --path "$ART/assets/<platform>/00-cover.png"'
+expect_line $C '它非零退出就是文件已存在——**报告并停下问用户**，别自己加 `--force`。'
+expect_line $V '逐张过重跑保护（别自己加 `--force`，非零退出就报告并停下问用户）：'
+expect_line $V '  python3 shared/scripts/artifacts.py guard --path "$ART/assets/<platform>/${NN}-<role>.png"'
+expect_line $D 'python3 shared/scripts/artifacts.py guard --path "${PNG}"        # 报告并停下问用户，别自己加 --force'
+expect_line $V '**9b 与用户确认这一步不许跳过**（spec §9：改源文件的门）。锚点命中 0 次或多次时'
+expect_line $R '超限时给出压缩建议让用户选择，不要静默截断。'
+
+# 取新文件名的那几行：先确认 SKILL.md 里写的就是这几行，再把它们原样跑在一个已有
+# 旧产物（含被占用的 .2.png 和只剩 .3.jpg 的编号）的目录里，量三件事：选中的名字没被
+# 占用、guard 放行、旧文件逐字节没动。只看文本不跑，写错一个字符的循环也会是绿的。
+COVER_SNIP=(
+  'N=2'
+  'while [[ -e "$ART/assets/<platform>/00-cover.$N.png" || -e "$ART/assets/<platform>/00-cover.$N.jpg" ]]; do N=$((N+1)); done'
+  'COVER_PNG="$ART/assets/<platform>/00-cover.$N.png"'
+  'python3 shared/scripts/artifacts.py guard --path "$COVER_PNG"'
+)
+VIS_SNIP=(
+  '  PNG="$ART/assets/<platform>/${NN}-<role>.png"'
+  '  if [[ -e "${PNG}" ]]; then'
+  '    N=2'
+  '    while [[ -e "$ART/assets/<platform>/${NN}-<role>.$N.png" || -e "$ART/assets/<platform>/${NN}-<role>.$N.jpg" ]]; do N=$((N+1)); done'
+  '    PNG="$ART/assets/<platform>/${NN}-<role>.$N.png"'
+  '  fi'
+  '  python3 shared/scripts/artifacts.py guard --path "${PNG}"'
+  '  echo "${NN} ${PNG}"'
+)
+DIA_SNIP=(
+  'N=2'
+  'while [[ -e "$ART/assets/${PLATFORM}/00-diagram.$N.png" || -e "$ART/assets/${PLATFORM}/00-diagram.$N.jpg" ]]; do N=$((N+1)); done'
+  'PNG="$ART/assets/${PLATFORM}/00-diagram.$N.png"'
+  'python3 shared/scripts/artifacts.py guard --path "${PNG}"'
+)
+for l in "${COVER_SNIP[@]}"; do expect_line $C "$l"; done
+for l in "${VIS_SNIP[@]}"; do expect_line $V "$l"; done
+for l in "${DIA_SNIP[@]}"; do expect_line $D "$l"; done
+
+# run_snip <label> <want-stdout> <body>：在 $SK 里、对一个全新的 $ART 跑 body。
+# 预置的旧产物每个写不同内容，跑完逐字节比对，证明没被碰过。
+run_snip() {
+  local label="$1" want="$2" body="$3"
+  local art="$TMP/rerun-$RANDOM"
+  mkdir -p "$art/assets/wechat"
+  for f in 00-cover.png 00-cover.2.png 00-cover.3.jpg 00-diagram.png 00-diagram.2.png \
+           00-illustration.png 00-illustration.2.jpg; do
+    echo "old $f" > "$art/assets/wechat/$f"
+  done
+  \cp -Rf "$art/assets" "$art/before"
+  (cd "$SK" && ART="$art" PLATFORM=wechat eval "$body") > "$TMP/snip.out" 2> "$TMP/snip.err"
+  local rc=$?
+  local got
+  got=$(cat "$TMP/snip.out")
+  got=${got//$art/\$ART}
+  if [[ $rc -ne 0 ]]; then
+    bad "${label}：没跑通" "rc=$rc err=$(cat "$TMP/snip.err")"
+  elif [[ "$got" != "$want" ]]; then
+    bad "${label}：选的文件名不对" "want=$want got=$got"
+  elif ! diff -r "$art/before" "$art/assets" > "$TMP/snip.diff"; then
+    bad "${label}：旧产物被改动了" "$(cat "$TMP/snip.diff")"
+  else
+    ok "${label} → ${want}，旧产物逐字节未动"
+  fi
+}
+sub() { local s="$1"; s=${s//<platform>/wechat}; s=${s//<role>/illustration}; printf '%s\n' "$s"; }
+body=""; for l in "${COVER_SNIP[@]}"; do body+="$(sub "$l")"$'\n'; done
+run_snip "cover 开关下另存" '$ART/assets/wechat/00-cover.4.png' "${body}echo \"\$COVER_PNG\""
+body="for NN in 00 01; do"$'\n'; for l in "${VIS_SNIP[@]}"; do body+="$(sub "$l")"$'\n'; done; body+="done"
+run_snip "visuals 开关下逐张另存（00 已存在、01 没有）" \
+  "00 \$ART/assets/wechat/00-illustration.3.png"$'\n'"01 \$ART/assets/wechat/01-illustration.png" "$body"
+body=""; for l in "${DIA_SNIP[@]}"; do body+="$(sub "$l")"$'\n'; done
+run_snip "diagram 开关下另存" '$ART/assets/wechat/00-diagram.3.png' \
+  "${body}echo \"\$PNG\""
 
 echo
 echo "通过 $PASS 项，失败 $FAIL 项"

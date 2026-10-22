@@ -116,6 +116,19 @@ RASTER=$(python3 shared/scripts/svg2raster.py --svg "${SVG}" --out "${PNG}" --as
 BACKEND=$(python3 shared/scripts/query.py json --arg "${RASTER}" --key backend)
 ```
 
+带 `--confirmed-by-orca <id>` 调用时，守卫命中视为已由 Orca 确认要重新光栅化，但**旧图一律不覆盖**
+（开关下同样不加 `--force`）：不要询问，新图另存为下一个没被占用的编号文件
+`00-diagram.N.png`（N 从 2 起）——先跑下面几行，再照跑上面的 `RASTER=` / `BACKEND=`
+两行（压缩产物、sidecar 随之是 `00-diagram.N.jpg` / `00-diagram.N.json`）。步骤 8 的
+交接里打印一行 `⚠ confirmed-by-orca: <id> 00-diagram.png 已存在，未覆盖；新图另存为 ${FINAL}`。
+
+```bash
+N=2
+while [[ -e "$ART/assets/${PLATFORM}/00-diagram.$N.png" || -e "$ART/assets/${PLATFORM}/00-diagram.$N.jpg" ]]; do N=$((N+1)); done
+PNG="$ART/assets/${PLATFORM}/00-diagram.$N.png"
+python3 shared/scripts/artifacts.py guard --path "${PNG}"
+```
+
 `${BACKEND}` 是**实际用的光栅化后端**，步骤 6 要如实填进 sidecar。**不要**凭印象
 写 `rsvg-convert`——降级链按可用性降级，`--check` 报告的就是本机实际可用的那些，
 实际用的未必是排在第一的那个，填错了 sidecar 就成了一份误导性的追溯记录。

@@ -142,13 +142,21 @@ python3 shared/scripts/artifacts.py guard --path "$ART/assets/<platform>/00-cove
 
 它非零退出就是文件已存在——**报告并停下问用户**，别自己加 `--force`。
 
-带 `--confirmed-by-orca <id>` 调用时，这次命中视为已由 Orca 确认（它是下面
-「还要不要继续花钱」那个问题的重跑情形）：不要询问，改跑这一条，并在步骤 8 的交接里
-打印一行 `confirmed-by-orca: <id>`：
+带 `--confirmed-by-orca <id>` 调用时，这次命中视为已由 Orca 确认要重生成，但**旧封面一律不覆盖**
+（开关下同样不加 `--force`）：不要询问，新封面另存为下一个没被占用的编号文件
+`00-cover.N.png`（N 从 2 起），下面生成命令里的 `--image` 换成 `"$COVER_PNG"`，
+其余步骤照走（压缩产物、sidecar 随之是 `00-cover.N.jpg` / `00-cover.N.json`）：
 
 ```bash
-python3 shared/scripts/artifacts.py guard --path "$ART/assets/<platform>/00-cover.png" --force
+N=2
+while [[ -e "$ART/assets/<platform>/00-cover.$N.png" || -e "$ART/assets/<platform>/00-cover.$N.jpg" ]]; do N=$((N+1)); done
+COVER_PNG="$ART/assets/<platform>/00-cover.$N.png"
+python3 shared/scripts/artifacts.py guard --path "$COVER_PNG"
 ```
+
+步骤 8 的交接里打印一行 `⚠ confirmed-by-orca: <id> 封面已存在，未覆盖；新封面另存为 ${FINAL}`，
+并说明 `md2publish-draft` 默认读的 `00-cover.json` 仍指向旧封面，要用新封面得显式指定。
+
 `$ART/briefs/` 和 `$ART/prompts/` 是复现记录，不是临时文件，一并保留。
 
 取画幅（别硬编 16:9，小红书是 3:4）：

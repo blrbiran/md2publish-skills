@@ -212,6 +212,27 @@ for NN in 00 01 ...; do
 done
 ```
 
+带 `--confirmed-by-orca <id>` 调用时，命中视为已由 Orca 确认要重生成，但**已有的图一律不覆盖**
+（开关下同样不加 `--force`）：不要询问，已存在的那几张另存为下一个没被占用的编号文件
+`NN-<role>.N.png`（N 从 2 起），没命中的照用原名。改跑下面这个循环代替上面那个，
+它逐张打印 `NN 实际路径`；下面 batch.json 的 `image` 与步骤 8 的 `RAW` 都按这份
+对照填（压缩产物、sidecar 随之是 `NN-<role>.N.jpg` / `NN-<role>.N.json`，9a 照旧抄
+sidecar 的 `image`）。步骤 10 的交接里对每张另存的图打印一行
+`⚠ confirmed-by-orca: <id> NN-<role>.png 已存在，未覆盖；新图另存为 <实际路径>`。
+
+```bash
+for NN in 00 01 ...; do
+  PNG="$ART/assets/<platform>/${NN}-<role>.png"
+  if [[ -e "${PNG}" ]]; then
+    N=2
+    while [[ -e "$ART/assets/<platform>/${NN}-<role>.$N.png" || -e "$ART/assets/<platform>/${NN}-<role>.$N.jpg" ]]; do N=$((N+1)); done
+    PNG="$ART/assets/<platform>/${NN}-<role>.$N.png"
+  fi
+  python3 shared/scripts/artifacts.py guard --path "${PNG}"
+  echo "${NN} ${PNG}"
+done
+```
+
 取画幅（是列表时取第一个——微信 `illustration` 是 `["16:9","4:3"]`；小红书 `series`
 是单值 `"3:4"`）：一律按 profile 实际值走，别背清单。
 
@@ -348,6 +369,12 @@ python3 shared/scripts/writeback.py \
 **9b 与用户确认这一步不许跳过**（spec §9：改源文件的门）。锚点命中 0 次或多次时
 脚本会硬失败并把锚点打回来——**改锚点，别去改原文来迁就它**。源文件只读，永不
 修改；`--out`（即 `$OUT`）已存在时脚本会拦住，除非 `--force`。
+
+带 `--confirmed-by-orca <id>` 调用时，9b 之后的确认视为已由 Orca 给出：照样跑 9b、把 diff
+打印出来，但不要询问，直接跑 9c（照上面原样，**不加 `--force`**）。本步骤没写默认选项，
+选「写」是因为 `$OUT` 是另存的新文件、`$SOURCE` 一字不动；`$OUT` 已存在被脚本拦住时
+不要加 `--force`，报告失败并停下。步骤 10 的交接里打印一行
+`⚠ confirmed-by-orca: <id> 回写 diff 未经人看，已写入 $OUT（原文未改）`。
 
 ### 步骤 10：交接
 

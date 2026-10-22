@@ -10,7 +10,7 @@ allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 
 创建草稿是本工作流唯一的外部副作用。用户确认之前，任何 `upload_image` / `create_draft` 都不能执行——上传图片也会写入用户的微信素材库。
 
-带 `--confirmed-by-orca <id>` 调用时，这份确认已由 Orca 事先给出，见步骤 3。
+带 `--confirmed-by-orca <id>` 调用时，这份确认已由 Orca 事先给出，见步骤 2、3。
 
 ## 执行流程
 
@@ -63,6 +63,11 @@ COVER=$(python3 scripts/cover_path.py "$SIDECAR")
 
 超限时给出压缩建议让用户选择，不要静默截断。
 
+带 `--confirmed-by-orca <id>` 调用时，这个选择视为已由 Orca 交给你：不要询问。本步骤没写默认
+选项，就采用你给出的第一条（最推荐的）压缩建议——是改写、不是机械截断，源 md 与 HTML
+都不改，只改要推的元数据。步骤 3 的发布摘要与步骤 5 的报告里对每个超限字段打印一行
+`⚠ confirmed-by-orca: <id> <字段>超限，原文「…」→ 采用「…」`。
+
 ### 步骤 3：向用户展示发布摘要并确认
 
 用 AskUserQuestion（或运行时等价工具）展示并确认，格式：
@@ -81,7 +86,7 @@ COVER=$(python3 scripts/cover_path.py "$SIDECAR")
 
 用户明确同意才继续；犹豫或修改要求时回到步骤 2。
 
-**带 `--confirmed-by-orca <id>` 调用时**：本步骤的确认已由 Orca 给出——照样把上面的发布摘要打印出来，但不要询问，直接进入步骤 4；并在步骤 5 给用户的报告里打印一行 `confirmed-by-orca: <id>`。这个开关只覆盖本步骤的确认。
+**带 `--confirmed-by-orca <id>` 调用时**：本步骤的确认已由 Orca 给出——照样把上面的发布摘要打印出来，但不要询问，直接进入步骤 4；并在步骤 5 给用户的报告里打印一行 `confirmed-by-orca: <id>`。这个开关只覆盖本步骤的确认和步骤 2 的元数据超限选择。
 
 ### 步骤 4：上传图片
 

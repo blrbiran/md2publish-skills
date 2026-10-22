@@ -149,7 +149,7 @@ git log --oneline origin/main..main                # 还没推上去的
 8. **SVG→位图降级链**（**12 项**，三期新增，对应 `test-svg2raster.sh`；本机 `rsvg-convert` / `magick` / Chrome 三后端齐全时的数字，缺后端的机器上会少几项并 exit 2 报 SKIPPED。第 12 项是三期整支评审第 6 条补的「沙箱里第三方 import 确实失败」）
 9. imagegen 引擎（`bun test`，97 pass / 0 fail / 12 files）
 10. **diagram 端到端（零成本）**（7 项，三期新增，对应 `scripts/test-diagram-e2e.sh`；本机三后端齐全时真跑并全绿，三者都缺时整项 **SKIPPED**，见下）
-11. **query.py 与被替换的内联 python 等价 + `--confirmed-by-orca`**（**86 项**，对应 `skills/_shared/scripts/test-query.sh`；SKILL.md 里原来的内联 `python3 -c "…"` 换成了 `shared/scripts/query.py` / `md2publish-draft/scripts/cover_path.py`，这一项把旧命令原样留着，与新命令在同一份 fixture 上逐字节比 stdout，另查 SKILL.md 里写的就是被比过的那几行、不再有内联 `python3 -c`（`import yaml` 依赖检查除外）、`--confirmed-by-orca` 开关写在 draft 步骤 3 / visuals 步骤 5 / article 步骤 7 / cover 步骤 6）
+11. **query.py 与被替换的内联 python 等价 + `--confirmed-by-orca`**（**125 项**，对应 `skills/_shared/scripts/test-query.sh`；SKILL.md 里原来的内联 `python3 -c "…"` 换成了 `shared/scripts/query.py` / `md2publish-draft/scripts/cover_path.py`，这一项把旧命令原样留着，与新命令在同一份 fixture 上逐字节比 stdout，另查 SKILL.md 里写的就是被比过的那几行、不再有内联 `python3 -c`（`import yaml` 依赖检查除外）、`--confirmed-by-orca` 开关写在 draft 步骤 2、3 / visuals 步骤 5、6、9 / article 步骤 7 / cover 步骤 6 / diagram 步骤 4。第二批（人裁 2026-10-22，Orca 会话 b37f7ce9）起：开关下替人做的选择在交接里打一行 `⚠ confirmed-by-orca:`；重跑保护在开关下**也不覆盖**——任何 SKILL.md 里不许出现带 `--force` 的 guard 命令，新产物另存为 `NN-<role>.N.png`（N 从 2 起），取名那几行在已有旧产物的目录里真跑一遍并逐字节比对旧文件没动）
 12. shared 漂移检查（`md2publish-cover/shared/`、`md2publish-visuals/shared/`、`md2publish-diagram/shared/` 与 `_shared/` 是否一致，三期起从 1 个 skill 扩到 3 个）
 13. vendor 同步与漂移（12 项，三期从 9 变 12，T6 给两个新 skill 加了清单断言）
 
